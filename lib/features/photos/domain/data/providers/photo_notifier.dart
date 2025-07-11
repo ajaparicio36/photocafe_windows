@@ -86,6 +86,35 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       return currentState.copyWith(photos: []);
     });
   }
+
+  Future<void> switchPhotoOrder(int indexA, int indexB) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception("State is not available to switch photo order.");
+      }
+
+      final photos = currentState.photos;
+      final photoA = photos.firstWhere((p) => p.index == indexA);
+      final photoB = photos.firstWhere((p) => p.index == indexB);
+
+      final newPhotoA = photoA.copyWith(index: indexB);
+      final newPhotoB = photoB.copyWith(index: indexA);
+
+      final updatedPhotos = List<PhotoModel>.from(photos);
+      final listIndexA = updatedPhotos.indexWhere((p) => p.index == indexA);
+      final listIndexB = updatedPhotos.indexWhere((p) => p.index == indexB);
+
+      if (listIndexA != -1) {
+        updatedPhotos[listIndexA] = newPhotoA;
+      }
+      if (listIndexB != -1) {
+        updatedPhotos[listIndexB] = newPhotoB;
+      }
+
+      return currentState.copyWith(photos: updatedPhotos);
+    });
+  }
 }
 
 final photoProvider = AsyncNotifierProvider<PhotoNotifier, PhotoState>(
