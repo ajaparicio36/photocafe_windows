@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:photocafe_windows/core/colors/app_theme.dart';
+import 'package:photocafe_windows/core/router/router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,13 +15,6 @@ class App extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp(
-      title: 'PhotoCafe',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: Scaffold(
-        appBar: AppBar(title: const Text('PhotoCafe')),
-        body: Center(child: const Text('Welcome to PhotoCafe!')),
-      ),
-    );
+    return MaterialApp.router(routerConfig: router, theme: AppTheme.lightTheme);
   }
 }
