@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_state.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:image/image.dart' as img;
 
 class PhotoNotifier extends AsyncNotifier<PhotoState> {
   @override
@@ -17,6 +18,24 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       await photoTempDir.create(recursive: true);
     }
     return PhotoState(photos: [], tempPath: photoTempDir.path);
+  }
+
+  Future<File?> captureWithGphoto2() async {
+    final tempDir = await getTemporaryDirectory();
+    final winPath = tempDir.path.replaceAll(r'\', r'\\');
+    final fileName = 'capture_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final fullWindowsPath = p.join(winPath, fileName);
+
+    final result = await Process.run('wsl.exe', [
+      'bash',
+      '-lc',
+      'gphoto2 --capture-image-and-download --stdout > "$fullWindowsPath"',
+    ]);
+
+    if (result.exitCode != 0) {
+      return null;
+    }
+    return File(fullWindowsPath);
   }
 
   Future<void> addPhoto(Uint8List imageBytes) async {
@@ -110,6 +129,59 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       }
       if (listIndexB != -1) {
         updatedPhotos[listIndexB] = newPhotoB;
+      }
+
+      return currentState.copyWith(photos: updatedPhotos);
+    });
+  }
+
+  Future<void> applyFilters(
+    img.Image Function(img.Image) filterFunction,
+  ) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception("State is not available to apply filters.");
+      }
+
+      final updatedPhotos = <PhotoModel>[];
+
+      for (final photo in currentState.photos) {
+        final file = File(photo.imagePath);
+        if (await file.exists()) {
+          // Read and decode the image
+          final imageBytes = await file.readAsBytes();
+          final originalImage = img.decodeImage(imageBytes);
+
+          if (originalImage != null) {
+            // Apply the filter
+            final filteredImage = filterFunction(originalImage);
+
+            // Encode back to JPEG
+            final filteredBytes = img.encodeJpg(filteredImage);
+
+            // Create new file path for filtered image
+            final fileName =
+                'filtered_${DateTime.now().millisecondsSinceEpoch}_${photo.index}.jpg';
+            final filteredPath = p.join(currentState.tempPath, fileName);
+            final filteredFile = File(filteredPath);
+
+            // Write filtered image
+            await filteredFile.writeAsBytes(filteredBytes);
+
+            // Delete old file
+            await file.delete();
+
+            // Update photo model with new path
+            updatedPhotos.add(photo.copyWith(imagePath: filteredPath));
+          } else {
+            // If image couldn't be decoded, keep original
+            updatedPhotos.add(photo);
+          }
+        } else {
+          // If file doesn't exist, keep original
+          updatedPhotos.add(photo);
+        }
       }
 
       return currentState.copyWith(photos: updatedPhotos);

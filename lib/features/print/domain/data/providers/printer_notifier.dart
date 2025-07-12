@@ -79,3 +79,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     }
   }
 }
+
+final printerProvider = AsyncNotifierProvider<PrinterNotifier, PrinterState>(
+  () => PrinterNotifier(),
+);

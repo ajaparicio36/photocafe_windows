@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/classic/presentation/screens/classic_capture_screen.dart';
 import 'package:photocafe_windows/features/classic/presentation/screens/classic_filter_screen.dart';
@@ -32,7 +33,8 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/classic/print',
-      builder: (context, state) => const ClassicPrintScreen(),
+      builder: (context, state) =>
+          ClassicPrintScreen(pdfBytes: state.extra as Uint8List?),
     ),
     GoRoute(
       path: '/flipbook/start',
