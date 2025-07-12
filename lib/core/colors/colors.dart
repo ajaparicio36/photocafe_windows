@@ -78,4 +78,18 @@ class AppColors {
   // Gradient colors for monochrome theme
   static const Color gradientStart = Color(0xFF000000); // Black
   static const Color gradientEnd = Color(0xFF404040); // Dark gray
+
+  // Touch screen friendly colors
+  static const Color touchPrimary = Color(
+    0xFF1A1A1A,
+  ); // Slightly lighter black for better visibility
+  static const Color touchSecondary = Color(
+    0xFFE8E8E8,
+  ); // Light gray for secondary elements
+  static const Color touchAccent = Color(
+    0xFF2D2D2D,
+  ); // Dark gray accent for buttons
+  static const Color touchHighlight = Color(
+    0xFF404040,
+  ); // Highlight color for interactions
 }

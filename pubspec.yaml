@@ -49,6 +49,8 @@ dependencies:
   path: ^1.9.1
   windows_printer: ^0.2.1
   camera_windows: ^0.2.6+2
+  carousel_slider: ^5.1.1
+  pdf: ^3.11.3
 
 dev_dependencies:
   flutter_test:
@@ -79,7 +81,8 @@ flutter:
   uses-material-design: true
   assets:
     - .env
-    - assets/frames/
+    - assets/frames/frame1.png
+    - assets/frames/test.jpg
 
   # To add assets to your application, add an assets section, like this:
   # assets:

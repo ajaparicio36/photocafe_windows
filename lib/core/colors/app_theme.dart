@@ -25,36 +25,36 @@ class AppTheme {
     scaffoldBackgroundColor: AppColors.lightBackground,
     cardTheme: const CardThemeData(
       color: AppColors.lightCard,
-      elevation: 2,
+      elevation: 4,
       shadowColor: Colors.black12,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(22.4)),
+        borderRadius: BorderRadius.all(Radius.circular(16)),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.lightPrimary,
+        backgroundColor: AppColors.touchPrimary,
         foregroundColor: AppColors.lightPrimaryForeground,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22.4),
-        ),
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.lightInput,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(22.4),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.lightBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(22.4),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.lightBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(22.4),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.lightPrimary, width: 2),
       ),
     ),
@@ -65,31 +65,31 @@ class AppTheme {
       centerTitle: true,
       titleTextStyle: TextStyle(
         color: AppColors.lightForeground,
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: FontWeight.w600,
       ),
     ),
     textTheme: const TextTheme(
       headlineLarge: TextStyle(
         color: AppColors.lightForeground,
-        fontSize: 32,
+        fontSize: 40,
         fontWeight: FontWeight.bold,
         fontFamily: 'PlusJakartaSans',
       ),
       headlineMedium: TextStyle(
         color: AppColors.lightForeground,
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: FontWeight.w600,
         fontFamily: 'PlusJakartaSans',
       ),
       bodyLarge: TextStyle(
         color: AppColors.lightForeground,
-        fontSize: 16,
+        fontSize: 18,
         fontFamily: 'PlusJakartaSans',
       ),
       bodyMedium: TextStyle(
         color: AppColors.lightMutedForeground,
-        fontSize: 14,
+        fontSize: 16,
         fontFamily: 'PlusJakartaSans',
       ),
     ),
@@ -118,36 +118,36 @@ class AppTheme {
     scaffoldBackgroundColor: AppColors.darkBackground,
     cardTheme: const CardThemeData(
       color: AppColors.darkCard,
-      elevation: 2,
+      elevation: 4,
       shadowColor: Colors.black26,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(22.4)),
+        borderRadius: BorderRadius.all(Radius.circular(16)),
       ),
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.darkPrimary,
         foregroundColor: AppColors.darkPrimaryForeground,
-        elevation: 0,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22.4),
-        ),
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.darkInput,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(22.4),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.darkBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(22.4),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.darkBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(22.4),
+        borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: AppColors.darkPrimary, width: 2),
       ),
     ),
@@ -158,31 +158,31 @@ class AppTheme {
       centerTitle: true,
       titleTextStyle: TextStyle(
         color: AppColors.darkForeground,
-        fontSize: 20,
+        fontSize: 24,
         fontWeight: FontWeight.w600,
       ),
     ),
     textTheme: const TextTheme(
       headlineLarge: TextStyle(
         color: AppColors.darkForeground,
-        fontSize: 32,
+        fontSize: 40,
         fontWeight: FontWeight.bold,
         fontFamily: 'PlusJakartaSans',
       ),
       headlineMedium: TextStyle(
         color: AppColors.darkForeground,
-        fontSize: 24,
+        fontSize: 28,
         fontWeight: FontWeight.w600,
         fontFamily: 'PlusJakartaSans',
       ),
       bodyLarge: TextStyle(
         color: AppColors.darkForeground,
-        fontSize: 16,
+        fontSize: 18,
         fontFamily: 'PlusJakartaSans',
       ),
       bodyMedium: TextStyle(
         color: AppColors.darkMutedForeground,
-        fontSize: 14,
+        fontSize: 16,
         fontFamily: 'PlusJakartaSans',
       ),
     ),

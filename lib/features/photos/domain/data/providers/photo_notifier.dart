@@ -21,15 +21,23 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   }
 
   Future<File?> captureWithGphoto2() async {
-    final tempDir = await getTemporaryDirectory();
-    final winPath = tempDir.path.replaceAll(r'\', r'\\');
+    final currentState = state.value;
+    if (currentState == null) {
+      throw Exception("State is not available to capture photo.");
+    }
+
     final fileName = 'capture_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final fullWindowsPath = p.join(winPath, fileName);
+    final fullWindowsPath = p.join(currentState.tempPath, fileName);
+
+    // Convert Windows path to WSL path format
+    final wslPath = fullWindowsPath
+        .replaceAll(r'\', '/')
+        .replaceAll('C:', '/mnt/c');
 
     final result = await Process.run('wsl.exe', [
       'bash',
-      '-lc',
-      'gphoto2 --capture-image-and-download --stdout > "$fullWindowsPath"',
+      '-c',
+      'gphoto2 --capture-image-and-download --stdout > "$wslPath"',
     ]);
 
     if (result.exitCode != 0) {
@@ -113,25 +121,44 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         throw Exception("State is not available to switch photo order.");
       }
 
-      final photos = currentState.photos;
-      final photoA = photos.firstWhere((p) => p.index == indexA);
-      final photoB = photos.firstWhere((p) => p.index == indexB);
+      final photos = List<PhotoModel>.from(currentState.photos);
 
+      // Find photos by their current indices
+      final photoAIndex = photos.indexWhere((p) => p.index == indexA);
+      final photoBIndex = photos.indexWhere((p) => p.index == indexB);
+
+      if (photoAIndex == -1 || photoBIndex == -1) {
+        throw Exception("Photo not found for switching");
+      }
+
+      final photoA = photos[photoAIndex];
+      final photoB = photos[photoBIndex];
+
+      // Create new photos with swapped indices
       final newPhotoA = photoA.copyWith(index: indexB);
       final newPhotoB = photoB.copyWith(index: indexA);
 
-      final updatedPhotos = List<PhotoModel>.from(photos);
-      final listIndexA = updatedPhotos.indexWhere((p) => p.index == indexA);
-      final listIndexB = updatedPhotos.indexWhere((p) => p.index == indexB);
+      // Update the list
+      photos[photoAIndex] = newPhotoA;
+      photos[photoBIndex] = newPhotoB;
 
-      if (listIndexA != -1) {
-        updatedPhotos[listIndexA] = newPhotoA;
-      }
-      if (listIndexB != -1) {
-        updatedPhotos[listIndexB] = newPhotoB;
+      return currentState.copyWith(photos: photos);
+    });
+  }
+
+  Future<void> reorderPhotos(List<PhotoModel> newOrder) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception("State is not available to reorder photos.");
       }
 
-      return currentState.copyWith(photos: updatedPhotos);
+      // Assign new indices based on the new order
+      final reorderedPhotos = newOrder.asMap().entries.map((entry) {
+        return entry.value.copyWith(index: entry.key);
+      }).toList();
+
+      return currentState.copyWith(photos: reorderedPhotos);
     });
   }
 
