@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:printing/printing.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/print/print_action_panel.dart';
 
 class ClassicPrintScreen extends ConsumerStatefulWidget {
   final Uint8List? pdfBytes;
@@ -227,499 +230,216 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).colorScheme.surface,
-              Theme.of(context).colorScheme.background,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: widget.pdfBytes == null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.error.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(60),
-                        ),
-                        child: Icon(
-                          Icons.error_rounded,
-                          size: 60,
-                          color: Theme.of(context).colorScheme.error,
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      Text(
-                        'No PDF Available',
-                        style: Theme.of(
-                          context,
-                        ).textTheme.headlineLarge?.copyWith(fontSize: 36),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Please go back and generate the PDF first.',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontSize: 20,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.7),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      Container(
-                        width: 300,
-                        height: 80,
-                        child: ElevatedButton(
-                          onPressed: () => context.go('/classic/organize'),
-                          child: Text(
-                            'Go Back',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+    return ScreenContainer(
+      child: widget.pdfBytes == null
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 120,
+                    height: 120,
+                    decoration: BoxDecoration(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.error.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(60),
+                    ),
+                    child: Icon(
+                      Icons.error_rounded,
+                      size: 60,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
                   ),
-                )
-              : Padding(
-                  padding: const EdgeInsets.all(40),
-                  child: Column(
+                  const SizedBox(height: 30),
+                  Text(
+                    'No PDF Available',
+                    style: Theme.of(
+                      context,
+                    ).textTheme.headlineLarge?.copyWith(fontSize: 36),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Please go back and generate the PDF first.',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontSize: 20,
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.onSurface.withOpacity(0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                  Container(
+                    width: 300,
+                    height: 80,
+                    child: ElevatedButton(
+                      onPressed: () => context.go('/classic/organize'),
+                      child: Text(
+                        'Go Back',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Column(
+              children: [
+                // Header
+                ScreenHeader(
+                  title: 'Print Preview',
+                  subtitle: 'Review your photo strip before printing',
+                  backRoute: '/classic/organize',
+                ),
+
+                const SizedBox(height: 40),
+
+                // Main content area
+                Expanded(
+                  child: Row(
                     children: [
-                      // Header with back button and title
-                      Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.outline,
-                              ),
-                            ),
-                            child: IconButton(
-                              onPressed: () => context.go('/classic/organize'),
-                              icon: Icon(
-                                Icons.arrow_back_rounded,
-                                size: 32,
-                                color: Theme.of(context).colorScheme.onSurface,
-                              ),
-                              padding: const EdgeInsets.all(16),
-                            ),
-                          ),
-                          const SizedBox(width: 24),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Print Preview',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineLarge
-                                      ?.copyWith(
-                                        fontSize: 42,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Review your photo strip before printing',
-                                  style: Theme.of(context).textTheme.bodyLarge
-                                      ?.copyWith(
-                                        fontSize: 20,
-                                        color: Theme.of(context)
-                                            .colorScheme
-                                            .onSurface
-                                            .withOpacity(0.7),
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                      // Left panel - Action buttons
+                      Expanded(
+                        flex: 2,
+                        child: PrintActionPanel(
+                          isPrinting: _isPrinting,
+                          onPrint: _printDocument,
+                          onShowSoftCopiesDialog: _showSoftCopiesDialog,
+                        ),
                       ),
 
-                      const SizedBox(height: 40),
+                      const SizedBox(width: 32),
 
-                      // Main content area
+                      // Right panel - PDF preview
                       Expanded(
-                        child: Row(
-                          children: [
-                            // Left panel - Action buttons (larger)
-                            Expanded(
-                              flex: 2,
-                              child: Container(
-                                padding: const EdgeInsets.all(32),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(24),
-                                  border: Border.all(
+                        flex: 3,
+                        child: Container(
+                          padding: const EdgeInsets.all(32),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface,
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.preview_rounded,
+                                    size: 32,
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.outline,
+                                    ).colorScheme.primary,
                                   ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.touch_app_rounded,
-                                          size: 32,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
+                                  const SizedBox(width: 16),
+                                  Text(
+                                    'Final Preview',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .headlineMedium
+                                        ?.copyWith(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        const SizedBox(width: 16),
-                                        Text(
-                                          'Choose Action',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .headlineMedium
-                                              ?.copyWith(
-                                                fontSize: 32,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 32),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 24),
 
-                                    // Print button
-                                    Container(
-                                      width: double.infinity,
-                                      height: 120,
-                                      margin: const EdgeInsets.only(bottom: 24),
-                                      child: ElevatedButton(
-                                        onPressed: _isPrinting
-                                            ? null
-                                            : _printDocument,
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                          foregroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.onPrimary,
-                                          elevation: 8,
-                                          shadowColor: Colors.black.withOpacity(
-                                            0.3,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              24,
-                                            ),
-                                          ),
-                                        ),
-                                        child: _isPrinting
-                                            ? Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  SizedBox(
-                                                    width: 40,
-                                                    height: 40,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 4,
-                                                          color:
-                                                              Theme.of(context)
-                                                                  .colorScheme
-                                                                  .onPrimary,
-                                                        ),
-                                                  ),
-                                                  const SizedBox(width: 24),
-                                                  Text(
-                                                    'Printing...',
-                                                    style: TextStyle(
-                                                      fontSize: 28,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ],
-                                              )
-                                            : Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons.print_rounded,
-                                                    size: 48,
-                                                  ),
-                                                  const SizedBox(width: 20),
-                                                  Text(
-                                                    'Print Photos',
-                                                    style: TextStyle(
-                                                      fontSize: 28,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
+                              // Compact PDF Preview
+                              Expanded(
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.outline,
+                                      width: 2,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.1),
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(18),
+                                    child: PdfPreview(
+                                      build: (format) => widget.pdfBytes!,
+                                      canChangePageFormat: false,
+                                      canDebug: false,
+                                      allowPrinting: false,
+                                      allowSharing: false,
+                                      scrollViewDecoration: BoxDecoration(
+                                        color: Colors.grey[50],
                                       ),
                                     ),
-
-                                    // Soft copies button
-                                    Container(
-                                      width: double.infinity,
-                                      height: 100,
-                                      margin: const EdgeInsets.only(bottom: 24),
-                                      child: OutlinedButton(
-                                        onPressed: _showSoftCopiesDialog,
-                                        style: OutlinedButton.styleFrom(
-                                          side: BorderSide(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.outline,
-                                            width: 2,
-                                          ),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.download_rounded,
-                                              size: 40,
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Text(
-                                              'Get Soft Copies',
-                                              style: TextStyle(
-                                                fontSize: 24,
-                                                fontWeight: FontWeight.w600,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-
-                                    const Spacer(),
-
-                                    // Start over button
-                                    Container(
-                                      width: double.infinity,
-                                      height: 100,
-                                      child: TextButton(
-                                        onPressed: () {
-                                          ref
-                                              .read(photoProvider.notifier)
-                                              .clearAllPhotos();
-                                          context.go('/');
-                                        },
-                                        style: TextButton.styleFrom(
-                                          backgroundColor: Theme.of(
-                                            context,
-                                          ).colorScheme.surface,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                            side: BorderSide(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .outline
-                                                  .withOpacity(0.5),
-                                            ),
-                                          ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.refresh_rounded,
-                                              size: 36,
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onSurface
-                                                  .withOpacity(0.7),
-                                            ),
-                                            const SizedBox(width: 16),
-                                            Text(
-                                              'Start Over',
-                                              style: TextStyle(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.w600,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withOpacity(0.7),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ),
-                            ),
 
-                            const SizedBox(width: 32),
+                              const SizedBox(height: 24),
 
-                            // Right panel - Compact PDF preview
-                            Expanded(
-                              flex: 3,
-                              child: Container(
-                                padding: const EdgeInsets.all(32),
+                              // Preview info
+                              Container(
+                                padding: const EdgeInsets.all(20),
                                 decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.surface,
-                                  borderRadius: BorderRadius.circular(24),
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
                                     color: Theme.of(
                                       context,
-                                    ).colorScheme.outline,
+                                    ).colorScheme.primary.withOpacity(0.3),
                                   ),
                                 ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                child: Row(
                                   children: [
-                                    Row(
-                                      children: [
-                                        Icon(
-                                          Icons.preview_rounded,
-                                          size: 32,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Text(
-                                          'Final Preview',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .headlineMedium
-                                              ?.copyWith(
-                                                fontSize: 28,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                        ),
-                                      ],
+                                    Icon(
+                                      Icons.info_outline_rounded,
+                                      size: 28,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.primary,
                                     ),
-                                    const SizedBox(height: 24),
-
-                                    // Compact PDF Preview
+                                    const SizedBox(width: 16),
                                     Expanded(
-                                      child: Container(
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            20,
-                                          ),
-                                          border: Border.all(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.outline,
-                                            width: 2,
-                                          ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.black.withOpacity(
-                                                0.1,
-                                              ),
-                                              blurRadius: 15,
-                                              offset: const Offset(0, 5),
+                                      child: Text(
+                                        'This is how your photo strip will look when printed',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .bodyLarge
+                                            ?.copyWith(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
                                             ),
-                                          ],
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            18,
-                                          ),
-                                          child: PdfPreview(
-                                            build: (format) => widget.pdfBytes!,
-                                            canChangePageFormat: false,
-                                            canDebug: false,
-                                            allowPrinting: false,
-                                            allowSharing: false,
-                                            scrollViewDecoration: BoxDecoration(
-                                              color: Colors.grey[50],
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    const SizedBox(height: 24),
-
-                                    // Preview info
-                                    Container(
-                                      padding: const EdgeInsets.all(20),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .primary
-                                              .withOpacity(0.3),
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            Icons.info_outline_rounded,
-                                            size: 28,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.primary,
-                                          ),
-                                          const SizedBox(width: 16),
-                                          Expanded(
-                                            child: Text(
-                                              'This is how your photo strip will look when printed',
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyLarge
-                                                  ?.copyWith(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w500,
-                                                    color: Theme.of(
-                                                      context,
-                                                    ).colorScheme.primary,
-                                                  ),
-                                            ),
-                                          ),
-                                        ],
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-        ),
-      ),
+              ],
+            ),
     );
   }
 }
