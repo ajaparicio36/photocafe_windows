@@ -5,12 +5,16 @@ import 'package:photocafe_windows/features/photos/domain/data/providers/photo_no
 
 class PrintActionPanel extends ConsumerWidget {
   final bool isPrinting;
+  final bool splitStrips;
+  final ValueChanged<bool> onSplitStripsChanged;
   final VoidCallback onPrint;
   final VoidCallback onShowSoftCopiesDialog;
 
   const PrintActionPanel({
     super.key,
     required this.isPrinting,
+    required this.splitStrips,
+    required this.onSplitStripsChanged,
     required this.onPrint,
     required this.onShowSoftCopiesDialog,
   });
@@ -98,6 +102,49 @@ class PrintActionPanel extends ConsumerWidget {
                         ),
                       ],
                     ),
+            ),
+          ),
+
+          // Split strips toggle
+          Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Split into Strips',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 20,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Prints two identical strips (requires cutter)',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 16,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Switch(value: splitStrips, onChanged: onSplitStripsChanged),
+              ],
             ),
           ),
 

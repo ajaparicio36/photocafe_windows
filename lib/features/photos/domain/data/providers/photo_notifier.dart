@@ -17,7 +17,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     if (!await photoTempDir.exists()) {
       await photoTempDir.create(recursive: true);
     }
-    return PhotoState(photos: [], tempPath: photoTempDir.path);
+    return PhotoState(photos: [], tempPath: photoTempDir.path, captureCount: 4);
   }
 
   Future<File?> captureWithGphoto2() async {
@@ -72,6 +72,16 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         ..add(newPhoto);
 
       return currentState.copyWith(photos: updatedPhotos);
+    });
+  }
+
+  Future<void> setCaptureCount(int count) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception("State is not available to set capture count.");
+      }
+      return currentState.copyWith(captureCount: count);
     });
   }
 

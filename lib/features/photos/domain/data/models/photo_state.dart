@@ -9,6 +9,7 @@ sealed class PhotoState with _$PhotoState {
   const factory PhotoState({
     required List<PhotoModel> photos,
     required String tempPath,
+    required int captureCount,
     String? error,
   }) = _PhotoState;
 

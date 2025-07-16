@@ -1,6 +1,7 @@
 import 'package:image/image.dart' as img;
 
 class FilterConstants {
+  static const String noFilterName = 'No Filter';
   static const String vintageFilterName = 'Vintage Sepia';
 
   static img.Image applyVintageFilter(img.Image image) {
@@ -19,5 +20,5 @@ class FilterConstants {
     return filtered;
   }
 
-  static List<String> get availableFilters => [vintageFilterName];
+  static List<String> get availableFilters => [noFilterName, vintageFilterName];
 }

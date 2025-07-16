@@ -92,7 +92,7 @@ class ClassicStartScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'Capture 4 amazing photos!',
+                          'Choose your photo strip style!',
                           style: Theme.of(context).textTheme.headlineMedium
                               ?.copyWith(
                                 fontSize: 28,
@@ -105,64 +105,30 @@ class ClassicStartScreen extends ConsumerWidget {
 
                       const SizedBox(height: 60),
 
-                      // Instructions
-                      Column(
+                      // Mode selection
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _buildInstructionItem(
+                          _buildModeCard(
                             context,
-                            Icons.camera_alt_rounded,
-                            'Get ready for your photos',
+                            ref,
+                            icon: Icons.photo_library_rounded,
+                            title: '2x2 Photo Strip',
+                            description: 'Capture 2 photos',
+                            photoCount: 2,
                           ),
-                          const SizedBox(height: 16),
-                          _buildInstructionItem(
+                          const SizedBox(width: 40),
+                          _buildModeCard(
                             context,
-                            Icons.timer_rounded,
-                            '10 second countdown between shots',
-                          ),
-                          const SizedBox(height: 16),
-                          _buildInstructionItem(
-                            context,
-                            Icons.photo_library_rounded,
-                            'Review and customize your strip',
+                            ref,
+                            icon: Icons.grid_on_rounded,
+                            title: '4x4 Photo Strip',
+                            description: 'Capture 4 photos',
+                            photoCount: 4,
                           ),
                         ],
                       ),
                     ],
-                  ),
-                ),
-
-                // Start button
-                Container(
-                  width: double.infinity,
-                  height: 120,
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      await ref.read(photoProvider.notifier).clearAllPhotos();
-                      context.go('/classic/capture');
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Theme.of(context).colorScheme.primary,
-                      elevation: 8,
-                      shadowColor: Colors.black26,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.play_arrow_rounded, size: 48),
-                        const SizedBox(width: 20),
-                        Text(
-                          'Begin Capturing Memories',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
                   ),
                 ),
               ],
@@ -173,32 +139,57 @@ class ClassicStartScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInstructionItem(
+  Widget _buildModeCard(
     BuildContext context,
-    IconData icon,
-    String text,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 32, color: Colors.white),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Text(
-              text,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontSize: 20,
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+    WidgetRef ref, {
+    required IconData icon,
+    required String title,
+    required String description,
+    required int photoCount,
+  }) {
+    return Expanded(
+      child: InkWell(
+        onTap: () async {
+          final notifier = ref.read(photoProvider.notifier);
+          await notifier.clearAllPhotos();
+          await notifier.setCaptureCount(photoCount);
+          context.go('/classic/capture');
+        },
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          height: 300,
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
           ),
-        ],
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 64, color: Colors.white),
+              const SizedBox(height: 24),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                description,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

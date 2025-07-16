@@ -13,7 +13,10 @@ import 'package:photocafe_windows/features/photos/domain/data/providers/photo_no
 class FrameOne extends ConsumerWidget {
   const FrameOne({super.key});
 
-  Future<Uint8List> _generatePdf(List<PhotoModel> photos) async {
+  Future<Uint8List> _generatePdf(
+    List<PhotoModel> photos,
+    int captureCount,
+  ) async {
     final pdf = pw.Document();
 
     // Load the frame background
@@ -46,6 +49,9 @@ class FrameOne extends ConsumerWidget {
       }
     }
 
+    final int photoCount = captureCount == 2 ? 2 : 4;
+    final double topOffset = captureCount == 2 ? 100 : 15;
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a6,
@@ -54,10 +60,10 @@ class FrameOne extends ConsumerWidget {
           return pw.Stack(
             children: [
               // Images below (left column)
-              for (int i = 0; i < 4; i++)
+              for (int i = 0; i < photoCount; i++)
                 pw.Positioned(
                   left: 13,
-                  top: 15 + i * 92.5,
+                  top: topOffset + i * 92.5,
                   child: pw.Container(
                     width: 125,
                     height: 78,
@@ -90,10 +96,10 @@ class FrameOne extends ConsumerWidget {
                   ),
                 ),
               // Images below (right column - duplicates)
-              for (int i = 0; i < 4; i++)
+              for (int i = 0; i < photoCount; i++)
                 pw.Positioned(
                   left: 161,
-                  top: 15 + i * 92.72,
+                  top: topOffset + i * 92.72,
                   child: pw.Container(
                     width: 125,
                     height: 78,
@@ -146,7 +152,7 @@ class FrameOne extends ConsumerWidget {
     return photoStateAsync.when(
       data: (photoState) {
         return FutureBuilder<Uint8List>(
-          future: _generatePdf(photoState.photos),
+          future: _generatePdf(photoState.photos, photoState.captureCount),
           builder: (context, snapshot) {
             if (snapshot.hasData) {
               return PdfPreview(

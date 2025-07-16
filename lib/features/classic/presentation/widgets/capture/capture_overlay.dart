@@ -23,60 +23,60 @@ class CaptureOverlay extends ConsumerWidget {
     final photoStateAsync = ref.watch(photoProvider);
     final size = MediaQuery.of(context).size;
 
-    return Stack(
-      children: [
-        // Top info panel
-        Positioned(
-          top: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(40, 60, 40, 40),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.black.withOpacity(0.8), Colors.transparent],
-              ),
-            ),
-            child: Column(
-              children: [
-                // Photo counter
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 20,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.3)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.collections_rounded,
-                        color: Colors.white,
-                        size: 32,
-                      ),
-                      const SizedBox(width: 16),
-                      Text(
-                        'Photo ${currentPhotoIndex + 1} of 4',
-                        style: Theme.of(context).textTheme.headlineLarge
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ],
-                  ),
+    return photoStateAsync.when(
+      data: (photoState) => Stack(
+        children: [
+          // Top info panel
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(40, 60, 40, 40),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.black.withOpacity(0.8), Colors.transparent],
                 ),
-                const SizedBox(height: 20),
-                // Photos captured indicator
-                photoStateAsync.when(
-                  data: (photoState) => Container(
+              ),
+              child: Column(
+                children: [
+                  // Photo counter
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 20,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.collections_rounded,
+                          color: Colors.white,
+                          size: 32,
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          'Photo ${currentPhotoIndex + 1} of ${photoState.captureCount}',
+                          style: Theme.of(context).textTheme.headlineLarge
+                              ?.copyWith(
+                                color: Colors.white,
+                                fontSize: 36,
+                                fontWeight: FontWeight.bold,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // Photos captured indicator
+                  Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 12,
@@ -107,155 +107,155 @@ class CaptureOverlay extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  loading: () => const SizedBox.shrink(),
-                  error: (_, __) => const SizedBox.shrink(),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
 
-        // Countdown display
-        if (isCountingDown)
-          Center(
+          // Countdown display
+          if (isCountingDown)
+            Center(
+              child: Container(
+                width: 320,
+                height: 320,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.black.withOpacity(0.9),
+                  border: Border.all(color: Colors.white, width: 6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.5),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$countdown',
+                      style: const TextStyle(
+                        fontSize: 120,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Get Ready!',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withOpacity(0.8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+          // Bottom controls
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
             child: Container(
-              width: 320,
-              height: 320,
+              padding: const EdgeInsets.fromLTRB(40, 40, 40, 60),
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black.withOpacity(0.9),
-                border: Border.all(color: Colors.white, width: 6),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.5),
-                    blurRadius: 30,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
+                ),
               ),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    '$countdown',
-                    style: const TextStyle(
-                      fontSize: 120,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  if (!isCountingDown && !isCapturing)
+                    Container(
+                      width: _min(500, size.width * 0.8),
+                      height: 120,
+                      child: ElevatedButton(
+                        onPressed: onStartCountdown,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.black,
+                          elevation: 12,
+                          shadowColor: Colors.black.withOpacity(0.5),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(32),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              currentPhotoIndex == 0
+                                  ? Icons.camera_alt_rounded
+                                  : Icons.navigate_next_rounded,
+                              size: 48,
+                            ),
+                            const SizedBox(width: 20),
+                            Text(
+                              currentPhotoIndex == 0
+                                  ? 'Start Capture'
+                                  : 'Next Photo',
+                              style: const TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  Text(
-                    'Get Ready!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white.withOpacity(0.8),
+                  if (isCapturing)
+                    Column(
+                      children: [
+                        Container(
+                          width: 120,
+                          height: 120,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.2),
+                            border: Border.all(color: Colors.white, width: 3),
+                          ),
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 6,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Capturing Photo...',
+                            style: Theme.of(context).textTheme.headlineMedium
+                                ?.copyWith(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
                 ],
               ),
             ),
           ),
-
-        // Bottom controls
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(40, 40, 40, 60),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black.withOpacity(0.8)],
-              ),
-            ),
-            child: Column(
-              children: [
-                if (!isCountingDown && !isCapturing)
-                  Container(
-                    width: _min(500, size.width * 0.8),
-                    height: 120,
-                    child: ElevatedButton(
-                      onPressed: onStartCountdown,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black,
-                        elevation: 12,
-                        shadowColor: Colors.black.withOpacity(0.5),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(32),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            currentPhotoIndex == 0
-                                ? Icons.camera_alt_rounded
-                                : Icons.navigate_next_rounded,
-                            size: 48,
-                          ),
-                          const SizedBox(width: 20),
-                          Text(
-                            currentPhotoIndex == 0
-                                ? 'Start Capture'
-                                : 'Next Photo',
-                            style: const TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                if (isCapturing)
-                  Column(
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withOpacity(0.2),
-                          border: Border.all(color: Colors.white, width: 3),
-                        ),
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 6,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'Capturing Photo...',
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                color: Colors.white,
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, stack) => Center(child: Text('Error: $error')),
     );
   }
 

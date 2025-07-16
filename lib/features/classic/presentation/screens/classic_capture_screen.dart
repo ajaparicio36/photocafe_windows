@@ -94,12 +94,14 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         }
       }
 
+      final captureCount = ref.read(photoProvider).value?.captureCount ?? 4;
+
       setState(() {
         _currentPhotoIndex++;
       });
 
-      if (_currentPhotoIndex >= 4) {
-        // All 4 photos captured, navigate to filter screen
+      if (_currentPhotoIndex >= captureCount) {
+        // All photos captured, navigate to filter screen
         await Future.delayed(const Duration(seconds: 1));
         context.go('/classic/filter');
       } else {

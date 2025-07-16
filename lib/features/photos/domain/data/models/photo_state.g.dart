@@ -11,6 +11,7 @@ _PhotoState _$PhotoStateFromJson(Map<String, dynamic> json) => _PhotoState(
       .map((e) => PhotoModel.fromJson(e as Map<String, dynamic>))
       .toList(),
   tempPath: json['tempPath'] as String,
+  captureCount: (json['captureCount'] as num).toInt(),
   error: json['error'] as String?,
 );
 
@@ -18,5 +19,6 @@ Map<String, dynamic> _$PhotoStateToJson(_PhotoState instance) =>
     <String, dynamic>{
       'photos': instance.photos,
       'tempPath': instance.tempPath,
+      'captureCount': instance.captureCount,
       'error': instance.error,
     };

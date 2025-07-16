@@ -87,6 +87,12 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
   Future<void> _applySelectedFilter() async {
     if (_selectedFilter == null) return;
 
+    // If "No Filter" is selected, just navigate
+    if (_selectedFilter == FilterConstants.noFilterName) {
+      context.go('/classic/organize');
+      return;
+    }
+
     setState(() {
       _isApplyingFilter = true;
     });
@@ -456,7 +462,7 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
 
   String _getFilterDescription(String filterName) {
     switch (filterName) {
-      case 'No Filter':
+      case FilterConstants.noFilterName:
         return 'Keep your photos as they are';
       case FilterConstants.vintageFilterName:
         return 'Add a classic vintage look with warm tones';

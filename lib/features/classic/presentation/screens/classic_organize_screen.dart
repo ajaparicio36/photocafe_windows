@@ -33,10 +33,16 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
     }
 
     // Call the FrameOne's _generatePdf method through a helper
-    return await _generateFrameOnePdf(photoState.photos);
+    return await _generateFrameOnePdf(
+      photoState.photos,
+      photoState.captureCount,
+    );
   }
 
-  Future<Uint8List> _generateFrameOnePdf(List<PhotoModel> photos) async {
+  Future<Uint8List> _generateFrameOnePdf(
+    List<PhotoModel> photos,
+    int captureCount,
+  ) async {
     // This replicates the FrameOne._generatePdf method
     final pdf = pw.Document();
 
@@ -69,6 +75,9 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
       }
     }
 
+    final int photoCount = captureCount == 2 ? 2 : 4;
+    final double topOffset = captureCount == 2 ? 100 : 14;
+
     pdf.addPage(
       pw.Page(
         pageFormat: PdfPageFormat.a6,
@@ -77,10 +86,10 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
           return pw.Stack(
             children: [
               // Images below (left column)
-              for (int i = 0; i < 4; i++)
+              for (int i = 0; i < photoCount; i++)
                 pw.Positioned(
                   left: 13,
-                  top: 14 + i * 92.5,
+                  top: topOffset + i * 92.5,
                   child: pw.Container(
                     width: 125,
                     height: 78,
@@ -113,10 +122,10 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                   ),
                 ),
               // Images below (right column - duplicates)
-              for (int i = 0; i < 4; i++)
+              for (int i = 0; i < photoCount; i++)
                 pw.Positioned(
                   left: 158,
-                  top: 14 + i * 92.5,
+                  top: topOffset + i * 92.5,
                   child: pw.Container(
                     width: 125,
                     height: 78,
@@ -363,12 +372,26 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                                         ),
                                         const SizedBox(height: 8),
                                         Text(
-                                          '4 photos in a strip layout with decorative frame',
+                                          'A decorative strip layout for your photos.',
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodyMedium
                                               ?.copyWith(
                                                 fontSize: 18,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onSurface
+                                                    .withOpacity(0.7),
+                                              ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${photoState.captureCount} photos in a strip layout with decorative frame',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodyMedium
+                                              ?.copyWith(
+                                                fontSize: 16,
                                                 color: Theme.of(context)
                                                     .colorScheme
                                                     .onSurface
