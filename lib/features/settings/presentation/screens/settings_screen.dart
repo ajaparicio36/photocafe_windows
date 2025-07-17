@@ -1,7 +1,6 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';

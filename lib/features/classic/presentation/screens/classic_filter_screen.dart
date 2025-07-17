@@ -459,15 +459,4 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
       ),
     );
   }
-
-  String _getFilterDescription(String filterName) {
-    switch (filterName) {
-      case FilterConstants.noFilterName:
-        return 'Keep your photos as they are';
-      case FilterConstants.vintageFilterName:
-        return 'Add a classic vintage look with warm tones';
-      default:
-        return 'Apply this filter to your photos';
-    }
-  }
 }
