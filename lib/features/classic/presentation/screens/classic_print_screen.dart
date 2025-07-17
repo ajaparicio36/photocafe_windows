@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
-import 'package:printing/printing.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/print/print_action_panel.dart';
+import 'package:qr_flutter/qr_flutter.dart';
+import 'package:printing/printing.dart';
 
 class ClassicPrintScreen extends ConsumerStatefulWidget {
   final Uint8List? pdfBytes;
@@ -162,6 +163,9 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
   }
 
   void _showSoftCopiesDialog() {
+    // TODO: Replace with actual URL generation logic
+    const String downloadUrl = 'https://example.com/download/12345';
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -174,18 +178,18 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(50),
               ),
-              child: const Icon(
-                Icons.construction_rounded,
+              child: Icon(
+                Icons.qr_code_2_rounded,
                 size: 60,
-                color: Colors.orange,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 24),
             Text(
-              'Coming Soon!',
+              'Get Your Digital Copy',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -193,11 +197,27 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Digital copies of your photos will be available soon. Stay tuned for updates!',
+              'Scan the QR code with your phone to download the digital version of your photo strip.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 fontSize: 18,
                 color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+              child: QrImageView(
+                data: downloadUrl,
+                version: QrVersions.auto,
+                size: 200.0,
               ),
             ),
             const SizedBox(height: 32),
@@ -218,7 +238,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                   ),
                 ),
                 child: Text(
-                  'OK',
+                  'Close',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -386,6 +406,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                                       canDebug: false,
                                       allowPrinting: false,
                                       allowSharing: false,
+                                      useActions: false,
                                       scrollViewDecoration: BoxDecoration(
                                         color: Colors.grey[50],
                                       ),

@@ -154,7 +154,7 @@ class PrintActionPanel extends ConsumerWidget {
             height: 100,
             margin: const EdgeInsets.only(bottom: 24),
             child: OutlinedButton(
-              onPressed: onShowSoftCopiesDialog,
+              onPressed: isPrinting ? null : onShowSoftCopiesDialog,
               style: OutlinedButton.styleFrom(
                 side: BorderSide(
                   color: Theme.of(context).colorScheme.outline,

@@ -50,7 +50,7 @@ class FrameOne extends ConsumerWidget {
     }
 
     final int photoCount = captureCount == 2 ? 2 : 4;
-    final double topOffset = captureCount == 2 ? 100 : 15;
+    final double topOffset = captureCount == 2 ? 100 : 14;
 
     pdf.addPage(
       pw.Page(
@@ -98,8 +98,8 @@ class FrameOne extends ConsumerWidget {
               // Images below (right column - duplicates)
               for (int i = 0; i < photoCount; i++)
                 pw.Positioned(
-                  left: 161,
-                  top: topOffset + i * 92.72,
+                  left: 158,
+                  top: topOffset + i * 92.5,
                   child: pw.Container(
                     width: 125,
                     height: 78,

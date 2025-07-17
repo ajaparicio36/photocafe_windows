@@ -69,7 +69,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
         : state.value?.cutDisabledPrinter;
 
     if (printerName == null || printerName.isEmpty) {
-      throw Exception('No printer selected');
+      throw Exception('No printer selected for this action.');
     }
 
     try {

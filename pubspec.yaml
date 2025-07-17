@@ -51,6 +51,7 @@ dependencies:
   camera_windows: ^0.2.6+2
   carousel_slider: ^5.1.1
   pdf: ^3.11.3
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -113,4 +114,5 @@ flutter:
   #         weight: 700
   #
   # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
   # see https://flutter.dev/to/font-from-package

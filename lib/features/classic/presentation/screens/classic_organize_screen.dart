@@ -9,7 +9,8 @@ import 'package:photocafe_windows/features/photos/domain/data/models/photo_model
 import 'package:printing/printing.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/core/colors/colors.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_one.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_one.dart'
+    as frames;
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/organize/photo_organization_panel.dart';
@@ -439,7 +440,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(18),
                                   child: _selectedFrame == 'frame_one'
-                                      ? const FrameOne()
+                                      ? const frames.FrameOne()
                                       : PdfPreview(
                                           build: (format) => _generatePdf(),
                                           canChangePageFormat: false,
