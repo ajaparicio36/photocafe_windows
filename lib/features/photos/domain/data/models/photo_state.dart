@@ -11,6 +11,8 @@ sealed class PhotoState with _$PhotoState {
     required String tempPath,
     required int captureCount,
     String? error,
+    String? videoPath,
+    @Default(false) bool isRecording,
   }) = _PhotoState;
 
   factory PhotoState.fromJson(Map<String, dynamic> json) =>

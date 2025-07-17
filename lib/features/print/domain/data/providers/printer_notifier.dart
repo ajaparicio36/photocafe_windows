@@ -1,8 +1,12 @@
+import 'dart:io';
+import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photocafe_windows/features/print/domain/data/models/printer_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:windows_printer/windows_printer.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 class PrinterNotifier extends AsyncNotifier<PrinterState> {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -13,6 +17,8 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     final prefs = await _prefs;
     final cutEnabledPrinter = prefs.getString('cutEnabledPrinter');
     final cutDisabledPrinter = prefs.getString('cutDisabledPrinter');
+    final photoCameraName = prefs.getString('photoCameraName');
+    final videoCameraName = prefs.getString('videoCameraName');
 
     return PrinterState(
       cutEnabledPrinter: availablePrinters.contains(cutEnabledPrinter)
@@ -21,6 +27,8 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
       cutDisabledPrinter: availablePrinters.contains(cutDisabledPrinter)
           ? cutDisabledPrinter
           : null,
+      photoCameraName: photoCameraName,
+      videoCameraName: videoCameraName,
     );
   }
 
@@ -28,6 +36,15 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     try {
       final printers = await WindowsPrinter.getAvailablePrinters();
       return printers;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  Future<List<CameraDescription>> getAvailableCameras() async {
+    try {
+      final cameras = await availableCameras();
+      return cameras;
     } catch (e) {
       return [];
     }
@@ -63,6 +80,30 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     });
   }
 
+  Future<void> setPhotoCameraName(String cameraName) async {
+    state = await AsyncValue.guard(() async {
+      try {
+        final prefs = await _prefs;
+        await prefs.setString('photoCameraName', cameraName);
+        return state.value!.copyWith(photoCameraName: cameraName, error: null);
+      } catch (e) {
+        return state.value!.copyWith(error: e.toString());
+      }
+    });
+  }
+
+  Future<void> setVideoCameraName(String cameraName) async {
+    state = await AsyncValue.guard(() async {
+      try {
+        final prefs = await _prefs;
+        await prefs.setString('videoCameraName', cameraName);
+        return state.value!.copyWith(videoCameraName: cameraName, error: null);
+      } catch (e) {
+        return state.value!.copyWith(error: e.toString());
+      }
+    });
+  }
+
   Future<void> printPdfBytes(Uint8List pdfBytes, {bool cut = false}) async {
     final printerName = cut
         ? state.value?.cutEnabledPrinter
@@ -72,10 +113,32 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
       throw Exception('No printer selected for this action.');
     }
 
+    // Method 2: Try using the system's default PDF handler via temp file
     try {
-      await WindowsPrinter.printPdf(data: pdfBytes, printerName: printerName);
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(
+        p.join(
+          tempDir.path,
+          'photobooth_print_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        ),
+      );
+      await tempFile.writeAsBytes(pdfBytes);
+      // Use process run but with PDFtoPrinter
+      final result = await Process.run('cmd.exe', [
+        '/c',
+        'PDFtoPrinter',
+        '/s',
+        tempFile.path,
+        printerName,
+      ], runInShell: true);
+
+      if (result.exitCode != 0) {
+        throw Exception('Failed to print PDF: ${result.stderr}');
+      }
+
+      return;
     } catch (e) {
-      throw Exception('Failed to print: ${e.toString()}');
+      throw Exception('Failed to print PDF: $e');
     }
   }
 }

@@ -8,6 +8,8 @@ sealed class PrinterState with _$PrinterState {
   const factory PrinterState({
     String? cutEnabledPrinter,
     String? cutDisabledPrinter,
+    String? photoCameraName,
+    String? videoCameraName,
     String? error,
   }) = _PrinterState;
 

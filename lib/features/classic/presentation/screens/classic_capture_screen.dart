@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,7 @@ import 'package:photocafe_windows/features/photos/domain/data/providers/photo_no
 import 'package:photocafe_windows/core/colors/colors.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/camera_preview_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/capture_overlay.dart';
+import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 
 class ClassicCaptureScreen extends ConsumerStatefulWidget {
   const ClassicCaptureScreen({super.key});
@@ -25,6 +27,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   int _countdown = 10;
   int _currentPhotoIndex = 0;
   Timer? _countdownTimer;
+  bool _hasStartedSession = false;
 
   @override
   void initState() {
@@ -36,18 +39,49 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     try {
       final cameras = await availableCameras();
       if (cameras.isNotEmpty) {
+        // Get selected photo camera from settings
+        final printerState = ref.read(printerProvider).value;
+        final selectedPhotoCameraName = printerState?.photoCameraName;
+
+        CameraDescription? selectedPhotoCamera;
+        if (selectedPhotoCameraName != null) {
+          try {
+            selectedPhotoCamera = cameras.firstWhere(
+              (camera) => camera.name == selectedPhotoCameraName,
+            );
+          } catch (e) {
+            print('Selected photo camera not found, using first available');
+          }
+        }
+
+        // Fallback to first camera if no selection or camera not found
+        selectedPhotoCamera ??= cameras.first;
+
+        // Initialize photo camera controller with specific settings to avoid conflicts
         _cameraController = CameraController(
-          cameras.first,
+          selectedPhotoCamera,
           ResolutionPreset.high,
-          enableAudio: false,
+          enableAudio:
+              false, // Disable audio for photo camera to avoid conflicts
+          imageFormatGroup: ImageFormatGroup.jpeg,
         );
+
         await _cameraController!.initialize();
+
         setState(() {
           _isCameraInitialized = true;
         });
+
+        print('Photo camera initialized: ${selectedPhotoCamera.name}');
       }
     } catch (e) {
-      print('Error initializing camera: $e');
+      print('Error initializing photo camera: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Photo camera initialization failed: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
     }
   }
 
@@ -56,6 +90,12 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       _isCountingDown = true;
       _countdown = 10;
     });
+
+    // Start video recording on first photo
+    if (_currentPhotoIndex == 0 && !_hasStartedSession) {
+      _startVideoRecording();
+      _hasStartedSession = true;
+    }
 
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       setState(() {
@@ -69,6 +109,40 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     });
   }
 
+  Future<void> _startVideoRecording() async {
+    try {
+      // Small delay to ensure photo camera is fully initialized
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      await photoNotifier.startVideoRecording();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.videocam, color: Colors.white),
+              const SizedBox(width: 12),
+              Text(
+                'Video recording started!',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      print('Failed to start video recording: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Video recording failed: $e'),
+          backgroundColor: AppColors.error,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   Future<void> _capturePhoto() async {
     if (_isCapturing) return;
 
@@ -78,20 +152,32 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     });
 
     try {
-      final photoFile = await photoNotifier.captureWithGphoto2();
+      File? photoFile;
+
+      // Try gphoto2 first
+      try {
+        photoFile = await photoNotifier.captureWithGphoto2();
+      } catch (e) {
+        print('gphoto2 capture failed: $e');
+      }
+
+      // Fallback to camera controller if gphoto2 fails
+      if (photoFile == null &&
+          _cameraController != null &&
+          _cameraController!.value.isInitialized) {
+        try {
+          final image = await _cameraController!.takePicture();
+          photoFile = File(image.path);
+        } catch (e) {
+          print('Camera controller capture failed: $e');
+        }
+      }
+
       if (photoFile != null) {
         final imageBytes = await photoFile.readAsBytes();
         await photoNotifier.addPhoto(imageBytes);
       } else {
-        // Fallback to camera controller
-        if (_cameraController != null &&
-            _cameraController!.value.isInitialized) {
-          final image = await _cameraController!.takePicture();
-          final imageBytes = await image.readAsBytes();
-          await photoNotifier.addPhoto(imageBytes);
-        } else {
-          throw Exception('Camera not available');
-        }
+        throw Exception('Both camera methods failed');
       }
 
       final captureCount = ref.read(photoProvider).value?.captureCount ?? 4;
@@ -101,6 +187,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       });
 
       if (_currentPhotoIndex >= captureCount) {
+        // Stop video recording before navigating
+        await _stopVideoRecording();
+
         // All photos captured, navigate to filter screen
         await Future.delayed(const Duration(seconds: 1));
         context.go('/classic/filter');
@@ -130,10 +219,48 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     }
   }
 
+  Future<void> _stopVideoRecording() async {
+    try {
+      await photoNotifier.stopVideoRecording();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.stop_circle, color: Colors.white),
+              const SizedBox(width: 12),
+              Text(
+                'Video recording completed!',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+              ),
+            ],
+          ),
+          backgroundColor: AppColors.success,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to stop video recording: $e'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
     _countdownTimer?.cancel();
+
+    // Dispose photo camera controller
     _cameraController?.dispose();
+
+    // Ensure video recording is stopped on dispose
+    if (_hasStartedSession) {
+      photoNotifier.stopVideoRecording().catchError((e) {
+        print('Error stopping video recording on dispose: $e');
+      });
+    }
     super.dispose();
   }
 

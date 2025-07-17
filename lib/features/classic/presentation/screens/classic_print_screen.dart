@@ -7,7 +7,6 @@ import 'package:photocafe_windows/features/print/domain/data/providers/printer_n
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/print/print_action_panel.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:printing/printing.dart';
 
 class ClassicPrintScreen extends ConsumerStatefulWidget {
@@ -22,9 +21,22 @@ class ClassicPrintScreen extends ConsumerStatefulWidget {
 class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
   bool _isPrinting = false;
   bool _splitStrips = false;
+  Uint8List? _actualPdfBytes;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Get PDF bytes from router state if not provided in constructor
+    if (widget.pdfBytes == null) {
+      final routerState = GoRouterState.of(context);
+      _actualPdfBytes = routerState.extra as Uint8List?;
+    } else {
+      _actualPdfBytes = widget.pdfBytes;
+    }
+  }
 
   Future<void> _printDocument() async {
-    if (widget.pdfBytes == null) {
+    if (_actualPdfBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -49,7 +61,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
 
     try {
       final printerNotifier = ref.read(printerProvider.notifier);
-      await printerNotifier.printPdfBytes(widget.pdfBytes!, cut: _splitStrips);
+      await printerNotifier.printPdfBytes(_actualPdfBytes!, cut: _splitStrips);
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -162,97 +174,10 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
     );
   }
 
-  void _showSoftCopiesDialog() {
-    // TODO: Replace with actual URL generation logic
-    const String downloadUrl = 'https://example.com/download/12345';
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        contentPadding: const EdgeInsets.all(32),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(50),
-              ),
-              child: Icon(
-                Icons.qr_code_2_rounded,
-                size: 60,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Get Your Digital Copy',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Scan the QR code with your phone to download the digital version of your photo strip.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                fontSize: 18,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-              ),
-            ),
-            const SizedBox(height: 32),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-              ),
-              child: QrImageView(
-                data: downloadUrl,
-                version: QrVersions.auto,
-                size: 200.0,
-              ),
-            ),
-            const SizedBox(height: 32),
-            Container(
-              width: double.infinity,
-              height: 60,
-              child: ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.surface,
-                  foregroundColor: Theme.of(context).colorScheme.onSurface,
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outline,
-                    width: 2,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: Text(
-                  'Close',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return ScreenContainer(
-      child: widget.pdfBytes == null
+      child: _actualPdfBytes == null
           ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -334,7 +259,6 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                             });
                           },
                           onPrint: _printDocument,
-                          onShowSoftCopiesDialog: _showSoftCopiesDialog,
                         ),
                       ),
 
@@ -401,7 +325,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(18),
                                     child: PdfPreview(
-                                      build: (format) => widget.pdfBytes!,
+                                      build: (format) => _actualPdfBytes!,
                                       canChangePageFormat: false,
                                       canDebug: false,
                                       allowPrinting: false,

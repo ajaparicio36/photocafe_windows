@@ -13,6 +13,8 @@ _PhotoState _$PhotoStateFromJson(Map<String, dynamic> json) => _PhotoState(
   tempPath: json['tempPath'] as String,
   captureCount: (json['captureCount'] as num).toInt(),
   error: json['error'] as String?,
+  videoPath: json['videoPath'] as String?,
+  isRecording: json['isRecording'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$PhotoStateToJson(_PhotoState instance) =>
@@ -21,4 +23,6 @@ Map<String, dynamic> _$PhotoStateToJson(_PhotoState instance) =>
       'tempPath': instance.tempPath,
       'captureCount': instance.captureCount,
       'error': instance.error,
+      'videoPath': instance.videoPath,
+      'isRecording': instance.isRecording,
     };
