@@ -5,9 +5,8 @@ import 'package:photocafe_windows/features/classic/presentation/constants/frame_
 import 'package:photocafe_windows/features/classic/presentation/widgets/frames/base_frame_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/frames/classic_frame_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/frames/two_by_two_frame_widget.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/frames/four_by_four_frame_widget.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
-// Import more frame widgets as you create them
-// import 'package:photocafe_windows/features/classic/presentation/widgets/frames/vintage_frame_widget.dart';
 
 class FrameFactory {
   static Widget createFrameWidget(FrameDefinition frameDefinition) {
@@ -16,9 +15,8 @@ class FrameFactory {
         return ClassicFrameWidget(frameDefinition: frameDefinition);
       case 'TwoByTwoFramePreview':
         return TwoByTwoFrameWidget(frameDefinition: frameDefinition);
-      // Add more cases as you create more frames
-      // case 'VintageFramePreview':
-      //   return VintageFrameWidget(frameDefinition: frameDefinition);
+      case 'FourByFourFramePreview':
+        return FourByFourFrameWidget(frameDefinition: frameDefinition);
       default:
         return Container(
           decoration: BoxDecoration(
@@ -70,7 +68,8 @@ class FrameFactory {
         return ClassicFrameWidget(frameDefinition: frameDefinition);
       case 'TwoByTwoFramePreview':
         return TwoByTwoFrameWidget(frameDefinition: frameDefinition);
-      // Add more cases as needed
+      case 'FourByFourFramePreview':
+        return FourByFourFrameWidget(frameDefinition: frameDefinition);
       default:
         return ClassicFrameWidget(frameDefinition: frameDefinition);
     }

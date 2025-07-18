@@ -49,6 +49,11 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
           _selectedFrame =
               '2by2_frame_one'; // Default to 2x2 frame for 2-photo mode
         });
+      } else if (photoState?.captureCount == 4) {
+        setState(() {
+          _selectedFrame =
+              '4by4_frame_one'; // Default to 4x4 frame for 4-photo mode
+        });
       }
     });
   }

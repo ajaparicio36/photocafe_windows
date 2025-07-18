@@ -29,14 +29,25 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   int _currentPhotoIndex = 0;
   Timer? _countdownTimer;
   bool _hasStartedSession = false;
+  bool _isDisposed = false;
 
   @override
   void initState() {
     super.initState();
     _initializeCamera();
+
+    // Debug: Check capture count on init
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final photoState = ref.read(photoProvider).value;
+      print(
+        'Capture screen initialized with capture count: ${photoState?.captureCount}',
+      );
+    });
   }
 
   Future<void> _initializeCamera() async {
+    if (_isDisposed) return;
+
     try {
       final cameras = await availableCameras();
       if (cameras.isNotEmpty) {
@@ -62,10 +73,17 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         final photoState = ref.read(photoProvider).value;
         final captureCount = photoState?.captureCount ?? 4;
 
+        print('Initializing camera for capture count: $captureCount');
+
         // Use higher resolution for 2x2 mode (portrait photos)
         final resolutionPreset = captureCount == 2
             ? ResolutionPreset.high
             : ResolutionPreset.medium;
+
+        // Dispose existing controller if any
+        if (_cameraController != null) {
+          await _cameraController!.dispose();
+        }
 
         // Initialize photo camera controller with specific settings to avoid conflicts
         _cameraController = CameraController(
@@ -76,30 +94,58 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
           imageFormatGroup: ImageFormatGroup.jpeg,
         );
 
-        await _cameraController!.initialize();
+        if (!_isDisposed) {
+          await _cameraController!.initialize();
 
-        setState(() {
-          _isCameraInitialized = true;
-        });
+          if (mounted && !_isDisposed) {
+            setState(() {
+              _isCameraInitialized = true;
+            });
+          }
+        }
 
         print('Photo camera initialized: ${selectedPhotoCamera.name}');
       }
     } catch (e) {
       print('Error initializing photo camera: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Photo camera initialization failed: $e'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
+      if (mounted && !_isDisposed) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Photo camera initialization failed: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
     }
   }
 
   void _startCountdown() {
-    setState(() {
-      _isCountingDown = true;
-      _countdown = 10;
-    });
+    if (_isDisposed) return;
+
+    // Ensure we have a valid photo state before starting countdown
+    final photoState = ref.read(photoProvider).value;
+    if (photoState == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Photo session not initialized properly'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+      return;
+    }
+
+    print(
+      'Starting countdown for capture ${_currentPhotoIndex + 1} of ${photoState.captureCount}',
+    );
+
+    if (mounted) {
+      setState(() {
+        _isCountingDown = true;
+        _countdown = 10;
+      });
+    }
 
     // Start video recording on first photo
     if (_currentPhotoIndex == 0 && !_hasStartedSession) {
@@ -107,10 +153,18 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       _hasStartedSession = true;
     }
 
+    _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        _countdown--;
-      });
+      if (_isDisposed) {
+        timer.cancel();
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _countdown--;
+        });
+      }
 
       if (_countdown <= 0) {
         timer.cancel();
@@ -154,12 +208,14 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   }
 
   Future<void> _capturePhoto() async {
-    if (_isCapturing) return;
+    if (_isCapturing || _isDisposed) return;
 
-    setState(() {
-      _isCapturing = true;
-      _isCountingDown = false;
-    });
+    if (mounted) {
+      setState(() {
+        _isCapturing = true;
+        _isCountingDown = false;
+      });
+    }
 
     try {
       File? photoFile;
@@ -190,42 +246,57 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         throw Exception('Both camera methods failed');
       }
 
-      final captureCount = ref.read(photoProvider).value?.captureCount ?? 4;
+      // Always read the current capture count from the photo state
+      final currentPhotoState = ref.read(photoProvider).value;
+      final captureCount = currentPhotoState?.captureCount ?? 4;
 
-      setState(() {
-        _currentPhotoIndex++;
-      });
+      print('Photo captured: ${_currentPhotoIndex + 1} of $captureCount');
+
+      if (mounted) {
+        setState(() {
+          _currentPhotoIndex++;
+        });
+      }
 
       if (_currentPhotoIndex >= captureCount) {
+        print('All photos captured, stopping video recording');
         // Stop video recording before navigating
         await _stopVideoRecording();
 
         // All photos captured, navigate to filter screen
-        await Future.delayed(const Duration(seconds: 1));
-        context.go('/classic/filter');
+        if (mounted) {
+          await Future.delayed(const Duration(seconds: 1));
+          context.go('/classic/filter');
+        }
       } else {
         // Show success message and prepare for next photo
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Photo ${_currentPhotoIndex} captured! (${captureCount - _currentPhotoIndex} remaining)',
+                style: const TextStyle(fontSize: 16),
+              ),
+              backgroundColor: AppColors.success,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Photo ${_currentPhotoIndex} captured!',
-              style: const TextStyle(fontSize: 16),
-            ),
-            backgroundColor: AppColors.success,
+            content: Text('Error: $e', style: const TextStyle(fontSize: 16)),
+            backgroundColor: AppColors.error,
           ),
         );
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e', style: const TextStyle(fontSize: 16)),
-          backgroundColor: AppColors.error,
-        ),
-      );
     } finally {
-      setState(() {
-        _isCapturing = false;
-      });
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isCapturing = false;
+        });
+      }
     }
   }
 
@@ -260,10 +331,24 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
   @override
   void dispose() {
-    _countdownTimer?.cancel();
+    _isDisposed = true;
 
-    // Dispose photo camera controller
-    _cameraController?.dispose();
+    // Cancel countdown timer
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+
+    // Dispose photo camera controller safely
+    if (_cameraController != null) {
+      _cameraController!
+          .dispose()
+          .then((_) {
+            print('Camera controller disposed successfully');
+          })
+          .catchError((e) {
+            print('Error disposing camera controller: $e');
+          });
+      _cameraController = null;
+    }
 
     // Ensure video recording is stopped on dispose
     if (_hasStartedSession) {
@@ -271,6 +356,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         print('Error stopping video recording on dispose: $e');
       });
     }
+
     super.dispose();
   }
 
@@ -287,9 +373,12 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
               return photoStateAsync.when(
                 data: (photoState) {
                   final captureCount = photoState.captureCount;
+                  print(
+                    'Building camera preview for capture count: $captureCount',
+                  );
 
                   if (captureCount == 2) {
-                    // Use 2x2 camera preview for portrait mode
+                    // Use 2x2 camera preview for portrait mode (2 photos)
                     return TwoByTwoCameraPreviewWidget(
                       isCameraInitialized: _isCameraInitialized,
                       cameraController: _cameraController,
