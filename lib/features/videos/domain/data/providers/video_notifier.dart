@@ -11,7 +11,6 @@ import 'package:photocafe_windows/features/videos/domain/data/models/video_state
 import 'package:photocafe_windows/features/videos/domain/data/constants/filter_constants.dart';
 
 class VideoNotifier extends AsyncNotifier<VideoState> {
-  CameraController? _cameraController;
   Process? _ffmpegProcess;
   Timer? _recordingTimer;
 
@@ -50,16 +49,28 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     print('Attempting gphoto2 video capture to: $wslPath');
 
     try {
+      // First check if camera is detected
+      final detectResult = await Process.run('wsl.exe', [
+        'bash',
+        '-c',
+        'gphoto2 --auto-detect 2>&1 | grep -v "No cameras detected" | wc -l',
+      ]);
+
+      if (detectResult.exitCode != 0 ||
+          detectResult.stdout.toString().trim() == '0') {
+        print('No cameras detected by gphoto2');
+        return null;
+      }
+
       // Capture 7-second video with gphoto2
       final result = await Process.run('wsl.exe', [
         'bash',
         '-c',
-        'timeout 7 gphoto2 --capture-movie=7s --stdout > "$wslPath" && echo "success" || echo "failed"',
+        'timeout 10 gphoto2 --capture-movie=7s --stdout > "$wslPath" 2>/dev/null && echo "success" || echo "failed"',
       ]);
 
       print('gphoto2 exit code: ${result.exitCode}');
       print('gphoto2 stdout: ${result.stdout}');
-      print('gphoto2 stderr: ${result.stderr}');
 
       if (result.exitCode == 0 &&
           result.stdout.toString().contains('success')) {
@@ -69,7 +80,6 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
           print('gphoto2 video captured successfully, size: $fileSize bytes');
 
           if (fileSize > 1024) {
-            // Ensure file is not empty
             return videoFile;
           } else {
             print('gphoto2 video file too small, will use fallback');
@@ -92,7 +102,7 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       }
 
       if (currentState.isRecording) {
-        return currentState; // Already recording
+        return currentState;
       }
 
       // Try gphoto2 first
@@ -103,61 +113,60 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
         print('gphoto2 capture successful: ${gphoto2File.path}');
         return currentState.copyWith(
           videoPath: gphoto2File.path,
-          isRecording: false, // gphoto2 capture is immediate
+          isRecording: false,
         );
       }
 
-      // Fallback to camera recording
-      print('gphoto2 failed, using camera fallback...');
+      // If gphoto2 fails, the capture screen will handle camera recording
+      print(
+        'gphoto2 failed, camera recording will be handled by capture screen',
+      );
 
-      final printerState = ref.read(printerProvider).value;
-      final videoCameraName =
-          printerState?.videoCameraName ?? printerState?.photoCameraName;
+      return currentState.copyWith(isRecording: true);
+    });
+  }
 
-      if (videoCameraName == null) {
-        throw Exception('No video camera available');
-      }
-
-      final cameras = await availableCameras();
-      CameraDescription? videoCamera;
-
-      try {
-        videoCamera = cameras.firstWhere(
-          (camera) => camera.name == videoCameraName,
-        );
-      } catch (e) {
-        throw Exception('Video camera not found: $videoCameraName');
+  Future<void> saveVideoFromCapture(XFile videoXFile) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception('Video state is not initialized');
       }
 
       final videoFileName =
-          'camera_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+          'flipbook_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
       final videoFilePath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        _cameraController = CameraController(
-          videoCamera,
-          ResolutionPreset.high,
-          enableAudio: true,
-        );
+        // Read bytes from XFile and write to our designated path
+        final videoBytes = await videoXFile.readAsBytes();
+        final targetFile = File(videoFilePath);
+        await targetFile.writeAsBytes(videoBytes);
 
-        await _cameraController!.initialize();
-        await _cameraController!.startVideoRecording();
+        print('Video saved from capture to: $videoFilePath');
 
-        // Set timer to automatically stop recording after 7 seconds
-        _recordingTimer = Timer(const Duration(seconds: 7), () {
-          stopVideoRecording();
-        });
+        final fileSize = await targetFile.length();
+        print('Video file size: $fileSize bytes');
 
-        print('Camera recording started, will stop after 7 seconds');
+        if (fileSize < 1024) {
+          print('Video file too small, creating fallback...');
+          await _createFallbackVideo(videoFilePath);
+        }
 
         return currentState.copyWith(
           videoPath: videoFilePath,
-          isRecording: true,
+          isRecording: false,
         );
       } catch (e) {
-        _cameraController?.dispose();
-        _cameraController = null;
-        throw Exception('Failed to start camera recording: $e');
+        print('Error saving video from capture: $e');
+
+        // Create fallback video if saving fails
+        await _createFallbackVideo(videoFilePath);
+
+        return currentState.copyWith(
+          videoPath: videoFilePath,
+          isRecording: false,
+        );
       }
     });
   }
@@ -169,59 +178,12 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
         throw Exception('No video recording in progress');
       }
 
-      // Cancel the timer if it exists
       _recordingTimer?.cancel();
       _recordingTimer = null;
 
-      if (!currentState.isRecording || _cameraController == null) {
-        return currentState;
-      }
-
-      try {
-        print('Stopping camera video recording...');
-
-        final videoXFile = await _cameraController!.stopVideoRecording();
-
-        if (currentState.videoPath != null) {
-          final videoBytes = await videoXFile.readAsBytes();
-          final targetFile = File(currentState.videoPath!);
-          await targetFile.writeAsBytes(videoBytes);
-
-          final fileSize = await targetFile.length();
-          print(
-            'Camera video saved: ${currentState.videoPath}, size: $fileSize bytes',
-          );
-
-          // Verify the file is valid
-          if (fileSize < 1024) {
-            print('Camera video file too small, creating fallback...');
-            await _createFallbackVideo(currentState.videoPath!);
-          }
-        }
-
-        await _cameraController!.dispose();
-        _cameraController = null;
-
-        return currentState.copyWith(
-          isRecording: false,
-          videoPath: currentState.videoPath,
-        );
-      } catch (e) {
-        print('Error stopping camera recording: $e');
-
-        // Clean up controller on error
-        try {
-          await _cameraController?.dispose();
-        } catch (_) {}
-        _cameraController = null;
-
-        // Create fallback video if recording failed
-        if (currentState.videoPath != null) {
-          await _createFallbackVideo(currentState.videoPath!);
-        }
-
-        return currentState.copyWith(isRecording: false);
-      }
+      // Video recording is now handled by the capture screen
+      // This method is kept for compatibility but doesn't manage camera controllers
+      return currentState.copyWith(isRecording: false);
     });
   }
 
@@ -275,17 +237,9 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       if (currentState == null) return state.value!;
 
       // Stop recording if active
-      if (currentState.isRecording && _cameraController != null) {
+      if (currentState.isRecording) {
         _recordingTimer?.cancel();
         _recordingTimer = null;
-
-        try {
-          await _cameraController!.stopVideoRecording();
-          await _cameraController!.dispose();
-        } catch (e) {
-          print('Error cleaning up camera controller: $e');
-        }
-        _cameraController = null;
       }
 
       // Delete video file if exists

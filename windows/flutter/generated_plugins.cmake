@@ -5,6 +5,7 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   camera_windows
   printing
+  video_player_win
   windows_printer
 )
 

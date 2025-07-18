@@ -1,19 +1,16 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:pdf/pdf.dart';
-import 'package:pdf/widgets.dart' as pw;
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
-import 'package:printing/printing.dart';
+import 'package:photocafe_windows/features/photos/domain/data/models/photo_state.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/core/colors/colors.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_one.dart'
-    as frames;
+import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_factory.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/organize/photo_organization_panel.dart';
+import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
 
 class ClassicOrganizeScreen extends ConsumerStatefulWidget {
   const ClassicOrganizeScreen({super.key});
@@ -24,8 +21,37 @@ class ClassicOrganizeScreen extends ConsumerStatefulWidget {
 }
 
 class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
-  String _selectedFrame = 'frame_one';
+  String _selectedFrame = 'frame_one'; // Default to classic frame
   bool _isGeneratingPdf = false;
+
+  // Get available frames for current capture count
+  List<FrameDefinition> get _availableFrames {
+    final photoState = ref.read(photoProvider).value;
+    if (photoState == null) return [];
+
+    final currentLayout = photoState.captureCount == 2
+        ? FrameLayoutType.twoPhotos
+        : FrameLayoutType.fourPhotos;
+
+    return FrameConstants.availableFrames
+        .where((frame) => frame.supportedLayouts.contains(currentLayout))
+        .toList();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Set default frame based on capture count
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final photoState = ref.read(photoProvider).value;
+      if (photoState?.captureCount == 2) {
+        setState(() {
+          _selectedFrame =
+              '2by2_frame_one'; // Default to 2x2 frame for 2-photo mode
+        });
+      }
+    });
+  }
 
   Future<Uint8List> _generatePdf() async {
     final photoState = ref.read(photoProvider).value;
@@ -33,143 +59,18 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
       throw Exception('No photos available');
     }
 
-    // Call the FrameOne's _generatePdf method through a helper
-    return await _generateFrameOnePdf(
+    // Get the selected frame definition
+    final frameDefinition = FrameConstants.availableFrames.firstWhere(
+      (frame) => frame.id == _selectedFrame,
+      orElse: () => FrameConstants.availableFrames.first,
+    );
+
+    // Use the frame factory to generate PDF
+    return await FrameFactory.generatePdfForFrame(
+      frameDefinition,
       photoState.photos,
       photoState.captureCount,
     );
-  }
-
-  Future<Uint8List> _generateFrameOnePdf(
-    List<PhotoModel> photos,
-    int captureCount,
-  ) async {
-    // This replicates the FrameOne._generatePdf method
-    final pdf = pw.Document();
-
-    // Load the frame background
-    final frameImageBytes = await rootBundle.load('assets/frames/frame1.png');
-    final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
-
-    // Sort photos by index to ensure correct order
-    final sortedPhotos = List.from(photos)
-      ..sort((a, b) => a.index.compareTo(b.index));
-
-    // Load captured photo images
-    final photoImages = <pw.MemoryImage>[];
-    for (final photo in sortedPhotos) {
-      final file = File(photo.imagePath);
-      if (await file.exists()) {
-        final imageBytes = await file.readAsBytes();
-        photoImages.add(pw.MemoryImage(imageBytes));
-      }
-    }
-
-    // Fallback to test image if no photos available
-    pw.MemoryImage? testImage;
-    if (photoImages.isEmpty) {
-      try {
-        final testImageBytes = await rootBundle.load('assets/frames/test.jpg');
-        testImage = pw.MemoryImage(testImageBytes.buffer.asUint8List());
-      } catch (e) {
-        print('Test image not found: $e');
-      }
-    }
-
-    final int photoCount = captureCount == 2 ? 2 : 4;
-    final double topOffset = captureCount == 2 ? 100 : 14;
-
-    pdf.addPage(
-      pw.Page(
-        pageFormat: PdfPageFormat.a6,
-        margin: const pw.EdgeInsets.all(0),
-        build: (pw.Context context) {
-          return pw.Stack(
-            children: [
-              // Images below (left column)
-              for (int i = 0; i < photoCount; i++)
-                pw.Positioned(
-                  left: 13,
-                  top: topOffset + i * 92.5,
-                  child: pw.Container(
-                    width: 125,
-                    height: 78,
-                    child: photoImages.length > i
-                        ? pw.Image(
-                            photoImages[i],
-                            fit: pw.BoxFit.cover,
-                            width: 125,
-                            height: 78,
-                          )
-                        : testImage != null
-                        ? pw.Image(
-                            testImage,
-                            fit: pw.BoxFit.cover,
-                            width: 125,
-                            height: 78,
-                          )
-                        : pw.Container(
-                            color: PdfColors.grey300,
-                            child: pw.Center(
-                              child: pw.Text(
-                                'Photo ${i + 1}',
-                                style: pw.TextStyle(
-                                  fontSize: 8,
-                                  color: PdfColors.grey600,
-                                ),
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-              // Images below (right column - duplicates)
-              for (int i = 0; i < photoCount; i++)
-                pw.Positioned(
-                  left: 158,
-                  top: topOffset + i * 92.5,
-                  child: pw.Container(
-                    width: 125,
-                    height: 78,
-                    child: photoImages.length > i
-                        ? pw.Image(
-                            photoImages[i],
-                            fit: pw.BoxFit.cover,
-                            width: 125,
-                            height: 78,
-                          )
-                        : testImage != null
-                        ? pw.Image(
-                            testImage,
-                            fit: pw.BoxFit.cover,
-                            width: 125,
-                            height: 78,
-                          )
-                        : pw.Container(
-                            color: PdfColors.grey300,
-                            child: pw.Center(
-                              child: pw.Text(
-                                'Photo ${i + 1}',
-                                style: pw.TextStyle(
-                                  fontSize: 8,
-                                  color: PdfColors.grey600,
-                                ),
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-
-              // Frame overlay on top
-              pw.Positioned.fill(
-                child: pw.Image(frameImage, fit: pw.BoxFit.fill),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-
-    return pdf.save();
   }
 
   Future<void> _proceedToPrint() async {
@@ -192,6 +93,114 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
         _isGeneratingPdf = false;
       });
     }
+  }
+
+  Widget _buildFrameSelector(PhotoState photoState) {
+    final availableFrames = _availableFrames;
+
+    if (availableFrames.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.error.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Text(
+          'No frames available for ${photoState.captureCount} photos',
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.error,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      children: availableFrames.map((frame) {
+        final isSelected = _selectedFrame == frame.id;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.outline,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Radio<String>(
+                value: frame.id,
+                groupValue: _selectedFrame,
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedFrame = value;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      frame.name,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 22,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      frame.description,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 18,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${photoState.captureCount} photos in ${frame.name.toLowerCase()}',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 16,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildFramePreview(PhotoState photoState) {
+    // Get the selected frame definition
+    final frameDefinition = FrameConstants.availableFrames.firstWhere(
+      (frame) => frame.id == _selectedFrame,
+      orElse: () => FrameConstants.availableFrames.first,
+    );
+
+    // Use the frame factory to create the preview widget
+    return FrameFactory.createFrameWidget(frameDefinition);
   }
 
   @override
@@ -297,7 +306,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Frame selection
+                            // Frame selection header
                             Row(
                               children: [
                                 Icon(
@@ -321,90 +330,8 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
 
                             const SizedBox(height: 24),
 
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: _selectedFrame == 'frame_one'
-                                    ? Theme.of(
-                                        context,
-                                      ).colorScheme.primary.withOpacity(0.1)
-                                    : Colors.transparent,
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: _selectedFrame == 'frame_one'
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.outline,
-                                  width: _selectedFrame == 'frame_one' ? 2 : 1,
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Radio<String>(
-                                    value: 'frame_one',
-                                    groupValue: _selectedFrame,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _selectedFrame = value!;
-                                      });
-                                    },
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Classic Frame',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyLarge
-                                              ?.copyWith(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 22,
-                                                color:
-                                                    _selectedFrame ==
-                                                        'frame_one'
-                                                    ? Theme.of(
-                                                        context,
-                                                      ).colorScheme.primary
-                                                    : null,
-                                              ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'A decorative strip layout for your photos.',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                fontSize: 18,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withOpacity(0.7),
-                                              ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          '${photoState.captureCount} photos in a strip layout with decorative frame',
-                                          style: Theme.of(context)
-                                              .textTheme
-                                              .bodyMedium
-                                              ?.copyWith(
-                                                fontSize: 16,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onSurface
-                                                    .withOpacity(0.7),
-                                              ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            // Dynamic frame selector
+                            _buildFrameSelector(photoState),
 
                             const SizedBox(height: 32),
 
@@ -439,15 +366,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                                 ),
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(18),
-                                  child: _selectedFrame == 'frame_one'
-                                      ? const frames.FrameOne()
-                                      : PdfPreview(
-                                          build: (format) => _generatePdf(),
-                                          canChangePageFormat: false,
-                                          canDebug: false,
-                                          allowPrinting: false,
-                                          allowSharing: false,
-                                        ),
+                                  child: _buildFramePreview(photoState),
                                 ),
                               ),
                             ),

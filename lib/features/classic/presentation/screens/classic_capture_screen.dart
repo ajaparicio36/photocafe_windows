@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/core/colors/colors.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/camera_preview_widget.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/capture/2by2_camera_preview_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/capture_overlay.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 
@@ -57,10 +58,19 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         // Fallback to first camera if no selection or camera not found
         selectedPhotoCamera ??= cameras.first;
 
+        // Get capture count to determine resolution preset
+        final photoState = ref.read(photoProvider).value;
+        final captureCount = photoState?.captureCount ?? 4;
+
+        // Use higher resolution for 2x2 mode (portrait photos)
+        final resolutionPreset = captureCount == 2
+            ? ResolutionPreset.high
+            : ResolutionPreset.medium;
+
         // Initialize photo camera controller with specific settings to avoid conflicts
         _cameraController = CameraController(
           selectedPhotoCamera,
-          ResolutionPreset.high,
+          resolutionPreset,
           enableAudio:
               false, // Disable audio for photo camera to avoid conflicts
           imageFormatGroup: ImageFormatGroup.jpeg,
@@ -270,10 +280,45 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera preview
-          CameraPreviewWidget(
-            isCameraInitialized: _isCameraInitialized,
-            cameraController: _cameraController,
+          // Camera preview - choose based on capture count
+          Consumer(
+            builder: (context, ref, child) {
+              final photoStateAsync = ref.watch(photoProvider);
+              return photoStateAsync.when(
+                data: (photoState) {
+                  final captureCount = photoState.captureCount;
+
+                  if (captureCount == 2) {
+                    // Use 2x2 camera preview for portrait mode
+                    return TwoByTwoCameraPreviewWidget(
+                      isCameraInitialized: _isCameraInitialized,
+                      cameraController: _cameraController,
+                    );
+                  } else {
+                    // Use regular camera preview for 4-photo mode
+                    return CameraPreviewWidget(
+                      isCameraInitialized: _isCameraInitialized,
+                      cameraController: _cameraController,
+                    );
+                  }
+                },
+                loading: () => Container(
+                  color: Colors.black,
+                  child: const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  ),
+                ),
+                error: (error, stack) => Container(
+                  color: Colors.black,
+                  child: const Center(
+                    child: Text(
+                      'Camera preview unavailable',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                ),
+              );
+            },
           ),
 
           // Top back button

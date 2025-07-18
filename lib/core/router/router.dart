@@ -6,6 +6,7 @@ import 'package:photocafe_windows/features/classic/presentation/screens/classic_
 import 'package:photocafe_windows/features/classic/presentation/screens/classic_print_screen.dart';
 import 'package:photocafe_windows/features/classic/presentation/screens/classic_start_screen.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_capture_screen.dart';
+import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_filter_screen.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_frame_screen.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_print_screen.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_start_screen.dart';
@@ -48,6 +49,10 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/flipbook/capture',
       builder: (context, state) => const FlipbookCaptureScreen(),
+    ),
+    GoRoute(
+      path: '/flipbook/filter',
+      builder: (context, state) => const FlipbookFilterScreen(),
     ),
     GoRoute(
       path: '/flipbook/frame',

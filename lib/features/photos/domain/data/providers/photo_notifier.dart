@@ -227,10 +227,18 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         throw Exception("State is not available to add a photo.");
       }
 
+      // Process image based on capture count
+      Uint8List processedImageBytes = imageBytes;
+
+      if (currentState.captureCount == 2) {
+        // For 2x2 mode, ensure portrait orientation (9:16 aspect ratio)
+        processedImageBytes = await _processImageForPortrait(imageBytes);
+      }
+
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final imagePath = p.join(currentState.tempPath, fileName);
       final imageFile = File(imagePath);
-      await imageFile.writeAsBytes(imageBytes);
+      await imageFile.writeAsBytes(processedImageBytes);
 
       final newPhoto = PhotoModel(
         imagePath: imagePath,
@@ -247,6 +255,56 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
       return currentState.copyWith(photos: updatedPhotos);
     });
+  }
+
+  Future<Uint8List> _processImageForPortrait(Uint8List imageBytes) async {
+    try {
+      final originalImage = img.decodeImage(imageBytes);
+      if (originalImage == null) return imageBytes;
+
+      // Calculate target dimensions for 9:16 aspect ratio
+      final targetWidth = 720;
+      final targetHeight = 1280;
+
+      // Resize and crop to 9:16 aspect ratio
+      img.Image processedImage;
+
+      if (originalImage.width / originalImage.height > 9 / 16) {
+        // Image is wider than 9:16, crop horizontally
+        final newWidth = (originalImage.height * 9 / 16).round();
+        final cropX = (originalImage.width - newWidth) ~/ 2;
+        processedImage = img.copyCrop(
+          originalImage,
+          x: cropX,
+          y: 0,
+          width: newWidth,
+          height: originalImage.height,
+        );
+      } else {
+        // Image is taller than 9:16, crop vertically
+        final newHeight = (originalImage.width * 16 / 9).round();
+        final cropY = (originalImage.height - newHeight) ~/ 2;
+        processedImage = img.copyCrop(
+          originalImage,
+          x: 0,
+          y: cropY,
+          width: originalImage.width,
+          height: newHeight,
+        );
+      }
+
+      // Resize to target dimensions
+      processedImage = img.copyResize(
+        processedImage,
+        width: targetWidth,
+        height: targetHeight,
+      );
+
+      return img.encodeJpg(processedImage);
+    } catch (e) {
+      print('Error processing image for portrait: $e');
+      return imageBytes; // Return original if processing fails
+    }
   }
 
   Future<void> setCaptureCount(int count) async {

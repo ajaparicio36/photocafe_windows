@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 
-class CameraPreviewWidget extends StatelessWidget {
+class TwoByTwoCameraPreviewWidget extends StatelessWidget {
   final bool isCameraInitialized;
   final CameraController? cameraController;
 
-  const CameraPreviewWidget({
+  const TwoByTwoCameraPreviewWidget({
     super.key,
     required this.isCameraInitialized,
     required this.cameraController,
@@ -29,13 +29,23 @@ class CameraPreviewWidget extends StatelessWidget {
         color: Colors.black,
         child: Center(
           child: AspectRatio(
-            aspectRatio: cameraController!.value.aspectRatio,
-            child: CameraPreview(cameraController!),
+            aspectRatio: 9 / 16, // Portrait aspect ratio for 2x2 mode
+            child: ClipRect(
+              child: Transform.scale(
+                scale: cameraController!.value.aspectRatio / (9 / 16),
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: cameraController!.value.aspectRatio,
+                    child: CameraPreview(cameraController!),
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       );
     } catch (e) {
-      print('Error creating camera preview: $e');
+      print('Error creating 2x2 camera preview: $e');
       return Container(
         color: Colors.black,
         child: const Center(

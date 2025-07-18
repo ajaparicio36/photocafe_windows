@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
-import 'package:photocafe_windows/features/flipbook/presentation/widgets/frames/frame_one.dart';
+import 'package:photocafe_windows/features/flipbook/presentation/widgets/frames/flipbook_frame_factory.dart';
+import 'package:photocafe_windows/features/flipbook/presentation/constants/frame_constants.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
 
 class FlipbookFrameScreen extends ConsumerStatefulWidget {
@@ -16,6 +17,7 @@ class FlipbookFrameScreen extends ConsumerStatefulWidget {
 }
 
 class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
+  String _selectedFrame = 'standard_frame'; // Default to standard frame
   bool _isGeneratingPdf = false;
 
   Future<void> _proceedToPrint() async {
@@ -29,8 +31,17 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
         throw Exception('No frames available to generate PDF.');
       }
 
-      // Generate the PDF using the helper method from the frame widget
-      final pdfBytes = await FlipbookFrameOne.generatePdf(videoState.frames);
+      // Get the selected frame definition
+      final frameDefinition = FlipbookFrameConstants.availableFrames.firstWhere(
+        (frame) => frame.id == _selectedFrame,
+        orElse: () => FlipbookFrameConstants.availableFrames.first,
+      );
+
+      // Use the frame factory to generate PDF
+      final pdfBytes = await FlipbookFrameFactory.generatePdfForFrame(
+        frameDefinition,
+        videoState.frames,
+      );
 
       context.go('/flipbook/print', extra: pdfBytes);
     } catch (e) {
@@ -46,6 +57,87 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
     }
   }
 
+  Widget _buildFrameSelector() {
+    final availableFrames = FlipbookFrameConstants.availableFrames;
+
+    return Column(
+      children: availableFrames.map((frame) {
+        final isSelected = _selectedFrame == frame.id;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.outline,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Radio<String>(
+                value: frame.id,
+                groupValue: _selectedFrame,
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedFrame = value;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      frame.name,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      frame.description,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 14,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildFramePreview() {
+    // Get the selected frame definition
+    final frameDefinition = FlipbookFrameConstants.availableFrames.firstWhere(
+      (frame) => frame.id == _selectedFrame,
+      orElse: () => FlipbookFrameConstants.availableFrames.first,
+    );
+
+    // Use the frame factory to create the preview widget
+    return FlipbookFrameFactory.createFrameWidget(frameDefinition);
+  }
+
   @override
   Widget build(BuildContext context) {
     final videoState = ref.watch(videoProvider);
@@ -55,14 +147,14 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
         children: [
           const ScreenHeader(
             title: 'Apply a Frame',
-            subtitle: 'Preview your flipbook pages',
+            subtitle: 'Choose a frame for your flipbook pages',
             backRoute: '/flipbook/filter',
           ),
           const SizedBox(height: 40),
           Expanded(
             child: Row(
               children: [
-                // Left Panel: Frame Selection (placeholder for now)
+                // Left Panel: Frame Selection
                 Expanded(
                   flex: 2,
                   child: Container(
@@ -77,43 +169,34 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Select Frame',
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                              ),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.crop_free_rounded,
+                              size: 32,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            const SizedBox(width: 16),
+                            Text(
+                              'Select Frame',
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 24),
-                        // For now, only one frame is available
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Theme.of(
-                              context,
-                            ).colorScheme.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: Theme.of(context).colorScheme.primary,
-                              width: 2,
-                            ),
-                          ),
-                          child: const ListTile(
-                            title: Text(
-                              'Flipbook Frame',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            subtitle: Text(
-                              'A simple frame for your flipbook pages.',
-                            ),
-                            leading: Icon(Icons.check_box),
+
+                        // Dynamic frame selector
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: _buildFrameSelector(),
                           ),
                         ),
-                        const Spacer(),
+
+                        const SizedBox(height: 24),
                         SizedBox(
                           width: double.infinity,
                           height: 80,
@@ -133,6 +216,17 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Theme.of(
+                                context,
+                              ).colorScheme.primary,
+                              foregroundColor: Theme.of(
+                                context,
+                              ).colorScheme.onPrimary,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -159,22 +253,42 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
                           'Preview',
                           style: Theme.of(context).textTheme.headlineMedium
                               ?.copyWith(
-                                fontSize: 32,
+                                fontSize: 28,
                                 fontWeight: FontWeight.bold,
                               ),
                         ),
                         const SizedBox(height: 24),
                         Expanded(
-                          child: videoState.when(
-                            data: (state) => state.frames.isNotEmpty
-                                ? const FlipbookFrameOne()
-                                : const Center(
-                                    child: Text('No frames to preview.'),
-                                  ),
-                            loading: () => const Center(
-                              child: CircularProgressIndicator(),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.outline,
+                                width: 2,
+                              ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
                             ),
-                            error: (e, s) => Center(child: Text('Error: $e')),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(18),
+                              child: videoState.when(
+                                data: (state) => state.frames.isNotEmpty
+                                    ? _buildFramePreview()
+                                    : const Center(
+                                        child: Text('No frames to preview.'),
+                                      ),
+                                loading: () => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                                error: (e, s) =>
+                                    Center(child: Text('Error: $e')),
+                              ),
+                            ),
                           ),
                         ),
                       ],
