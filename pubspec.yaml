@@ -52,6 +52,7 @@ dependencies:
   carousel_slider: ^5.1.1
   pdf: ^3.11.3
   qr_flutter: ^4.1.0
+  video_player: ^2.10.0
 
 dev_dependencies:
   flutter_test:
@@ -84,6 +85,7 @@ flutter:
     - .env
     - assets/frames/frame1.png
     - assets/frames/test.jpg
+    - assets/flipbook/frame1.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:
