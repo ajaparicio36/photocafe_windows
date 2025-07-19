@@ -72,6 +72,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
           return pw.Stack(
             children: [
               // Left column images
+              pw.Positioned.fill(child: pw.Container(color: PdfColors.black)),
               for (int i = 0; i < photoCount && i < leftPositions.length; i++)
                 pw.Positioned(
                   left: leftPositions[i].left,

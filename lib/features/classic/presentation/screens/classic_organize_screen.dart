@@ -120,80 +120,83 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
       );
     }
 
-    return Column(
-      children: availableFrames.map((frame) {
-        final isSelected = _selectedFrame == frame.id;
+    return SizedBox(
+      height: 120, // Fixed height to match the original container height
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: availableFrames.length,
+        itemBuilder: (context, index) {
+          final frame = availableFrames[index];
+          final isSelected = _selectedFrame == frame.id;
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isSelected
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outline,
-              width: isSelected ? 2 : 1,
+          return Container(
+            width: 280, // Fixed width for each frame card
+            margin: EdgeInsets.only(
+              right: index < availableFrames.length - 1 ? 16 : 0,
             ),
-          ),
-          child: Row(
-            children: [
-              Radio<String>(
-                value: frame.id,
-                groupValue: _selectedFrame,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedFrame = value;
-                    });
-                  }
-                },
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.outline,
+                width: isSelected ? 2 : 1,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      frame.name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      frame.description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 18,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${photoState.captureCount} photos in ${frame.name.toLowerCase()}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
+            ),
+            child: Row(
+              children: [
+                Radio<String>(
+                  value: frame.id,
+                  groupValue: _selectedFrame,
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() {
+                        _selectedFrame = value;
+                      });
+                    }
+                  },
                 ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        frame.name,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: isSelected
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        frame.description,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 14,
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.onSurface.withOpacity(0.7),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 2,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

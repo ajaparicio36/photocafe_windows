@@ -85,6 +85,13 @@ flutter:
   assets:
     - .env
     - assets/frames/frame1.png
+    - assets/frames/frame2.png
+    - assets/frames/frame3.png
+    - assets/frames/frame4.png
+    - assets/frames/frame5.png
+    - assets/frames/frame6.png
+    - assets/frames/frame7.png
+    - assets/frames/frame8.png
     - assets/frames/2by2_frame1.png
     - assets/frames/test.jpg
     - assets/flipbook/frame1.png
