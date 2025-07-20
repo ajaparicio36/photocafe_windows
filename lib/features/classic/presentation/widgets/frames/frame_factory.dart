@@ -57,7 +57,7 @@ class FrameFactory {
       );
     }
 
-    // Create a temporary widget to use the base PDF generation
+    // Create a temporary widget to use the base PDF generation with rotation from frame constants
     final tempWidget = _createTempWidget(frameDefinition);
     return await tempWidget.generatePdfFromLayout(photos, captureCount, layout);
   }

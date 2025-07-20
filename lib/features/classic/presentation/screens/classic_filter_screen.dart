@@ -55,8 +55,48 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
           if (originalImage != null) {
             img.Image filteredImage;
             switch (filterName) {
+              case FilterConstants.noFilterName:
+                filteredImage = originalImage;
+                break;
               case FilterConstants.vintageFilterName:
                 filteredImage = FilterConstants.applyVintageFilter(
+                  originalImage,
+                );
+                break;
+              case FilterConstants.hdrFilterName:
+                filteredImage = FilterConstants.applyHdrFilter(originalImage);
+                break;
+              case FilterConstants.matteFilterName:
+                filteredImage = FilterConstants.applyMatteFilter(originalImage);
+                break;
+              case FilterConstants.lomoFilterName:
+                filteredImage = FilterConstants.applyLomoFilter(originalImage);
+                break;
+              case FilterConstants.pastelFilterName:
+                filteredImage = FilterConstants.applyPastelFilter(
+                  originalImage,
+                );
+                break;
+              case FilterConstants.duotoneFilterName:
+                filteredImage = FilterConstants.applyDuotoneFilter(
+                  originalImage,
+                );
+                break;
+              case FilterConstants.grittyFilterName:
+                filteredImage = FilterConstants.applyGrittyFilter(
+                  originalImage,
+                );
+                break;
+              case FilterConstants.vscoA6FilterName:
+                filteredImage = FilterConstants.applyVscoA6Filter(
+                  originalImage,
+                );
+                break;
+              case FilterConstants.blackWhiteFilterName:
+                filteredImage = FilterConstants.applyMonoFilter(originalImage);
+                break;
+              case FilterConstants.cinematicFilterName:
+                filteredImage = FilterConstants.applyCinematicFilter(
                   originalImage,
                 );
                 break;
@@ -103,6 +143,35 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
       switch (_selectedFilter) {
         case FilterConstants.vintageFilterName:
           await photoNotifier.applyFilters(FilterConstants.applyVintageFilter);
+          break;
+        case FilterConstants.hdrFilterName:
+          await photoNotifier.applyFilters(FilterConstants.applyHdrFilter);
+          break;
+        case FilterConstants.matteFilterName:
+          await photoNotifier.applyFilters(FilterConstants.applyMatteFilter);
+          break;
+        case FilterConstants.lomoFilterName:
+          await photoNotifier.applyFilters(FilterConstants.applyLomoFilter);
+          break;
+        case FilterConstants.pastelFilterName:
+          await photoNotifier.applyFilters(FilterConstants.applyPastelFilter);
+          break;
+        case FilterConstants.duotoneFilterName:
+          await photoNotifier.applyFilters(FilterConstants.applyDuotoneFilter);
+          break;
+        case FilterConstants.grittyFilterName:
+          await photoNotifier.applyFilters(FilterConstants.applyGrittyFilter);
+          break;
+        case FilterConstants.vscoA6FilterName:
+          await photoNotifier.applyFilters(FilterConstants.applyVscoA6Filter);
+          break;
+        case FilterConstants.blackWhiteFilterName:
+          await photoNotifier.applyFilters(FilterConstants.applyMonoFilter);
+          break;
+        case FilterConstants.cinematicFilterName:
+          await photoNotifier.applyFilters(
+            FilterConstants.applyCinematicFilter,
+          );
           break;
         default:
           break;

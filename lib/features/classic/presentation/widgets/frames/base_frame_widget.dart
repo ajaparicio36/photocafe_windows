@@ -80,7 +80,12 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                   child: pw.Container(
                     width: leftPositions[i].width,
                     height: leftPositions[i].height,
-                    child: _buildPhotoWidget(i, photoImages, testImage),
+                    child: _buildPhotoWidget(
+                      i,
+                      photoImages,
+                      testImage,
+                      leftPositions[i].rotationDegrees,
+                    ),
                   ),
                 ),
               // Right column images (duplicates)
@@ -91,7 +96,12 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                   child: pw.Container(
                     width: rightPositions[i].width,
                     height: rightPositions[i].height,
-                    child: _buildPhotoWidget(i, photoImages, testImage),
+                    child: _buildPhotoWidget(
+                      i,
+                      photoImages,
+                      testImage,
+                      rightPositions[i].rotationDegrees,
+                    ),
                   ),
                 ),
               // Frame overlay on top
@@ -111,13 +121,16 @@ abstract class BaseFrameWidget extends ConsumerWidget {
     int index,
     List<pw.MemoryImage> photoImages,
     pw.MemoryImage? testImage,
+    double rotationDegrees,
   ) {
+    pw.Widget imageWidget;
+
     if (photoImages.length > index) {
-      return pw.Image(photoImages[index], fit: pw.BoxFit.cover);
+      imageWidget = pw.Image(photoImages[index], fit: pw.BoxFit.cover);
     } else if (testImage != null) {
-      return pw.Image(testImage, fit: pw.BoxFit.cover);
+      imageWidget = pw.Image(testImage, fit: pw.BoxFit.cover);
     } else {
-      return pw.Container(
+      imageWidget = pw.Container(
         color: PdfColors.grey300,
         child: pw.Center(
           child: pw.Text(
@@ -127,6 +140,109 @@ abstract class BaseFrameWidget extends ConsumerWidget {
         ),
       );
     }
+
+    // Apply rotation if specified
+    if (rotationDegrees != 0.0) {
+      final radiansRotation = rotationDegrees * (3.14159265359 / 180.0);
+      return pw.Transform.rotate(angle: radiansRotation, child: imageWidget);
+    }
+
+    return imageWidget;
+  }
+
+  // Method to generate PDF with custom rotations for each photo
+  Future<Uint8List> generatePdfFromLayoutWithRotations(
+    List<PhotoModel> photos,
+    int captureCount,
+    FrameLayout layout,
+    List<double> rotationsDegrees,
+  ) async {
+    final pdf = pw.Document();
+
+    // Load the frame background
+    final frameImageBytes = await rootBundle.load(layout.frameAssetPath);
+    final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
+
+    // Sort photos by index to ensure correct order
+    final sortedPhotos = List.from(photos)
+      ..sort((a, b) => a.index.compareTo(b.index));
+
+    // Load captured photo images
+    final photoImages = <pw.MemoryImage>[];
+    for (final photo in sortedPhotos) {
+      final file = File(photo.imagePath);
+      if (await file.exists()) {
+        final imageBytes = await file.readAsBytes();
+        photoImages.add(pw.MemoryImage(imageBytes));
+      }
+    }
+
+    // Fallback to test image if no photos available
+    pw.MemoryImage? testImage;
+    if (photoImages.isEmpty) {
+      try {
+        final testImageBytes = await rootBundle.load('assets/frames/test.jpg');
+        testImage = pw.MemoryImage(testImageBytes.buffer.asUint8List());
+      } catch (e) {
+        print('Test image not found: $e');
+      }
+    }
+
+    final photoCount = captureCount == 2 ? 2 : 4;
+    final leftPositions = layout.leftColumnPositions;
+    final rightPositions = layout.rightColumnPositions;
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a6,
+        margin: const pw.EdgeInsets.all(0),
+        build: (pw.Context context) {
+          return pw.Stack(
+            children: [
+              // Left column images
+              pw.Positioned.fill(child: pw.Container(color: PdfColors.black)),
+              for (int i = 0; i < photoCount && i < leftPositions.length; i++)
+                pw.Positioned(
+                  left: leftPositions[i].left,
+                  top: leftPositions[i].top,
+                  child: pw.Container(
+                    width: leftPositions[i].width,
+                    height: leftPositions[i].height,
+                    child: _buildPhotoWidget(
+                      i,
+                      photoImages,
+                      testImage,
+                      i < rotationsDegrees.length ? rotationsDegrees[i] : 0.0,
+                    ),
+                  ),
+                ),
+              // Right column images (duplicates)
+              for (int i = 0; i < photoCount && i < rightPositions.length; i++)
+                pw.Positioned(
+                  left: rightPositions[i].left,
+                  top: rightPositions[i].top,
+                  child: pw.Container(
+                    width: rightPositions[i].width,
+                    height: rightPositions[i].height,
+                    child: _buildPhotoWidget(
+                      i,
+                      photoImages,
+                      testImage,
+                      i < rotationsDegrees.length ? rotationsDegrees[i] : 0.0,
+                    ),
+                  ),
+                ),
+              // Frame overlay on top
+              pw.Positioned.fill(
+                child: pw.Image(frameImage, fit: pw.BoxFit.fill),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    return pdf.save();
   }
 
   // Common build method for all frames
