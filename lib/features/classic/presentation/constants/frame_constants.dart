@@ -54,15 +54,15 @@ class FrameConstants {
     type: FrameLayoutType.fourPhotos,
     leftColumnPositions: [
       FramePhotoPosition(left: 13, top: 14, width: 125, height: 78),
-      FramePhotoPosition(left: 13, top: 106.5, width: 125, height: 78),
-      FramePhotoPosition(left: 13, top: 199, width: 125, height: 78),
-      FramePhotoPosition(left: 13, top: 291.5, width: 125, height: 78),
+      FramePhotoPosition(left: 13, top: 107.5, width: 125, height: 78),
+      FramePhotoPosition(left: 13, top: 200, width: 125, height: 78),
+      FramePhotoPosition(left: 13, top: 293, width: 125, height: 78),
     ],
     rightColumnPositions: [
       FramePhotoPosition(left: 158, top: 14, width: 125, height: 78),
-      FramePhotoPosition(left: 158, top: 106.5, width: 125, height: 78),
-      FramePhotoPosition(left: 158, top: 199, width: 125, height: 78),
-      FramePhotoPosition(left: 158, top: 291.5, width: 125, height: 78),
+      FramePhotoPosition(left: 158, top: 107.5, width: 125, height: 78),
+      FramePhotoPosition(left: 158, top: 200, width: 125, height: 78),
+      FramePhotoPosition(left: 158, top: 293, width: 125, height: 78),
     ],
     topOffset: 14,
     frameAssetPath: 'assets/frames/frame1.png',
@@ -71,16 +71,16 @@ class FrameConstants {
   static const fourFrameTwo = FrameLayout(
     type: FrameLayoutType.fourPhotos,
     leftColumnPositions: [
-      FramePhotoPosition(left: 13, top: 14, width: 125, height: 78),
-      FramePhotoPosition(left: 13, top: 106.5, width: 125, height: 78),
-      FramePhotoPosition(left: 13, top: 199, width: 125, height: 78),
-      FramePhotoPosition(left: 13, top: 291.5, width: 125, height: 78),
+      FramePhotoPosition(left: 7.5, top: 41.5, width: 133, height: 85),
+      FramePhotoPosition(left: 7.5, top: 134, width: 133, height: 85),
+      FramePhotoPosition(left: 7.5, top: 226.5, width: 133, height: 85),
+      FramePhotoPosition(left: 7.5, top: 317, width: 133, height: 85),
     ],
     rightColumnPositions: [
-      FramePhotoPosition(left: 158, top: 14, width: 125, height: 78),
-      FramePhotoPosition(left: 158, top: 106.5, width: 125, height: 78),
-      FramePhotoPosition(left: 158, top: 199, width: 125, height: 78),
-      FramePhotoPosition(left: 158, top: 291.5, width: 125, height: 78),
+      FramePhotoPosition(left: 158, top: 41.5, width: 133, height: 85),
+      FramePhotoPosition(left: 158, top: 134, width: 133, height: 85),
+      FramePhotoPosition(left: 158, top: 226.5, width: 133, height: 85),
+      FramePhotoPosition(left: 158, top: 317, width: 133, height: 85),
     ],
     topOffset: 14,
     frameAssetPath: 'assets/frames/frame2.png',
@@ -194,18 +194,36 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/frame8.png',
   );
 
+  static const fourFrameNine = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(left: 13, top: 14, width: 125, height: 78),
+      FramePhotoPosition(left: 13, top: 106.5, width: 125, height: 78),
+      FramePhotoPosition(left: 13, top: 199, width: 125, height: 78),
+      FramePhotoPosition(left: 13, top: 291.5, width: 125, height: 78),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(left: 158, top: 14, width: 125, height: 78),
+      FramePhotoPosition(left: 158, top: 106.5, width: 125, height: 78),
+      FramePhotoPosition(left: 158, top: 199, width: 125, height: 78),
+      FramePhotoPosition(left: 158, top: 291.5, width: 125, height: 78),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame9.png',
+  );
+
   // 2x2 Frame Layouts (for 2x2 mode)
   static const twoByTwoLayout = FrameLayout(
     type: FrameLayoutType.twoPhotos,
     leftColumnPositions: [
-      FramePhotoPosition(left: 20, top: 50, width: 140, height: 250),
-      FramePhotoPosition(left: 20, top: 230, width: 140, height: 250),
+      FramePhotoPosition(left: 9, top: 10, width: 135, height: 165),
+      FramePhotoPosition(left: 9, top: 183, width: 135, height: 165),
     ],
     rightColumnPositions: [
-      FramePhotoPosition(left: 180, top: 50, width: 140, height: 250),
-      FramePhotoPosition(left: 180, top: 230, width: 140, height: 250),
+      FramePhotoPosition(left: 153, top: 10, width: 135, height: 165),
+      FramePhotoPosition(left: 153, top: 183, width: 135, height: 165),
     ],
-    topOffset: 50,
+    topOffset: 0,
     frameAssetPath: 'assets/frames/2by2_frame1.png',
   );
 

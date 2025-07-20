@@ -231,8 +231,11 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       Uint8List processedImageBytes = imageBytes;
 
       if (currentState.captureCount == 2) {
-        // For 2x2 mode, ensure portrait orientation (9:16 aspect ratio)
+        // For 2x2 mode, ensure portrait orientation (5:6 aspect ratio)
         processedImageBytes = await _processImageForPortrait(imageBytes);
+      } else if (currentState.captureCount == 4) {
+        // For 4x4 mode, ensure landscape orientation (4:3 aspect ratio)
+        processedImageBytes = await _processImageForLandscape(imageBytes);
       }
 
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
@@ -262,16 +265,16 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       final originalImage = img.decodeImage(imageBytes);
       if (originalImage == null) return imageBytes;
 
-      // Calculate target dimensions for 9:16 aspect ratio
-      final targetWidth = 720;
-      final targetHeight = 1280;
+      // Calculate target dimensions for 5:6 aspect ratio
+      final targetWidth = 1000;
+      final targetHeight = 1200;
 
-      // Resize and crop to 9:16 aspect ratio
+      // Resize and crop to 5:6 aspect ratio
       img.Image processedImage;
 
-      if (originalImage.width / originalImage.height > 9 / 16) {
-        // Image is wider than 9:16, crop horizontally
-        final newWidth = (originalImage.height * 9 / 16).round();
+      if (originalImage.width / originalImage.height > 5 / 6) {
+        // Image is wider than 5:6, crop horizontally
+        final newWidth = (originalImage.height * 5 / 6).round();
         final cropX = (originalImage.width - newWidth) ~/ 2;
         processedImage = img.copyCrop(
           originalImage,
@@ -281,8 +284,8 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
           height: originalImage.height,
         );
       } else {
-        // Image is taller than 9:16, crop vertically
-        final newHeight = (originalImage.width * 16 / 9).round();
+        // Image is taller than 5:6, crop vertically
+        final newHeight = (originalImage.width * 6 / 5).round();
         final cropY = (originalImage.height - newHeight) ~/ 2;
         processedImage = img.copyCrop(
           originalImage,
@@ -307,14 +310,99 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
+  Future<Uint8List> _processImageForLandscape(Uint8List imageBytes) async {
+    try {
+      final originalImage = img.decodeImage(imageBytes);
+      if (originalImage == null) return imageBytes;
+
+      // Calculate target dimensions for 4:3 aspect ratio
+      final targetWidth = 1200;
+      final targetHeight = 900;
+
+      // Resize and crop to 4:3 aspect ratio
+      img.Image processedImage;
+
+      if (originalImage.width / originalImage.height > 4 / 3) {
+        // Image is wider than 4:3, crop horizontally
+        final newWidth = (originalImage.height * 4 / 3).round();
+        final cropX = (originalImage.width - newWidth) ~/ 2;
+        processedImage = img.copyCrop(
+          originalImage,
+          x: cropX,
+          y: 0,
+          width: newWidth,
+          height: originalImage.height,
+        );
+      } else {
+        // Image is taller than 4:3, crop vertically
+        final newHeight = (originalImage.width * 3 / 4).round();
+        final cropY = (originalImage.height - newHeight) ~/ 2;
+        processedImage = img.copyCrop(
+          originalImage,
+          x: 0,
+          y: cropY,
+          width: originalImage.width,
+          height: newHeight,
+        );
+      }
+
+      // Resize to target dimensions
+      processedImage = img.copyResize(
+        processedImage,
+        width: targetWidth,
+        height: targetHeight,
+      );
+
+      return img.encodeJpg(processedImage);
+    } catch (e) {
+      print('Error processing image for landscape: $e');
+      return imageBytes; // Return original if processing fails
+    }
+  }
+
   Future<void> setCaptureCount(int count) async {
+    print('setCaptureCount called with count: $count');
+
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
-        throw Exception("State is not available to set capture count.");
+        // If somehow state is null, create a new one with the count
+        print(
+          'Warning: Photo state was null when setting capture count, creating new state',
+        );
+        final tempPath = await getTemporaryDirectory();
+        final photoTempDir = Directory(p.join(tempPath.path, 'photos'));
+        if (!await photoTempDir.exists()) {
+          await photoTempDir.create(recursive: true);
+        }
+        final newState = PhotoState(
+          photos: [],
+          tempPath: photoTempDir.path,
+          captureCount: count,
+          isRecording: false,
+          videoPath: null,
+        );
+        print('Created new state with capture count: ${newState.captureCount}');
+        return newState;
       }
-      return currentState.copyWith(captureCount: count);
+
+      print(
+        'Setting capture count from ${currentState.captureCount} to $count',
+      );
+      final newState = currentState.copyWith(captureCount: count);
+      print('New state capture count: ${newState.captureCount}');
+
+      // Add a small delay to ensure the state is properly set
+      await Future.delayed(const Duration(milliseconds: 50));
+
+      return newState;
     });
+
+    // Log the final state after the guard completes
+    final finalState = state.value;
+    print(
+      'setCaptureCount completed. Final state capture count: ${finalState?.captureCount}',
+    );
   }
 
   Future<void> clearPhoto(int index) async {

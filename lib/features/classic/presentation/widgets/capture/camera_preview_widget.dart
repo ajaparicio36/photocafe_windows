@@ -29,8 +29,17 @@ class CameraPreviewWidget extends StatelessWidget {
         color: Colors.black,
         child: Center(
           child: AspectRatio(
-            aspectRatio: cameraController!.value.aspectRatio,
-            child: CameraPreview(cameraController!),
+            aspectRatio: 4 / 3, // Landscape aspect ratio for 4x4 mode (4:3)
+            child: ClipRect(
+              child: FittedBox(
+                fit: BoxFit.cover,
+                child: SizedBox(
+                  width: cameraController!.value.aspectRatio * 400,
+                  height: 400,
+                  child: CameraPreview(cameraController!),
+                ),
+              ),
+            ),
           ),
         ),
       );

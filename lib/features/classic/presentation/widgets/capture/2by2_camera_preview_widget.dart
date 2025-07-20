@@ -29,10 +29,10 @@ class TwoByTwoCameraPreviewWidget extends StatelessWidget {
         color: Colors.black,
         child: Center(
           child: AspectRatio(
-            aspectRatio: 9 / 16, // Portrait aspect ratio for 2x2 mode
+            aspectRatio: 5 / 6, // Portrait aspect ratio for 2x2 mode (5:6)
             child: ClipRect(
               child: Transform.scale(
-                scale: cameraController!.value.aspectRatio / (9 / 16),
+                scale: cameraController!.value.aspectRatio / (5 / 6),
                 child: Center(
                   child: AspectRatio(
                     aspectRatio: cameraController!.value.aspectRatio,

@@ -34,15 +34,56 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeCamera();
 
-    // Debug: Check capture count on init
+    // Wait for the widget to be built before initializing
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final photoState = ref.read(photoProvider).value;
-      print(
-        'Capture screen initialized with capture count: ${photoState?.captureCount}',
-      );
+      _waitForValidStateAndInitialize();
     });
+  }
+
+  Future<void> _waitForValidStateAndInitialize() async {
+    try {
+      // Since providers are pre-initialized, we should have valid state immediately
+      final photoStateAsync = ref.read(photoProvider);
+
+      if (photoStateAsync.hasValue && photoStateAsync.value != null) {
+        final photoState = photoStateAsync.value!;
+        print(
+          'Capture count from initialized state: ${photoState.captureCount}',
+        );
+
+        // Initialize camera once we have a valid state
+        await _initializeCamera();
+
+        if (mounted) {
+          setState(() {
+            _currentPhotoIndex = 0;
+          });
+        }
+
+        print(
+          'Capture screen initialized with capture count: ${photoState.captureCount}',
+        );
+        print('Starting with photo index: $_currentPhotoIndex');
+        return;
+      } else {
+        throw Exception(
+          'Photo provider state is not available even after app initialization',
+        );
+      }
+    } catch (e, stackTrace) {
+      print('Error during capture screen initialization: $e');
+      print('Stack trace: $stackTrace');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to initialize photo session: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _initializeCamera() async {
@@ -52,8 +93,10 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       final cameras = await availableCameras();
       if (cameras.isNotEmpty) {
         // Get selected photo camera from settings
-        final printerState = ref.read(printerProvider).value;
-        final selectedPhotoCameraName = printerState?.photoCameraName;
+        final printerStateAsync = ref.read(printerProvider);
+        final selectedPhotoCameraName = printerStateAsync.hasValue
+            ? printerStateAsync.value?.photoCameraName
+            : null;
 
         CameraDescription? selectedPhotoCamera;
         if (selectedPhotoCameraName != null) {
@@ -70,8 +113,10 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         selectedPhotoCamera ??= cameras.first;
 
         // Get capture count to determine resolution preset
-        final photoState = ref.read(photoProvider).value;
-        final captureCount = photoState?.captureCount ?? 4;
+        final photoStateAsync = ref.read(photoProvider);
+        final captureCount = photoStateAsync.hasValue
+            ? (photoStateAsync.value?.captureCount ?? 4)
+            : 4;
 
         print('Initializing camera for capture count: $captureCount');
 
@@ -123,8 +168,8 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     if (_isDisposed) return;
 
     // Ensure we have a valid photo state before starting countdown
-    final photoState = ref.read(photoProvider).value;
-    if (photoState == null) {
+    final photoStateAsync = ref.read(photoProvider);
+    if (!photoStateAsync.hasValue || photoStateAsync.value == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -136,6 +181,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       return;
     }
 
+    final photoState = photoStateAsync.value!;
     print(
       'Starting countdown for capture ${_currentPhotoIndex + 1} of ${photoState.captureCount}',
     );
@@ -247,9 +293,14 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       }
 
       // Always read the current capture count from the photo state
-      final currentPhotoState = ref.read(photoProvider).value;
-      final captureCount = currentPhotoState?.captureCount ?? 4;
+      final currentPhotoStateAsync = ref.read(photoProvider);
+      if (!currentPhotoStateAsync.hasValue ||
+          currentPhotoStateAsync.value == null) {
+        throw Exception('Photo state became unavailable');
+      }
 
+      final currentPhotoState = currentPhotoStateAsync.value!;
+      final captureCount = currentPhotoState.captureCount;
       print('Photo captured: ${_currentPhotoIndex + 1} of $captureCount');
 
       if (mounted) {
@@ -258,8 +309,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         });
       }
 
+      // Check if we've captured enough photos based on the capture count
       if (_currentPhotoIndex >= captureCount) {
-        print('All photos captured, stopping video recording');
+        print('All $captureCount photos captured, stopping video recording');
         // Stop video recording before navigating
         await _stopVideoRecording();
 
