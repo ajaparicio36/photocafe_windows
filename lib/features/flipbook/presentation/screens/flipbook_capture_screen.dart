@@ -24,6 +24,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   int _countdown = 0;
   Timer? _countdownTimer;
   bool _isRecording = false;
+  bool _isCountingDown = false; // Add pre-recording countdown state
 
   @override
   void initState() {
@@ -87,13 +88,36 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       return;
     }
 
+    // Start 10-second countdown before recording
     setState(() {
-      _countdown = 7;
-      _isRecording = true;
+      _countdown = 10;
+      _isCountingDown = true;
     });
 
     final videoNotifier = ref.read(videoProvider.notifier);
     await videoNotifier.clearVideo();
+
+    // Start pre-recording countdown
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdown > 1) {
+        if (mounted) {
+          setState(() {
+            _countdown--;
+          });
+        }
+      } else {
+        timer.cancel();
+        _actuallyStartRecording(); // Start actual recording after countdown
+      }
+    });
+  }
+
+  Future<void> _actuallyStartRecording() async {
+    setState(() {
+      _countdown = 7;
+      _isRecording = true;
+      _isCountingDown = false;
+    });
 
     // Start recording using the existing camera controller
     try {
@@ -105,7 +129,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         await _stopRecording();
       });
 
-      // Start countdown timer
+      // Start recording countdown timer
       _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (_countdown > 1) {
           if (mounted) {
@@ -126,6 +150,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       print('Error starting video recording: $e');
       setState(() {
         _isRecording = false;
+        _isCountingDown = false;
       });
       ScaffoldMessenger.of(
         context,
@@ -201,44 +226,6 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         }
       }
     }
-  }
-
-  Future<void> _retakeVideo() async {
-    await _videoPlayerController?.dispose();
-    _videoPlayerController = null;
-    final videoNotifier = ref.read(videoProvider.notifier);
-    await videoNotifier.clearVideo();
-    setState(() {}); // Rebuild to show camera preview
-  }
-
-  Widget _buildRecordingOverlay() {
-    return Container(
-      color: Colors.black.withOpacity(0.5),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              _countdown > 0 ? '$_countdown' : 'Processing...',
-              style: const TextStyle(
-                fontSize: 120,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _countdown > 0 ? 'Recording...' : 'Almost done...',
-              style: const TextStyle(fontSize: 24, color: Colors.white),
-            ),
-            if (_countdown == 0) ...[
-              const SizedBox(height: 20),
-              const CircularProgressIndicator(color: Colors.white),
-            ],
-          ],
-        ),
-      ),
-    );
   }
 
   Widget _buildVideoPreview() {
@@ -318,6 +305,85 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     );
   }
 
+  Future<void> _retakeVideo() async {
+    await _videoPlayerController?.dispose();
+    _videoPlayerController = null;
+    final videoNotifier = ref.read(videoProvider.notifier);
+    await videoNotifier.clearVideo();
+
+    // Reset countdown states
+    setState(() {
+      _isCountingDown = false;
+      _isRecording = false;
+      _countdown = 0;
+    });
+
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+  }
+
+  Widget _buildRecordingOverlay() {
+    String overlayText;
+    String subText;
+
+    if (_isCountingDown) {
+      overlayText = '$_countdown';
+      subText = 'Get Ready!';
+    } else if (_isRecording) {
+      overlayText = _countdown > 0 ? '$_countdown' : 'Processing...';
+      subText = _countdown > 0 ? 'Recording...' : 'Almost done...';
+    } else {
+      overlayText = 'Processing...';
+      subText = 'Almost done...';
+    }
+
+    return Positioned(
+      bottom: 100,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: Container(
+          width: 200,
+          height: 200,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withOpacity(0.8),
+            border: Border.all(color: Colors.white, width: 3),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                overlayText,
+                style: const TextStyle(
+                  fontSize: 60,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                subText,
+                style: const TextStyle(fontSize: 16, color: Colors.white),
+              ),
+              if (_countdown == 0 && _isRecording) ...[
+                const SizedBox(height: 12),
+                const SizedBox(
+                  width: 30,
+                  height: 30,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 3,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final videoState = ref.watch(videoProvider);
@@ -326,10 +392,12 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     final showVideoPreview =
         _videoPlayerController != null &&
         _videoPlayerController!.value.isInitialized &&
-        !_isRecording;
+        !_isRecording &&
+        !_isCountingDown;
 
-    final showRecordingOverlay =
-        (_isRecording && _countdown > 0) ||
+    final showCountdownOverlay =
+        _isCountingDown ||
+        (_isRecording && _countdown >= 0) ||
         (hasVideo && !showVideoPreview && _countdown == 0);
 
     return Scaffold(
@@ -344,9 +412,9 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
           else
             Center(child: _buildVideoPreview()),
 
-          if (showRecordingOverlay) _buildRecordingOverlay(),
+          if (showCountdownOverlay) _buildRecordingOverlay(),
 
-          if (!showRecordingOverlay && !showVideoPreview && !hasVideo)
+          if (!showCountdownOverlay && !showVideoPreview && !hasVideo)
             Positioned(
               bottom: 60,
               left: 0,
@@ -383,7 +451,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: IconButton(
-                onPressed: (showRecordingOverlay || _countdown > 0)
+                onPressed: (_isCountingDown || _isRecording || _countdown > 0)
                     ? null
                     : () => context.go('/flipbook/start'),
                 icon: const Icon(
