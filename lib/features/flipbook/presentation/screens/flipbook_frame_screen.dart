@@ -134,8 +134,11 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
       orElse: () => FlipbookFrameConstants.availableFrames.first,
     );
 
-    // Use the frame factory to create the preview widget
-    return FlipbookFrameFactory.createFrameWidget(frameDefinition);
+    // Use the frame factory to create the preview widget with a key to force rebuilds
+    return Container(
+      key: ValueKey('preview_container_$_selectedFrame'),
+      child: FlipbookFrameFactory.createFrameWidget(frameDefinition),
+    );
   }
 
   @override
@@ -260,6 +263,7 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
                         const SizedBox(height: 24),
                         Expanded(
                           child: Container(
+                            key: ValueKey('preview_wrapper_$_selectedFrame'),
                             decoration: BoxDecoration(
                               border: Border.all(
                                 color: Theme.of(context).colorScheme.outline,
@@ -280,13 +284,43 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
                                 data: (state) => state.frames.isNotEmpty
                                     ? _buildFramePreview()
                                     : const Center(
-                                        child: Text('No frames to preview.'),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.photo_library_outlined,
+                                              size: 48,
+                                            ),
+                                            SizedBox(height: 16),
+                                            Text('No frames to preview.'),
+                                          ],
+                                        ),
                                       ),
                                 loading: () => const Center(
-                                  child: CircularProgressIndicator(),
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CircularProgressIndicator(),
+                                      SizedBox(height: 16),
+                                      Text('Loading frames...'),
+                                    ],
+                                  ),
                                 ),
-                                error: (e, s) =>
-                                    Center(child: Text('Error: $e')),
+                                error: (e, s) => Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.error,
+                                        size: 48,
+                                        color: Colors.red,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text('Error: $e'),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           ),

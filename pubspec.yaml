@@ -101,6 +101,11 @@ flutter:
     - assets/frames/2by2_frame6.png
     - assets/frames/test.jpg
     - assets/flipbook/frame1.png
+    - assets/flipbook/frame2.png
+    - assets/flipbook/frame3.png
+    - assets/flipbook/frame4.png
+    - assets/flipbook/frame5.png
+    - assets/flipbook/frame6.png
 
   # To add assets to your application, add an assets section, like this:
   # assets:

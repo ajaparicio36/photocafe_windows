@@ -50,7 +50,7 @@ class FlipbookFrameDefinition {
 
 class FlipbookFrameConstants {
   // Standard Flipbook Frame Layout
-  static const standardFrameLayout = FlipbookFrameLayout(
+  static const flipbookFrameOne = FlipbookFrameLayout(
     type: FlipbookFrameType.doubleFrame,
     framePositions: [
       // First frame position
@@ -74,84 +74,171 @@ class FlipbookFrameConstants {
     isLandscape: true,
   );
 
-  // Vintage Flipbook Frame Layout
-  static const vintageFrameLayout = FlipbookFrameLayout(
-    type: FlipbookFrameType.doubleFrame,
+  static const flipbookFrameTwo = FlipbookFrameLayout(
+    type: FlipbookFrameType.singleFrame,
     framePositions: [
-      // First frame position (slightly different positioning)
+      // First frame position
       FlipbookFramePosition(
-        left: 210.0,
-        top: 15.0,
-        width: 180.0,
-        height: 120.0,
+        left: 213.0,
+        top: 10.0,
+        width: 195.0,
+        height: 140.0,
       ),
       // Second frame position
       FlipbookFramePosition(
-        left: 210.0,
-        top: 15.0,
-        width: 180.0,
-        height: 120.0,
+        left: 213.0,
+        top: 10.0,
+        width: 195.0,
+        height: 140.0,
       ),
     ],
-    frameAssetPath: 'assets/flipbook/vintage_frame.png',
+    frameAssetPath: 'assets/flipbook/frame2.png',
     pageWidth: 420.0,
     pageHeight: 149.0,
     isLandscape: true,
   );
 
-  // Minimal Flipbook Frame Layout
-  static const minimalFrameLayout = FlipbookFrameLayout(
+  static const flipbookFrameThree = FlipbookFrameLayout(
     type: FlipbookFrameType.doubleFrame,
     framePositions: [
       // First frame position
-      FlipbookFramePosition(left: 200.0, top: 5.0, width: 210.0, height: 135.0),
+      FlipbookFramePosition(
+        left: 208.0,
+        top: 10.0,
+        width: 205.0,
+        height: 140.0,
+      ),
       // Second frame position
-      FlipbookFramePosition(left: 200.0, top: 5.0, width: 210.0, height: 135.0),
+      FlipbookFramePosition(
+        left: 208.0,
+        top: 10.0,
+        width: 205.0,
+        height: 140.0,
+      ),
     ],
-    frameAssetPath: 'assets/flipbook/minimal_frame.png',
+    frameAssetPath: 'assets/flipbook/frame3.png',
+    pageWidth: 420.0,
+    pageHeight: 149.0,
+    isLandscape: true,
+  );
+
+  static const flipbookFrameFour = FlipbookFrameLayout(
+    type: FlipbookFrameType.singleFrame,
+    framePositions: [
+      // First frame position
+      FlipbookFramePosition(
+        left: 220.0,
+        top: 10.0,
+        width: 195.0,
+        height: 140.0,
+      ),
+      // Second frame position
+      FlipbookFramePosition(
+        left: 220.0,
+        top: 10.0,
+        width: 195.0,
+        height: 140.0,
+      ),
+    ],
+    frameAssetPath: 'assets/flipbook/frame4.png',
+    pageWidth: 420.0,
+    pageHeight: 149.0,
+    isLandscape: true,
+  );
+
+  static const flipbookFrameFive = FlipbookFrameLayout(
+    type: FlipbookFrameType.doubleFrame,
+    framePositions: [
+      // First frame position
+      FlipbookFramePosition(
+        left: 208.0,
+        top: 10.0,
+        width: 205.0,
+        height: 140.0,
+      ),
+      // Second frame position
+      FlipbookFramePosition(
+        left: 208.0,
+        top: 10.0,
+        width: 205.0,
+        height: 140.0,
+      ),
+    ],
+    frameAssetPath: 'assets/flipbook/frame5.png',
+    pageWidth: 420.0,
+    pageHeight: 149.0,
+    isLandscape: true,
+  );
+
+  static const flipbookFrameSix = FlipbookFrameLayout(
+    type: FlipbookFrameType.singleFrame,
+    framePositions: [
+      // First frame position
+      FlipbookFramePosition(left: 208.0, top: 8.0, width: 205.0, height: 142.0),
+      // Second frame position
+      FlipbookFramePosition(left: 208.0, top: 8.0, width: 205.0, height: 142.0),
+    ],
+    frameAssetPath: 'assets/flipbook/frame6.png',
     pageWidth: 420.0,
     pageHeight: 149.0,
     isLandscape: true,
   );
 
   // Frame Definitions
-  static const FlipbookFrameDefinition standardFrame = FlipbookFrameDefinition(
+  static const FlipbookFrameDefinition frameOne = FlipbookFrameDefinition(
     id: 'standard_frame',
-    name: 'Standard Frame',
+    name: 'Frame One',
     description: 'A classic flipbook frame with decorative borders.',
-    layout: standardFrameLayout,
+    layout: flipbookFrameOne,
     previewWidgetName: 'StandardFlipbookFrame',
   );
 
-  static const FlipbookFrameDefinition vintageFrame = FlipbookFrameDefinition(
-    id: 'vintage_frame',
-    name: 'Vintage Frame',
-    description: 'A retro-style frame with ornate details.',
-    layout: vintageFrameLayout,
-    previewWidgetName: 'VintageFlipbookFrame',
+  static const FlipbookFrameDefinition frameTwo = FlipbookFrameDefinition(
+    id: 'frame_two',
+    name: 'Frame Two',
+    description: 'A modern flipbook frame with a sleek design.',
+    layout: flipbookFrameTwo,
+    previewWidgetName: 'StandardFlipbookFrame',
   );
 
-  static const FlipbookFrameDefinition minimalFrame = FlipbookFrameDefinition(
-    id: 'minimal_frame',
-    name: 'Minimal Frame',
-    description: 'A clean, modern frame with minimal decoration.',
-    layout: minimalFrameLayout,
-    previewWidgetName: 'MinimalFlipbookFrame',
+  static const FlipbookFrameDefinition frameThree = FlipbookFrameDefinition(
+    id: 'frame_three',
+    name: 'Frame Three',
+    description: 'A playful flipbook frame with vibrant colors.',
+    layout: flipbookFrameThree,
+    previewWidgetName: 'StandardFlipbookFrame',
   );
 
-  // TODO: Add more frames here as needed
-  // static const FlipbookFrameDefinition funFrame = FlipbookFrameDefinition(
-  //   id: 'fun_frame',
-  //   name: 'Fun Frame',
-  //   description: 'A playful frame with bright colors.',
-  //   layout: funFrameLayout,
-  //   previewWidgetName: 'FunFlipbookFrame',
-  // );
+  static const FlipbookFrameDefinition frameFour = FlipbookFrameDefinition(
+    id: 'frame_four',
+    name: 'Frame Four',
+    description: 'A minimalist flipbook frame with clean lines.',
+    layout: flipbookFrameFour,
+    previewWidgetName: 'StandardFlipbookFrame',
+  );
 
+  static const FlipbookFrameDefinition frameFive = FlipbookFrameDefinition(
+    id: 'frame_five',
+    name: 'Frame Five',
+    description: 'A vintage flipbook frame with ornate details.',
+    layout: flipbookFrameFive,
+    previewWidgetName: 'StandardFlipbookFrame',
+  );
+
+  static const FlipbookFrameDefinition frameSix = FlipbookFrameDefinition(
+    id: 'frame_six',
+    name: 'Frame Six',
+    description: 'A futuristic flipbook frame with neon accents.',
+    layout: flipbookFrameSix,
+    previewWidgetName: 'StandardFlipbookFrame',
+  );
   static List<FlipbookFrameDefinition> get availableFrames => [
-    standardFrame,
-    vintageFrame,
-    minimalFrame,
+    frameOne,
+    frameTwo,
+    frameThree,
+    frameFour,
+    frameFive,
+    frameSix,
     // funFrame, // Add more frames here
   ];
 }

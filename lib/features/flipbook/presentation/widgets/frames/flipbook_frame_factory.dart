@@ -4,24 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/constants/frame_constants.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/widgets/frames/base_flipbook_frame_widget.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/widgets/frames/standard_flipbook_frame_widget.dart';
-import 'package:photocafe_windows/features/flipbook/presentation/widgets/frames/vintage_flipbook_frame_widget.dart';
-import 'package:photocafe_windows/features/flipbook/presentation/widgets/frames/minimal_flipbook_frame_widget.dart';
 import 'package:photocafe_windows/features/videos/domain/data/models/frame_model.dart';
 
 class FlipbookFrameFactory {
   static Widget createFrameWidget(FlipbookFrameDefinition frameDefinition) {
     switch (frameDefinition.previewWidgetName) {
       case 'StandardFlipbookFrame':
-        return StandardFlipbookFrameWidget(frameDefinition: frameDefinition);
-      case 'VintageFlipbookFrame':
-        return VintageFlipbookFrameWidget(frameDefinition: frameDefinition);
-      case 'MinimalFlipbookFrame':
-        return MinimalFlipbookFrameWidget(frameDefinition: frameDefinition);
-      // Add more cases as you create more frames
-      // case 'FunFlipbookFrame':
-      //   return FunFlipbookFrameWidget(frameDefinition: frameDefinition);
+        return StandardFlipbookFrameWidget(
+          key: ValueKey('standard_frame_${frameDefinition.id}'),
+          frameDefinition: frameDefinition,
+        );
       default:
         return Container(
+          key: ValueKey('unknown_frame_${frameDefinition.id}'),
           decoration: BoxDecoration(
             color: Colors.grey[200],
             borderRadius: BorderRadius.circular(8),
@@ -62,11 +57,6 @@ class FlipbookFrameFactory {
     switch (frameDefinition.previewWidgetName) {
       case 'StandardFlipbookFrame':
         return StandardFlipbookFrameWidget(frameDefinition: frameDefinition);
-      case 'VintageFlipbookFrame':
-        return VintageFlipbookFrameWidget(frameDefinition: frameDefinition);
-      case 'MinimalFlipbookFrame':
-        return MinimalFlipbookFrameWidget(frameDefinition: frameDefinition);
-      // Add more cases as needed
       default:
         return StandardFlipbookFrameWidget(frameDefinition: frameDefinition);
     }

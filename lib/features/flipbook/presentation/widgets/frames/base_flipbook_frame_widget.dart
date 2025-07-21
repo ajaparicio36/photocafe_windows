@@ -156,10 +156,35 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
         }
 
         return FutureBuilder<Uint8List>(
+          key: ValueKey('${frameDefinition.id}_${videoState.frames.length}'),
           future: generatePdf(videoState.frames, frameDefinition.layout),
           builder: (context, snapshot) {
-            if (snapshot.hasData) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const CircularProgressIndicator(),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Generating ${frameDefinition.name} preview...',
+                      style: Theme.of(context).textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${videoState.frames.length} frames • ${(videoState.frames.length / 2).ceil()} pages',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else if (snapshot.hasData) {
               return PdfPreview(
+                key: ValueKey('preview_${frameDefinition.id}'),
                 build: (format) => snapshot.data!,
                 allowSharing: false,
                 allowPrinting: false,
@@ -181,7 +206,24 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
                   children: [
                     const Icon(Icons.error, size: 48, color: Colors.red),
                     const SizedBox(height: 16),
-                    Text('Error generating PDF: ${snapshot.error}'),
+                    Text(
+                      'Error generating ${frameDefinition.name} preview',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Error: ${snapshot.error}',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Force rebuild by changing the key
+                        ref.invalidate(videoProvider);
+                      },
+                      child: const Text('Retry'),
+                    ),
                   ],
                 ),
               );
@@ -192,7 +234,7 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
                   children: [
                     CircularProgressIndicator(),
                     SizedBox(height: 16),
-                    Text('Generating preview...'),
+                    Text('Initializing preview...'),
                   ],
                 ),
               );
@@ -200,7 +242,16 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading frames...'),
+          ],
+        ),
+      ),
       error: (error, stack) => Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
