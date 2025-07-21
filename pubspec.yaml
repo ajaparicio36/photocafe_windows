@@ -94,6 +94,11 @@ flutter:
     - assets/frames/frame8.png
     - assets/frames/frame9.png
     - assets/frames/2by2_frame1.png
+    - assets/frames/2by2_frame2.png
+    - assets/frames/2by2_frame3.png
+    - assets/frames/2by2_frame4.png
+    - assets/frames/2by2_frame5.png
+    - assets/frames/2by2_frame6.png
     - assets/frames/test.jpg
     - assets/flipbook/frame1.png
 

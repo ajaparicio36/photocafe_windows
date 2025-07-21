@@ -645,46 +645,6 @@ class FrameConstants {
     topOffset: 14,
     frameAssetPath: 'assets/frames/frame9.png',
   );
-
-  // 2x2 Frame Layouts (for 2x2 mode)
-  static const twoByTwoLayout = FrameLayout(
-    type: FrameLayoutType.twoPhotos,
-    leftColumnPositions: [
-      FramePhotoPosition(
-        left: 9,
-        top: 10,
-        width: 135,
-        height: 165,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 9,
-        top: 183,
-        width: 135,
-        height: 165,
-        rotationDegrees: 0.0,
-      ),
-    ],
-    rightColumnPositions: [
-      FramePhotoPosition(
-        left: 153,
-        top: 10,
-        width: 135,
-        height: 165,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 153,
-        top: 183,
-        width: 135,
-        height: 165,
-        rotationDegrees: 0.0,
-      ),
-    ],
-    topOffset: 0,
-    frameAssetPath: 'assets/frames/2by2_frame1.png',
-  );
-
   // Frame Definitions
 
   // 4 by 4
@@ -769,66 +729,289 @@ class FrameConstants {
     layouts: {FrameLayoutType.fourPhotos: fourFrameNine},
     previewWidgetName: 'FourByFourFramePreview',
   );
+
   // 2 by 2
 
-  static const FrameDefinition twoByTwoFrame = FrameDefinition(
+  static const FrameDefinition twoByTwoFrameOne = FrameDefinition(
     id: '2by2_frame_one',
-    name: '2x2 Portrait Frame',
+    name: 'Frame One',
     description: 'A portrait-oriented 2-photo layout.',
     supportedLayouts: [FrameLayoutType.twoPhotos],
-    layouts: {FrameLayoutType.twoPhotos: twoByTwoLayout},
+    layouts: {FrameLayoutType.twoPhotos: twoFrameOne},
     previewWidgetName: 'TwoByTwoFramePreview',
   );
 
-  // Legacy classic frame - keeping for backwards compatibility
-  static const classicTwoPhotoLayout = FrameLayout(
+  static const FrameDefinition twoByTwoFrameTwo = FrameDefinition(
+    id: '2by2_frame_two',
+    name: 'Frame Two',
+    description: ' A portrait-oriented 2-photo layout.',
+    supportedLayouts: [FrameLayoutType.twoPhotos],
+    layouts: {FrameLayoutType.twoPhotos: twoFrameTwo},
+    previewWidgetName: 'TwoByTwoFramePreview',
+  );
+
+  static const FrameDefinition twoByTwoFrameThree = FrameDefinition(
+    id: '2by2_frame_three',
+    name: 'Frame Three',
+    description: 'A portrait-oriented 2-photo layout.',
+    supportedLayouts: [FrameLayoutType.twoPhotos],
+    layouts: {FrameLayoutType.twoPhotos: twoFrameThree},
+    previewWidgetName: 'TwoByTwoFramePreview',
+  );
+
+  static const FrameDefinition twoByTwoFrameFour = FrameDefinition(
+    id: '2by2_frame_four',
+    name: 'Frame Four',
+    description: 'A portrait-oriented 2-photo layout.',
+    supportedLayouts: [FrameLayoutType.twoPhotos],
+    layouts: {FrameLayoutType.twoPhotos: twoFrameFour},
+    previewWidgetName: 'TwoByTwoFramePreview',
+  );
+
+  static const FrameDefinition twoByTwoFrameFive = FrameDefinition(
+    id: '2by2_frame_five',
+    name: 'Frame Five',
+    description: 'A portrait-oriented 2-photo layout.',
+    supportedLayouts: [FrameLayoutType.twoPhotos],
+    layouts: {FrameLayoutType.twoPhotos: twoFrameFive},
+    previewWidgetName: 'TwoByTwoFramePreview',
+  );
+
+  static const FrameDefinition twoByTwoFrameSix = FrameDefinition(
+    id: '2by2_frame_six',
+    name: 'Frame Six',
+    description: 'A portrait-oriented 2-photo layout.',
+    supportedLayouts: [FrameLayoutType.twoPhotos],
+    layouts: {FrameLayoutType.twoPhotos: twoFrameSix},
+    previewWidgetName: 'TwoByTwoFramePreview',
+  );
+
+  static const twoFrameOne = FrameLayout(
     type: FrameLayoutType.twoPhotos,
     leftColumnPositions: [
       FramePhotoPosition(
-        left: 13,
-        top: 100,
-        width: 125,
-        height: 78,
+        left: 9,
+        top: 8,
+        width: 135,
+        height: 166,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 13,
-        top: 192.5,
-        width: 125,
-        height: 78,
+        left: 9,
+        top: 181,
+        width: 135,
+        height: 166,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 154,
+        top: 8,
+        width: 135,
+        height: 166,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 154,
+        top: 181,
+        width: 135,
+        height: 166,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 100,
+    frameAssetPath: 'assets/frames/2by2_frame1.png',
+  );
+
+  static const twoFrameTwo = FrameLayout(
+    type: FrameLayoutType.twoPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 17,
+        top: 19,
+        width: 118,
+        height: 121,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 17,
+        top: 191,
+        width: 118,
+        height: 121,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 162,
+        top: 19,
+        width: 118,
+        height: 121,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 162,
+        top: 191,
+        width: 118,
+        height: 121,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 100,
+    frameAssetPath: 'assets/frames/2by2_frame2.png',
+  );
+
+  static const twoFrameThree = FrameLayout(
+    type: FrameLayoutType.twoPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 16,
+        top: 14,
+        width: 117,
+        height: 151,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 16,
+        top: 188,
+        width: 117,
+        height: 151,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 163,
+        top: 14,
+        width: 117,
+        height: 151,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 163,
+        top: 188,
+        width: 117,
+        height: 151,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 100,
+    frameAssetPath: 'assets/frames/2by2_frame3.png',
+  );
+
+  static const twoFrameFour = FrameLayout(
+    type: FrameLayoutType.twoPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 8,
+        top: 70,
+        width: 137,
+        height: 165,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 8,
+        top: 240,
+        width: 137,
+        height: 165,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 154,
+        top: 70,
+        width: 137,
+        height: 165,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 154,
+        top: 240,
+        width: 137,
+        height: 165,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 100,
+    frameAssetPath: 'assets/frames/2by2_frame4.png',
+  );
+
+  static const twoFrameFive = FrameLayout(
+    type: FrameLayoutType.twoPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 9,
+        top: 28,
+        width: 135,
+        height: 164,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 9,
+        top: 215,
+        width: 135,
+        height: 164,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 154,
+        top: 28,
+        width: 135,
+        height: 164,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 154,
+        top: 215,
+        width: 135,
+        height: 164,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 100,
+    frameAssetPath: 'assets/frames/2by2_frame5.png',
+  );
+
+  static const twoFrameSix = FrameLayout(
+    type: FrameLayoutType.twoPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 15,
+        top: 19,
+        width: 135,
+        height: 164,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 15,
+        top: 200,
+        width: 135,
+        height: 164,
         rotationDegrees: 0.0,
       ),
     ],
     rightColumnPositions: [
       FramePhotoPosition(
         left: 158,
-        top: 100,
-        width: 125,
-        height: 78,
+        top: 19,
+        width: 135,
+        height: 164,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
         left: 158,
         top: 192.5,
-        width: 125,
-        height: 78,
+        width: 135,
+        height: 164,
         rotationDegrees: 0.0,
       ),
     ],
     topOffset: 100,
-    frameAssetPath: 'assets/frames/frame1.png',
-  );
-
-  static const FrameDefinition classicFrame = FrameDefinition(
-    id: 'frame_one',
-    name: 'Classic Frame',
-    description: 'A decorative strip layout.',
-    supportedLayouts: [FrameLayoutType.twoPhotos, FrameLayoutType.fourPhotos],
-    layouts: {
-      FrameLayoutType.twoPhotos: classicTwoPhotoLayout,
-      FrameLayoutType.fourPhotos: classicFourPhotoLayout,
-    },
-    previewWidgetName: 'ClassicFramePreview',
+    frameAssetPath: 'assets/frames/2by2_frame6.png',
   );
 
   static List<FrameDefinition> get availableFrames => [
@@ -841,6 +1024,11 @@ class FrameConstants {
     fourByFourFrameSeven,
     fourByFourFrameEight,
     fourByFourFrameNine,
-    twoByTwoFrame, // 2x2 specific frame
+    twoByTwoFrameOne,
+    twoByTwoFrameTwo,
+    twoByTwoFrameThree,
+    twoByTwoFrameFour,
+    twoByTwoFrameFive,
+    twoByTwoFrameSix,
   ];
 }

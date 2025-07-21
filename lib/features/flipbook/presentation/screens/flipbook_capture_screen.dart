@@ -46,7 +46,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       if (cameras.isNotEmpty) {
         final printerState = ref.read(printerProvider).value;
         final selectedCameraName =
-            printerState?.videoCameraName ?? printerState?.photoCameraName;
+            printerState?.photoCameraName ?? printerState?.videoCameraName;
 
         CameraDescription? selectedCamera;
         if (selectedCameraName != null) {
