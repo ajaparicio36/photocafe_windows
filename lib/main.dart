@@ -5,9 +5,14 @@ import 'package:photocafe_windows/core/colors/app_theme.dart';
 import 'package:photocafe_windows/core/router/router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
+import 'package:flutter_soloud/flutter_soloud.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize SoLoud
+  await SoLoud.instance.init();
+
   await dotenv.load(fileName: ".env");
   runApp(ProviderScope(child: App()));
 }

@@ -191,7 +191,7 @@ class CaptureOverlay extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Get Ready!',
+                        countdown > 0 ? 'Get Ready!' : 'Smile!',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,

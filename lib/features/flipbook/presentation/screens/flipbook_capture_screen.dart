@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/camera_preview_widget.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
+import 'package:photocafe_windows/core/services/sound_service.dart';
 import 'package:video_player/video_player.dart';
 
 class FlipbookCaptureScreen extends ConsumerStatefulWidget {
@@ -20,6 +21,7 @@ class FlipbookCaptureScreen extends ConsumerStatefulWidget {
 class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   CameraController? _cameraController;
   VideoPlayerController? _videoPlayerController;
+  final SoundService _soundService = SoundService();
   bool _isCameraInitialized = false;
   int _countdown = 0;
   Timer? _countdownTimer;
@@ -29,6 +31,10 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize sound service (this will be fast since SoLoud is already initialized)
+    _soundService.initialize();
+
     _initializeCamera();
   }
 
@@ -37,6 +43,10 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     _cameraController?.dispose();
     _videoPlayerController?.dispose();
     _countdownTimer?.cancel();
+
+    // Dispose sound service resources (but not SoLoud instance)
+    _soundService.dispose();
+
     super.dispose();
   }
 
@@ -100,12 +110,16 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     // Start pre-recording countdown
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_countdown > 1) {
+        // Play countdown tick sound
+        _soundService.playCountdownTick();
         if (mounted) {
           setState(() {
             _countdown--;
           });
         }
       } else {
+        // Play shutter sound when countdown reaches zero
+        _soundService.playShutterSound();
         timer.cancel();
         _actuallyStartRecording(); // Start actual recording after countdown
       }
@@ -129,7 +143,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         await _stopRecording();
       });
 
-      // Start recording countdown timer
+      // Start recording countdown timer (no sound effects during recording)
       _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (_countdown > 1) {
           if (mounted) {

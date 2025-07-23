@@ -10,6 +10,7 @@ import 'package:photocafe_windows/features/classic/presentation/widgets/capture/
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/2by2_camera_preview_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/capture_overlay.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
+import 'package:photocafe_windows/core/services/sound_service.dart';
 
 class ClassicCaptureScreen extends ConsumerStatefulWidget {
   const ClassicCaptureScreen({super.key});
@@ -22,6 +23,7 @@ class ClassicCaptureScreen extends ConsumerStatefulWidget {
 class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   CameraController? _cameraController;
   late final photoNotifier = ref.read(photoProvider.notifier);
+  final SoundService _soundService = SoundService();
   bool _isCameraInitialized = false;
   bool _isCountingDown = false;
   bool _isCapturing = false;
@@ -34,6 +36,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize sound service (this will be fast since SoLoud is already initialized)
+    _soundService.initialize();
 
     // Wait for the widget to be built before initializing
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -212,7 +217,12 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         });
       }
 
-      if (_countdown <= 0) {
+      // Play countdown tick sound
+      if (_countdown > 0) {
+        _soundService.playCountdownTick();
+      } else {
+        // Play shutter sound when countdown reaches zero
+        _soundService.playShutterSound();
         timer.cancel();
         _capturePhoto();
       }
@@ -388,6 +398,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     // Cancel countdown timer
     _countdownTimer?.cancel();
     _countdownTimer = null;
+
+    // Dispose sound service resources (but not SoLoud instance)
+    _soundService.dispose();
 
     // Dispose photo camera controller safely
     if (_cameraController != null) {

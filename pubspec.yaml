@@ -54,6 +54,7 @@ dependencies:
   qr_flutter: ^4.1.0
   video_player: ^2.10.0
   video_player_win: ^3.2.0
+  flutter_soloud: ^2.0.2
 
 dev_dependencies:
   flutter_test:
@@ -106,6 +107,8 @@ flutter:
     - assets/flipbook/frame4.png
     - assets/flipbook/frame5.png
     - assets/flipbook/frame6.png
+    - assets/audio/countdown-tick.mp3
+    - assets/audio/shutter-sound.mp3
 
   # To add assets to your application, add an assets section, like this:
   # assets:
