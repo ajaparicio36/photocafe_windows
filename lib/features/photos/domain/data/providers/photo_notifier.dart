@@ -22,6 +22,20 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     if (!await photoTempDir.exists()) {
       await photoTempDir.create(recursive: true);
     }
+    // usbipd
+    final forwardUsbResult = await Process.run('cmd.exe', [
+      'usbipd',
+      'attach',
+      '--wsl',
+      '--busid',
+      '2-1',
+    ], runInShell: true);
+
+    if (forwardUsbResult.exitCode != 0) {
+      print('Failed to forward USB device: ${forwardUsbResult.stderr}');
+    } else {
+      print('USB device forwarded successfully');
+    }
     return PhotoState(
       photos: [],
       tempPath: photoTempDir.path,

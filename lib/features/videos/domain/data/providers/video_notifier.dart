@@ -63,6 +63,8 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       }
 
       // Capture 7-second video with gphoto2
+      // Keep timeout 10 since this is called during the 10-second countdown
+      // and needs to complete before the UI switches to camera fallback
       final result = await Process.run('wsl.exe', [
         'bash',
         '-c',

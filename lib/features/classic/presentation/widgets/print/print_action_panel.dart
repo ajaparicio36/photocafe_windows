@@ -184,7 +184,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Scan the QR code below to download your photos and VHS-filtered video.',
+                  'Scan QR below to download your soft copies, it will be available for 8 hours.',
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontSize: 16,

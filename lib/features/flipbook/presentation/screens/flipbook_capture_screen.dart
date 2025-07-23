@@ -121,19 +121,50 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         // Play shutter sound when countdown reaches zero
         _soundService.playShutterSound();
         timer.cancel();
-        _actuallyStartRecording(); // Start actual recording after countdown
+        _attemptVideoRecording(); // Try gphoto2 first, then fallback
       }
     });
   }
 
-  Future<void> _actuallyStartRecording() async {
+  Future<void> _attemptVideoRecording() async {
     setState(() {
       _countdown = 7;
       _isRecording = true;
       _isCountingDown = false;
     });
 
-    // Start recording using the existing camera controller
+    final videoNotifier = ref.read(videoProvider.notifier);
+
+    try {
+      // First try gphoto2 through the video notifier
+      print('Attempting gphoto2 video recording...');
+      await videoNotifier.startVideoRecording();
+
+      // Check if gphoto2 succeeded
+      final videoState = ref.read(videoProvider).value;
+      if (videoState?.videoPath != null) {
+        print('gphoto2 recording successful!');
+
+        setState(() {
+          _isRecording = false;
+          _countdown = 0;
+        });
+
+        // Set up video preview
+        await _setupVideoPreview();
+        return;
+      }
+    } catch (e) {
+      print('gphoto2 recording failed: $e');
+    }
+
+    // If gphoto2 failed, fall back to camera controller
+    print('Falling back to camera controller recording...');
+    await _actuallyStartRecording();
+  }
+
+  Future<void> _actuallyStartRecording() async {
+    // Start recording using the camera controller fallback
     try {
       await _cameraController!.startVideoRecording();
       print('Video recording started with camera controller');

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photocafe_windows/core/handlers/dio_handler.dart';
 import 'package:uuid/uuid.dart';
 
@@ -110,7 +111,7 @@ class SoftCopiesService {
 
   String _generateArchiveUrl(String archiveId) {
     // Generate the archive URL that points to the Next.js page
-    final baseUrl = _dio.options.baseUrl;
+    final baseUrl = dotenv.env['WEB_URL'] ?? _dio.options.baseUrl;
     return '$baseUrl/archive/$archiveId';
   }
 
