@@ -12,7 +12,6 @@ import 'package:photocafe_windows/features/videos/domain/data/constants/filter_c
 
 class VideoNotifier extends AsyncNotifier<VideoState> {
   Process? _ffmpegProcess;
-  Timer? _recordingTimer;
 
   @override
   Future<VideoState> build() async {
@@ -63,12 +62,10 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       }
 
       // Capture 7-second video with gphoto2
-      // Keep timeout 10 since this is called during the 10-second countdown
-      // and needs to complete before the UI switches to camera fallback
       final result = await Process.run('wsl.exe', [
         'bash',
         '-c',
-        'timeout 10 gphoto2 --capture-movie=7s --stdout > "$wslPath" 2>/dev/null && echo "success" || echo "failed"',
+        'gphoto2 --capture-movie=7s --stdout > "$wslPath" 2>/dev/null && echo "success" || echo "failed"',
       ]);
 
       print('gphoto2 exit code: ${result.exitCode}');
@@ -96,39 +93,7 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     return null;
   }
 
-  Future<void> startVideoRecording() async {
-    state = await AsyncValue.guard(() async {
-      final currentState = state.value;
-      if (currentState == null) {
-        throw Exception('Video state is not initialized');
-      }
-
-      if (currentState.isRecording) {
-        return currentState;
-      }
-
-      // Try gphoto2 first
-      print('Attempting gphoto2 video capture...');
-      final gphoto2File = await captureVideoWithGphoto2();
-
-      if (gphoto2File != null) {
-        print('gphoto2 capture successful: ${gphoto2File.path}');
-        return currentState.copyWith(
-          videoPath: gphoto2File.path,
-          isRecording: false,
-        );
-      }
-
-      // If gphoto2 fails, the capture screen will handle camera recording
-      print(
-        'gphoto2 failed, camera recording will be handled by capture screen',
-      );
-
-      return currentState.copyWith(isRecording: true);
-    });
-  }
-
-  Future<void> saveVideoFromCapture(XFile videoXFile) async {
+  Future<void> saveVideoFromGphoto2(File gphoto2File) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
@@ -136,18 +101,16 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       }
 
       final videoFileName =
-          'flipbook_video_${DateTime.now().millisecondsSinceEpoch}.mp4';
+          'flipbook_gphoto2_${DateTime.now().millisecondsSinceEpoch}.mp4';
       final videoFilePath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        // Read bytes from XFile and write to our designated path
-        final videoBytes = await videoXFile.readAsBytes();
-        final targetFile = File(videoFilePath);
-        await targetFile.writeAsBytes(videoBytes);
+        // Copy gphoto2 file to our temp directory with standard naming
+        await gphoto2File.copy(videoFilePath);
 
-        print('Video saved from capture to: $videoFilePath');
+        print('gphoto2 video saved to: $videoFilePath');
 
-        final fileSize = await targetFile.length();
+        final fileSize = await File(videoFilePath).length();
         print('Video file size: $fileSize bytes');
 
         if (fileSize < 1024) {
@@ -155,12 +118,17 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
           await _createFallbackVideo(videoFilePath);
         }
 
+        // Clean up original gphoto2 file
+        if (await gphoto2File.exists()) {
+          await gphoto2File.delete();
+        }
+
         return currentState.copyWith(
           videoPath: videoFilePath,
           isRecording: false,
         );
       } catch (e) {
-        print('Error saving video from capture: $e');
+        print('Error saving gphoto2 video: $e');
 
         // Create fallback video if saving fails
         await _createFallbackVideo(videoFilePath);
@@ -170,22 +138,6 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
           isRecording: false,
         );
       }
-    });
-  }
-
-  Future<void> stopVideoRecording() async {
-    state = await AsyncValue.guard(() async {
-      final currentState = state.value;
-      if (currentState == null) {
-        throw Exception('No video recording in progress');
-      }
-
-      _recordingTimer?.cancel();
-      _recordingTimer = null;
-
-      // Video recording is now handled by the capture screen
-      // This method is kept for compatibility but doesn't manage camera controllers
-      return currentState.copyWith(isRecording: false);
     });
   }
 
@@ -233,16 +185,55 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     }
   }
 
+  Future<void> saveVideoFromCapture(XFile videoXFile) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception('Video state is not initialized');
+      }
+
+      final videoFileName =
+          'flipbook_camera_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final videoFilePath = p.join(currentState.tempPath, videoFileName);
+
+      try {
+        // Read bytes from XFile and write to our designated path
+        final videoBytes = await videoXFile.readAsBytes();
+        final targetFile = File(videoFilePath);
+        await targetFile.writeAsBytes(videoBytes);
+
+        print('Camera video saved to: $videoFilePath');
+
+        final fileSize = await targetFile.length();
+        print('Video file size: $fileSize bytes');
+
+        if (fileSize < 1024) {
+          print('Video file too small, creating fallback...');
+          await _createFallbackVideo(videoFilePath);
+        }
+
+        return currentState.copyWith(
+          videoPath: videoFilePath,
+          isRecording: false,
+        );
+      } catch (e) {
+        print('Error saving camera video: $e');
+
+        // Create fallback video if saving fails
+        await _createFallbackVideo(videoFilePath);
+
+        return currentState.copyWith(
+          videoPath: videoFilePath,
+          isRecording: false,
+        );
+      }
+    });
+  }
+
   Future<void> clearVideo() async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) return state.value!;
-
-      // Stop recording if active
-      if (currentState.isRecording) {
-        _recordingTimer?.cancel();
-        _recordingTimer = null;
-      }
 
       // Delete video file if exists
       if (currentState.videoPath != null) {

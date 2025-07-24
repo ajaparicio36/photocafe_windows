@@ -11,7 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 
 class PhotoNotifier extends AsyncNotifier<PhotoState> {
-  CameraController? _videoController;
+  // Remove video controller since recording is now handled by capture screen
   Process? _ffmpegProcess;
 
   @override
@@ -31,35 +31,11 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     );
   }
 
-  Future<void> startVideoRecording() async {
+  Future<void> saveVideoFromCapture(XFile videoXFile) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
-        throw Exception("State is not available to start video recording.");
-      }
-
-      if (currentState.isRecording) {
-        return currentState; // Already recording
-      }
-
-      // Get video camera from settings
-      final printerState = ref.read(printerProvider).value;
-      final videoCameraName = printerState?.videoCameraName;
-
-      if (videoCameraName == null) {
-        throw Exception("No video camera selected in settings");
-      }
-
-      // Get available cameras and find the selected video camera
-      final cameras = await availableCameras();
-      CameraDescription? videoCamera;
-
-      try {
-        videoCamera = cameras.firstWhere(
-          (camera) => camera.name == videoCameraName,
-        );
-      } catch (e) {
-        throw Exception("Selected video camera '$videoCameraName' not found");
+        throw Exception("State is not available to save video.");
       }
 
       final videoFileName =
@@ -67,86 +43,42 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       final videoPath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        print('Starting video recording with camera: ${videoCamera.name}');
+        // Read bytes from XFile and write to our designated path
+        final videoBytes = await videoXFile.readAsBytes();
+        final targetFile = File(videoPath);
+        await targetFile.writeAsBytes(videoBytes);
 
-        // Initialize video camera controller
-        _videoController = CameraController(
-          videoCamera,
-          ResolutionPreset.medium,
-          enableAudio: true,
-        );
+        print('Video saved from capture to: $videoPath');
 
-        await _videoController!.initialize();
-        await _videoController!.startVideoRecording();
+        // Verify the file was written correctly
+        final fileSize = await targetFile.length();
+        print('Video file size: $fileSize bytes');
 
-        print('Video recording started successfully to: $videoPath');
+        if (fileSize < 1024) {
+          print('Video file too small, creating fallback...');
+          await _createFallbackVideo(videoPath);
+        }
 
-        return currentState.copyWith(isRecording: true, videoPath: videoPath);
+        return currentState.copyWith(videoPath: videoPath);
       } catch (e) {
-        print('Failed to start video recording: $e');
-        _videoController?.dispose();
-        _videoController = null;
-        throw Exception("Failed to start video recording: $e");
+        print('Error saving video from capture: $e');
+
+        // Create fallback video if saving fails
+        await _createFallbackVideo(videoPath);
+
+        return currentState.copyWith(videoPath: videoPath);
       }
     });
   }
 
-  Future<void> stopVideoRecording() async {
+  Future<void> setVideoRecordingState(bool isRecording) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
-        throw Exception("State is not available to stop video recording.");
+        throw Exception("State is not available to set recording state.");
       }
 
-      if (!currentState.isRecording || _videoController == null) {
-        return currentState; // Not recording
-      }
-
-      try {
-        print('Stopping video recording...');
-
-        // Stop the video recording and get the XFile
-        final videoXFile = await _videoController!.stopVideoRecording();
-
-        // Read bytes from XFile and write to our designated path
-        if (currentState.videoPath != null) {
-          final videoBytes = await videoXFile.readAsBytes();
-          final targetFile = File(currentState.videoPath!);
-          await targetFile.writeAsBytes(videoBytes);
-
-          print('Video recording saved to: ${currentState.videoPath}');
-
-          // Verify the file was written correctly
-          final fileSize = await targetFile.length();
-          print('Video file size: $fileSize bytes');
-
-          if (fileSize < 1024) {
-            print('Video file too small, creating fallback...');
-            await _createFallbackVideo(currentState.videoPath!);
-          }
-        }
-
-        // Dispose of the video controller
-        await _videoController!.dispose();
-        _videoController = null;
-
-        return currentState.copyWith(isRecording: false);
-      } catch (e) {
-        print('Error stopping video recording: $e');
-
-        // Clean up controller on error
-        try {
-          await _videoController?.dispose();
-        } catch (_) {}
-        _videoController = null;
-
-        // Create fallback video if actual recording failed
-        if (currentState.videoPath != null) {
-          await _createFallbackVideo(currentState.videoPath!);
-        }
-
-        return currentState.copyWith(isRecording: false);
-      }
+      return currentState.copyWith(isRecording: isRecording);
     });
   }
 
@@ -214,12 +146,25 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       'gphoto2 --capture-image-and-download --stdout > "$wslPath"',
     ]);
 
-    print(result);
+    print('gphoto2 capture result: ${result.exitCode}');
+    print('gphoto2 stderr: ${result.stderr}');
 
     if (result.exitCode != 0) {
+      print('gphoto2 capture failed with exit code: ${result.exitCode}');
       return null;
     }
-    return File(fullWindowsPath);
+
+    final file = File(fullWindowsPath);
+    if (await file.exists()) {
+      final fileSize = await file.length();
+      print('gphoto2 captured file size: $fileSize bytes');
+      if (fileSize > 1024) {
+        // Ensure file is not empty
+        return file;
+      }
+    }
+
+    return null;
   }
 
   Future<void> addPhoto(Uint8List imageBytes) async {
@@ -229,16 +174,8 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         throw Exception("State is not available to add a photo.");
       }
 
-      // Process image based on capture count
-      Uint8List processedImageBytes = imageBytes;
-
-      if (currentState.captureCount == 2) {
-        // For 2x2 mode, ensure portrait orientation (5:6 aspect ratio)
-        processedImageBytes = await _processImageForPortrait(imageBytes);
-      } else if (currentState.captureCount == 4) {
-        // For 4x4 mode, ensure landscape orientation (4:3 aspect ratio)
-        processedImageBytes = await _processImageForLandscape(imageBytes);
-      }
+      // Always process for landscape orientation (4:3 aspect ratio) for all photos
+      final processedImageBytes = await _processImageForLandscape(imageBytes);
 
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final imagePath = p.join(currentState.tempPath, fileName);
@@ -363,12 +300,11 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   }
 
   Future<void> setCaptureCount(int count) async {
-    print('setCaptureCount called with count: $count');
+    print('setCaptureCount called with count: $count (but will always use 4)');
 
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
-        // If somehow state is null, create a new one with the count
         print(
           'Warning: Photo state was null when setting capture count, creating new state',
         );
@@ -380,7 +316,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         final newState = PhotoState(
           photos: [],
           tempPath: photoTempDir.path,
-          captureCount: count,
+          captureCount: 4, // Always capture 4 photos regardless of layout
           isRecording: false,
           videoPath: null,
         );
@@ -389,18 +325,19 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       }
 
       print(
-        'Setting capture count from ${currentState.captureCount} to $count',
+        'Setting capture count from ${currentState.captureCount} to 4 (always capture 4 regardless of layout)',
       );
-      final newState = currentState.copyWith(captureCount: count);
+      final newState = currentState.copyWith(
+        captureCount:
+            4, // Always capture 4 photos - layout only affects arrangement
+      );
       print('New state capture count: ${newState.captureCount}');
 
-      // Add a small delay to ensure the state is properly set
       await Future.delayed(const Duration(milliseconds: 50));
 
       return newState;
     });
 
-    // Log the final state after the guard completes
     final finalState = state.value;
     print(
       'setCaptureCount completed. Final state capture count: ${finalState?.captureCount}',
@@ -434,18 +371,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       final currentState = state.value;
       if (currentState == null) return state.value!;
 
-      // Stop video recording if active
-      if (currentState.isRecording && _videoController != null) {
-        try {
-          await _videoController!.stopVideoRecording();
-          await _videoController!.dispose();
-        } catch (e) {
-          print('Error cleaning up video controller: $e');
-        }
-        _videoController = null;
-      }
-
-      // Stop FFmpeg process if running
+      // Stop FFmpeg process if running (video recording is now handled by capture screen)
       if (_ffmpegProcess != null) {
         _ffmpegProcess!.kill();
         _ffmpegProcess = null;

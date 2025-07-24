@@ -107,7 +107,7 @@ class CaptureOverlay extends ConsumerWidget {
                         ),
                         const SizedBox(width: 16),
                         Text(
-                          'Photo ${currentPhotoIndex + 1} of ${photoState.captureCount}',
+                          'Photo ${currentPhotoIndex + 1} of 4', // Always show 4 photos
                           style: Theme.of(context).textTheme.headlineLarge
                               ?.copyWith(
                                 color: Colors.white,

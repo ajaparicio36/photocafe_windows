@@ -12,6 +12,7 @@ _PrinterState _$PrinterStateFromJson(Map<String, dynamic> json) =>
       cutDisabledPrinter: json['cutDisabledPrinter'] as String?,
       photoCameraName: json['photoCameraName'] as String?,
       videoCameraName: json['videoCameraName'] as String?,
+      layoutMode: (json['layoutMode'] as num?)?.toInt() ?? 2,
       error: json['error'] as String?,
     );
 
@@ -21,5 +22,6 @@ Map<String, dynamic> _$PrinterStateToJson(_PrinterState instance) =>
       'cutDisabledPrinter': instance.cutDisabledPrinter,
       'photoCameraName': instance.photoCameraName,
       'videoCameraName': instance.videoCameraName,
+      'layoutMode': instance.layoutMode,
       'error': instance.error,
     };

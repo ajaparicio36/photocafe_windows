@@ -19,6 +19,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     final cutDisabledPrinter = prefs.getString('cutDisabledPrinter');
     final photoCameraName = prefs.getString('photoCameraName');
     final videoCameraName = prefs.getString('videoCameraName');
+    final layoutMode = prefs.getInt('layoutMode') ?? 4; // Default to 4x4
 
     return PrinterState(
       cutEnabledPrinter: availablePrinters.contains(cutEnabledPrinter)
@@ -29,6 +30,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
           : null,
       photoCameraName: photoCameraName,
       videoCameraName: videoCameraName,
+      layoutMode: layoutMode,
     );
   }
 
@@ -98,6 +100,18 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
         final prefs = await _prefs;
         await prefs.setString('videoCameraName', cameraName);
         return state.value!.copyWith(videoCameraName: cameraName, error: null);
+      } catch (e) {
+        return state.value!.copyWith(error: e.toString());
+      }
+    });
+  }
+
+  Future<void> setLayoutMode(int mode) async {
+    state = await AsyncValue.guard(() async {
+      try {
+        final prefs = await _prefs;
+        await prefs.setInt('layoutMode', mode);
+        return state.value!.copyWith(layoutMode: mode, error: null);
       } catch (e) {
         return state.value!.copyWith(error: e.toString());
       }

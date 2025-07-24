@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
+import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:printing/printing.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
@@ -26,20 +27,17 @@ abstract class BaseFrameWidget extends ConsumerWidget {
   // Common PDF generation logic using the frame layout
   Future<Uint8List> generatePdfFromLayout(
     List<PhotoModel> photos,
-    int captureCount,
+    int layoutMode, // Changed from captureCount to layoutMode
     FrameLayout layout,
   ) async {
     final pdf = pw.Document();
 
-    // Load the frame background
     final frameImageBytes = await rootBundle.load(layout.frameAssetPath);
     final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
 
-    // Sort photos by index to ensure correct order
     final sortedPhotos = List.from(photos)
       ..sort((a, b) => a.index.compareTo(b.index));
 
-    // Load captured photo images
     final photoImages = <pw.MemoryImage>[];
     for (final photo in sortedPhotos) {
       final file = File(photo.imagePath);
@@ -60,7 +58,6 @@ abstract class BaseFrameWidget extends ConsumerWidget {
       }
     }
 
-    final photoCount = captureCount == 2 ? 2 : 4;
     final leftPositions = layout.leftColumnPositions;
     final rightPositions = layout.rightColumnPositions;
 
@@ -71,9 +68,9 @@ abstract class BaseFrameWidget extends ConsumerWidget {
         build: (pw.Context context) {
           return pw.Stack(
             children: [
-              // Left column images
+              // Left column images (photos 1 and 2 for 2x2, all 4 for 4x4)
               pw.Positioned.fill(child: pw.Container(color: PdfColors.black)),
-              for (int i = 0; i < photoCount && i < leftPositions.length; i++)
+              for (int i = 0; i < leftPositions.length; i++)
                 pw.Positioned(
                   left: leftPositions[i].left,
                   top: leftPositions[i].top,
@@ -88,8 +85,8 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                     ),
                   ),
                 ),
-              // Right column images (duplicates)
-              for (int i = 0; i < photoCount && i < rightPositions.length; i++)
+              // Right column images (photos 3 and 4 for 2x2, duplicates for 4x4)
+              for (int i = 0; i < rightPositions.length; i++)
                 pw.Positioned(
                   left: rightPositions[i].left,
                   top: rightPositions[i].top,
@@ -97,7 +94,9 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                     width: rightPositions[i].width,
                     height: rightPositions[i].height,
                     child: _buildPhotoWidget(
-                      i,
+                      layoutMode == 2
+                          ? i + 2
+                          : i, // For 2x2 use photos 3,4; for 4x4 use duplicates
                       photoImages,
                       testImage,
                       rightPositions[i].rotationDegrees,
@@ -153,21 +152,18 @@ abstract class BaseFrameWidget extends ConsumerWidget {
   // Method to generate PDF with custom rotations for each photo
   Future<Uint8List> generatePdfFromLayoutWithRotations(
     List<PhotoModel> photos,
-    int captureCount,
+    int layoutMode, // Changed from captureCount to layoutMode
     FrameLayout layout,
     List<double> rotationsDegrees,
   ) async {
     final pdf = pw.Document();
 
-    // Load the frame background
     final frameImageBytes = await rootBundle.load(layout.frameAssetPath);
     final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
 
-    // Sort photos by index to ensure correct order
     final sortedPhotos = List.from(photos)
       ..sort((a, b) => a.index.compareTo(b.index));
 
-    // Load captured photo images
     final photoImages = <pw.MemoryImage>[];
     for (final photo in sortedPhotos) {
       final file = File(photo.imagePath);
@@ -188,7 +184,6 @@ abstract class BaseFrameWidget extends ConsumerWidget {
       }
     }
 
-    final photoCount = captureCount == 2 ? 2 : 4;
     final leftPositions = layout.leftColumnPositions;
     final rightPositions = layout.rightColumnPositions;
 
@@ -201,7 +196,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
             children: [
               // Left column images
               pw.Positioned.fill(child: pw.Container(color: PdfColors.black)),
-              for (int i = 0; i < photoCount && i < leftPositions.length; i++)
+              for (int i = 0; i < leftPositions.length; i++)
                 pw.Positioned(
                   left: leftPositions[i].left,
                   top: leftPositions[i].top,
@@ -216,8 +211,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                     ),
                   ),
                 ),
-              // Right column images (duplicates)
-              for (int i = 0; i < photoCount && i < rightPositions.length; i++)
+              for (int i = 0; i < rightPositions.length; i++)
                 pw.Positioned(
                   left: rightPositions[i].left,
                   top: rightPositions[i].top,
@@ -225,10 +219,14 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                     width: rightPositions[i].width,
                     height: rightPositions[i].height,
                     child: _buildPhotoWidget(
-                      i,
+                      layoutMode == 2
+                          ? i + 2
+                          : i, // For 2x2 use photos 3,4; for 4x4 use duplicates
                       photoImages,
                       testImage,
-                      i < rotationsDegrees.length ? rotationsDegrees[i] : 0.0,
+                      (layoutMode == 2 ? i + 2 : i) < rotationsDegrees.length
+                          ? rotationsDegrees[layoutMode == 2 ? i + 2 : i]
+                          : 0.0,
                     ),
                   ),
                 ),
@@ -249,69 +247,78 @@ abstract class BaseFrameWidget extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final photoStateAsync = ref.watch(photoProvider);
+    final printerStateAsync = ref.watch(printerProvider);
 
     return photoStateAsync.when(
       data: (photoState) {
-        final currentLayoutType = photoState.captureCount == 2
-            ? FrameLayoutType.twoPhotos
-            : FrameLayoutType.fourPhotos;
+        return printerStateAsync.when(
+          data: (printerState) {
+            final currentLayoutType = printerState.layoutMode == 2
+                ? FrameLayoutType.twoPhotos
+                : FrameLayoutType.fourPhotos;
 
-        final layout = frameDefinition.layouts[currentLayoutType];
+            final layout = frameDefinition.layouts[currentLayoutType];
 
-        if (layout == null) {
-          return const Center(
-            child: Text('Layout not supported for this frame'),
-          );
-        }
-
-        return FutureBuilder<Uint8List>(
-          future: generatePdf(
-            photoState.photos,
-            photoState.captureCount,
-            layout,
-          ),
-          builder: (context, snapshot) {
-            if (snapshot.hasData) {
-              return PdfPreview(
-                build: (format) => snapshot.data!,
-                allowSharing: false,
-                allowPrinting: false,
-                canChangeOrientation: false,
-                initialPageFormat: PdfPageFormat.a6,
-                canChangePageFormat: false,
-                canDebug: false,
-                useActions: false,
-                maxPageWidth: 700,
-                pdfPreviewPageDecoration: const BoxDecoration(
-                  color: Colors.white,
-                ),
-                previewPageMargin: const EdgeInsets.all(4),
-                padding: EdgeInsets.zero,
-              );
-            } else if (snapshot.hasError) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error, size: 48, color: Colors.red),
-                    const SizedBox(height: 16),
-                    Text('Error generating PDF: ${snapshot.error}'),
-                  ],
-                ),
-              );
-            } else {
+            if (layout == null) {
               return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Generating preview...'),
-                  ],
-                ),
+                child: Text('Layout not supported for this frame'),
               );
             }
+
+            return FutureBuilder<Uint8List>(
+              future: generatePdf(
+                photoState.photos,
+                printerState
+                    .layoutMode, // Use layout mode instead of capture count
+                layout,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.hasData) {
+                  return PdfPreview(
+                    build: (format) => snapshot.data!,
+                    allowSharing: false,
+                    allowPrinting: false,
+                    canChangeOrientation: false,
+                    initialPageFormat: PdfPageFormat.a6,
+                    canChangePageFormat: false,
+                    canDebug: false,
+                    useActions: false,
+                    maxPageWidth: 700,
+                    pdfPreviewPageDecoration: const BoxDecoration(
+                      color: Colors.white,
+                    ),
+                    previewPageMargin: const EdgeInsets.all(4),
+                    padding: EdgeInsets.zero,
+                  );
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error, size: 48, color: Colors.red),
+                        const SizedBox(height: 16),
+                        Text('Error generating PDF: ${snapshot.error}'),
+                      ],
+                    ),
+                  );
+                } else {
+                  return const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Generating preview...'),
+                      ],
+                    ),
+                  );
+                }
+              },
+            );
           },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stack) =>
+              Center(child: Text('Error loading printer settings: $error')),
         );
       },
       loading: () => const Center(child: CircularProgressIndicator()),

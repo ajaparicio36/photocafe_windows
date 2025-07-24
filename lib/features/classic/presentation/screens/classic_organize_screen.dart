@@ -11,6 +11,7 @@ import 'package:photocafe_windows/features/classic/presentation/widgets/shared/s
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/organize/photo_organization_panel.dart';
 import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
+import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 
 class ClassicOrganizeScreen extends ConsumerStatefulWidget {
   const ClassicOrganizeScreen({super.key});
@@ -27,10 +28,10 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
 
   // Get available frames for current capture count
   List<FrameDefinition> get _availableFrames {
-    final photoState = ref.read(photoProvider).value;
-    if (photoState == null) return [];
+    final printerState = ref.read(printerProvider).value;
+    if (printerState == null) return [];
 
-    final currentLayout = photoState.captureCount == 2
+    final currentLayout = printerState.layoutMode == 2
         ? FrameLayoutType.twoPhotos
         : FrameLayoutType.fourPhotos;
 
@@ -48,18 +49,15 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
   @override
   void initState() {
     super.initState();
-    // Set default frame based on capture count
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final photoState = ref.read(photoProvider).value;
-      if (photoState?.captureCount == 2) {
+      final printerState = ref.read(printerProvider).value;
+      if (printerState?.layoutMode == 2) {
         setState(() {
-          _selectedFrame =
-              '2by2_frame_one'; // Default to 2x2 frame for 2-photo mode
+          _selectedFrame = '2by2_frame_one';
         });
-      } else if (photoState?.captureCount == 4) {
+      } else {
         setState(() {
-          _selectedFrame =
-              '4by4_frame_one'; // Default to 4x4 frame for 4-photo mode
+          _selectedFrame = '4by4_frame_one';
         });
       }
     });
@@ -67,21 +65,25 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
 
   Future<Uint8List> _generatePdf() async {
     final photoState = ref.read(photoProvider).value;
+    final printerState = ref.read(printerProvider).value;
+
     if (photoState == null || photoState.photos.isEmpty) {
       throw Exception('No photos available');
     }
 
-    // Get the selected frame definition
+    if (printerState == null) {
+      throw Exception('Printer settings not available');
+    }
+
     final frameDefinition = FrameConstants.availableFrames.firstWhere(
       (frame) => frame.id == _selectedFrame,
       orElse: () => FrameConstants.availableFrames.first,
     );
 
-    // Use the frame factory to generate PDF
     return await FrameFactory.generatePdfForFrame(
       frameDefinition,
       photoState.photos,
-      photoState.captureCount,
+      printerState.layoutMode, // Use layout mode instead of capture count
     );
   }
 
@@ -111,6 +113,9 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
     final availableFrames = _availableFrames;
 
     if (availableFrames.isEmpty) {
+      final printerState = ref.read(printerProvider).value;
+      final layoutMode = printerState?.layoutMode ?? 4;
+
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
@@ -118,7 +123,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
-          'No frames available for ${photoState.captureCount} photos',
+          'No frames available for ${layoutMode == 2 ? "2x2" : "4x4"} layout',
           style: TextStyle(
             color: Theme.of(context).colorScheme.error,
             fontWeight: FontWeight.w500,

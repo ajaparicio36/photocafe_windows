@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
+import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 
 class ClassicStartScreen extends ConsumerWidget {
   const ClassicStartScreen({super.key});
@@ -92,7 +93,7 @@ class ClassicStartScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          'Choose your photo strip style!',
+                          'Choose your photo strip layout!',
                           style: Theme.of(context).textTheme.headlineMedium
                               ?.copyWith(
                                 fontSize: 28,
@@ -105,7 +106,7 @@ class ClassicStartScreen extends ConsumerWidget {
 
                       const SizedBox(height: 60),
 
-                      // Mode selection
+                      // Layout selection
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -113,18 +114,18 @@ class ClassicStartScreen extends ConsumerWidget {
                             context,
                             ref,
                             icon: Icons.photo_library_rounded,
-                            title: '2x2 Photo Strip',
-                            description: 'Capture 2 photos (5:6 ratio)',
-                            photoCount: 2,
+                            title: '2x2 Layout',
+                            description: '4 photos in 2x2 grid (portrait)',
+                            layoutMode: 2,
                           ),
                           const SizedBox(width: 40),
                           _buildModeCard(
                             context,
                             ref,
                             icon: Icons.grid_on_rounded,
-                            title: '4x4 Photo Strip',
-                            description: 'Capture 4 photos (4:3 ratio)',
-                            photoCount: 4,
+                            title: '4x4 Layout',
+                            description: '4 photos in 4x1 strip (landscape)',
+                            layoutMode: 4,
                           ),
                         ],
                       ),
@@ -145,7 +146,7 @@ class ClassicStartScreen extends ConsumerWidget {
     required IconData icon,
     required String title,
     required String description,
-    required int photoCount,
+    required int layoutMode,
   }) {
     return Expanded(
       child: InkWell(
@@ -210,7 +211,7 @@ class ClassicStartScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Preparing ${photoCount == 2 ? "2x2" : "4x4"} mode',
+                          'Preparing ${layoutMode == 2 ? "2x2" : "4x4"} layout',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.white.withOpacity(0.8),
@@ -224,30 +225,36 @@ class ClassicStartScreen extends ConsumerWidget {
               ),
             );
 
-            final notifier = ref.read(photoProvider.notifier);
+            final photoNotifier = ref.read(photoProvider.notifier);
+            final printerNotifier = ref.read(printerProvider.notifier);
 
-            // Since providers are pre-initialized, we can directly set values
             print(
-              'Current photo state before changes: ${ref.read(photoProvider).value?.captureCount}',
+              'Setting up classic mode with layout: ${layoutMode == 2 ? "2x2" : "4x4"}',
             );
 
             // Clear photos first
-            await notifier.clearAllPhotos();
+            await photoNotifier.clearAllPhotos();
             print('Photos cleared');
 
-            // Set capture count and wait for completion
-            await notifier.setCaptureCount(photoCount);
-            print('Capture count set to: $photoCount');
+            // Set layout mode in printer settings
+            await printerNotifier.setLayoutMode(layoutMode);
+            print('Layout mode set to: $layoutMode');
 
-            // Verify the change took effect
-            final updatedState = ref.read(photoProvider).value;
+            // Always set capture count to 4 (layout only affects arrangement)
+            await photoNotifier.setCaptureCount(4);
+            print('Capture count set to: 4 (always capture 4 photos)');
+
+            // Verify the setup
+            final photoState = ref.read(photoProvider).value;
+            final printerState = ref.read(printerProvider).value;
+
             print(
-              'Updated photo state capture count: ${updatedState?.captureCount}',
+              'Setup verified - Capture count: ${photoState?.captureCount}, Layout mode: ${printerState?.layoutMode}',
             );
 
-            if (updatedState?.captureCount != photoCount) {
+            if (photoState?.captureCount != 4) {
               throw Exception(
-                'Capture count was not set correctly: expected $photoCount, got ${updatedState?.captureCount}',
+                'Capture count setup failed: expected 4, got ${photoState?.captureCount}',
               );
             }
 
@@ -320,7 +327,7 @@ class ClassicStartScreen extends ConsumerWidget {
                           ),
                           const SizedBox(height: 12),
                           Text(
-                            'Failed to setup photo session. Please try again.',
+                            'Error: $e',
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.white.withOpacity(0.9),

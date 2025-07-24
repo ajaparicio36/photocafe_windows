@@ -44,9 +44,9 @@ class FrameFactory {
   static Future<Uint8List> generatePdfForFrame(
     FrameDefinition frameDefinition,
     List<PhotoModel> photos,
-    int captureCount,
+    int layoutMode, // Changed from captureCount to layoutMode
   ) async {
-    final layoutType = captureCount == 2
+    final layoutType = layoutMode == 2
         ? FrameLayoutType.twoPhotos
         : FrameLayoutType.fourPhotos;
     final layout = frameDefinition.layouts[layoutType];
@@ -57,9 +57,8 @@ class FrameFactory {
       );
     }
 
-    // Create a temporary widget to use the base PDF generation with rotation from frame constants
     final tempWidget = _createTempWidget(frameDefinition);
-    return await tempWidget.generatePdfFromLayout(photos, captureCount, layout);
+    return await tempWidget.generatePdfFromLayout(photos, layoutMode, layout);
   }
 
   static BaseFrameWidget _createTempWidget(FrameDefinition frameDefinition) {

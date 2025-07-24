@@ -19,14 +19,15 @@ class FlipbookCaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
-  CameraController? _cameraController;
+  CameraController?
+  _cameraController; // Single video camera for both preview and recording
   VideoPlayerController? _videoPlayerController;
   final SoundService _soundService = SoundService();
   bool _isCameraInitialized = false;
   int _countdown = 0;
   Timer? _countdownTimer;
   bool _isRecording = false;
-  bool _isCountingDown = false; // Add pre-recording countdown state
+  bool _isCountingDown = false;
 
   @override
   void initState() {
@@ -55,32 +56,35 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       final cameras = await availableCameras();
       if (cameras.isNotEmpty) {
         final printerState = ref.read(printerProvider).value;
-        final selectedCameraName =
-            printerState?.photoCameraName ?? printerState?.videoCameraName;
+        final selectedVideoCameraName = printerState?.videoCameraName;
 
-        CameraDescription? selectedCamera;
-        if (selectedCameraName != null) {
+        CameraDescription? selectedVideoCamera;
+        if (selectedVideoCameraName != null) {
           try {
-            selectedCamera = cameras.firstWhere(
-              (camera) => camera.name == selectedCameraName,
+            selectedVideoCamera = cameras.firstWhere(
+              (camera) => camera.name == selectedVideoCameraName,
             );
           } catch (e) {
             print('Selected video camera not found, using first available');
           }
         }
-        selectedCamera ??= cameras.first;
+        selectedVideoCamera ??= cameras.first;
 
-        // Initialize camera controller for both preview and recording
+        // Initialize single camera controller for both preview and recording
         _cameraController = CameraController(
-          selectedCamera,
+          selectedVideoCamera,
           ResolutionPreset.high,
           enableAudio: true, // Enable audio for video recording
           imageFormatGroup: ImageFormatGroup.jpeg,
         );
+
         await _cameraController!.initialize();
+
         setState(() {
           _isCameraInitialized = true;
         });
+
+        print('Video camera initialized: ${selectedVideoCamera.name}');
       }
     } catch (e) {
       print('Error initializing camera: $e');
@@ -138,12 +142,13 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     try {
       // First try gphoto2 through the video notifier
       print('Attempting gphoto2 video recording...');
-      await videoNotifier.startVideoRecording();
+      final gphoto2File = await videoNotifier.captureVideoWithGphoto2();
 
-      // Check if gphoto2 succeeded
-      final videoState = ref.read(videoProvider).value;
-      if (videoState?.videoPath != null) {
+      if (gphoto2File != null) {
         print('gphoto2 recording successful!');
+
+        // Save the gphoto2 video through the notifier
+        await videoNotifier.saveVideoFromGphoto2(gphoto2File);
 
         setState(() {
           _isRecording = false;
@@ -160,18 +165,18 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
 
     // If gphoto2 failed, fall back to camera controller
     print('Falling back to camera controller recording...');
-    await _actuallyStartRecording();
+    await _startCameraRecording();
   }
 
-  Future<void> _actuallyStartRecording() async {
-    // Start recording using the camera controller fallback
+  Future<void> _startCameraRecording() async {
     try {
+      // Start recording using the camera controller
       await _cameraController!.startVideoRecording();
       print('Video recording started with camera controller');
 
       // Set up automatic stop after 7 seconds
       Timer(const Duration(seconds: 7), () async {
-        await _stopRecording();
+        await _stopCameraRecording();
       });
 
       // Start recording countdown timer (no sound effects during recording)
@@ -192,7 +197,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         }
       });
     } catch (e) {
-      print('Error starting video recording: $e');
+      print('Error starting camera recording: $e');
       setState(() {
         _isRecording = false;
         _isCountingDown = false;
@@ -203,11 +208,11 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     }
   }
 
-  Future<void> _stopRecording() async {
+  Future<void> _stopCameraRecording() async {
     if (!_isRecording || _cameraController == null) return;
 
     try {
-      print('Stopping video recording...');
+      print('Stopping camera recording...');
       final videoXFile = await _cameraController!.stopVideoRecording();
 
       // Pass the video file to the video notifier
@@ -225,7 +230,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       // Set up video preview
       await _setupVideoPreview();
     } catch (e) {
-      print('Error stopping video recording: $e');
+      print('Error stopping camera recording: $e');
       setState(() {
         _isRecording = false;
       });
@@ -450,9 +455,48 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       body: Stack(
         children: [
           if (!showVideoPreview)
-            CameraPreviewWidget(
-              isCameraInitialized: _isCameraInitialized,
-              cameraController: _cameraController,
+            Container(
+              color: Colors.black,
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: 16 / 10, // Flipbook aspect ratio
+                  child: Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 40),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(32),
+                      border: Border.all(color: Colors.white, width: 4),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child:
+                          _isCameraInitialized &&
+                              _cameraController != null &&
+                              _cameraController!.value.isInitialized
+                          ? Transform.scale(
+                              scale:
+                                  _cameraController!.value.aspectRatio >
+                                      (16 / 10)
+                                  ? _cameraController!.value.aspectRatio /
+                                        (16 / 10)
+                                  : (16 / 10) /
+                                        _cameraController!.value.aspectRatio,
+                              child: Center(
+                                child: AspectRatio(
+                                  aspectRatio:
+                                      _cameraController!.value.aspectRatio,
+                                  child: CameraPreview(_cameraController!),
+                                ),
+                              ),
+                            )
+                          : const Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+              ),
             )
           else
             Center(child: _buildVideoPreview()),

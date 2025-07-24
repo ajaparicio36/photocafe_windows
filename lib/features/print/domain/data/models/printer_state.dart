@@ -10,6 +10,7 @@ sealed class PrinterState with _$PrinterState {
     String? cutDisabledPrinter,
     String? photoCameraName,
     String? videoCameraName,
+    @Default(2) int layoutMode, // 2 for 2x2 layout, 4 for 4x4 layout
     String? error,
   }) = _PrinterState;
 
