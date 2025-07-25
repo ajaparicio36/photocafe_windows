@@ -171,8 +171,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
             '-p',
           ]);
 
-          if (checkResult.exitCode == 0 &&
-              checkResult.stdout.toString().contains('CAPTURE_SUCCESS')) {
+          if (checkResult.exitCode == 0) {
             final file = File(fullWindowsPath);
 
             // Wait a bit more for file to be fully written

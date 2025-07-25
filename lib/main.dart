@@ -5,6 +5,7 @@ import 'package:photocafe_windows/core/colors/app_theme.dart';
 import 'package:photocafe_windows/core/router/router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
+import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 
 void main() async {
@@ -126,6 +127,10 @@ class App extends ConsumerWidget {
       // Initialize printer provider
       final printerState = await ref.read(printerProvider.future);
       print('Printer provider initialized');
+
+      // Initialize video provider
+      final videoState = await ref.read(videoProvider.future);
+      print('Video provider initialized');
 
       print('All providers initialized successfully');
     } catch (e) {

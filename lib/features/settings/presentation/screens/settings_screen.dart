@@ -165,6 +165,21 @@ printing functionality is working.
                         }
                       },
                     ),
+                    const SizedBox(height: 24),
+                    _buildPrinterSelector(
+                      context: context,
+                      title: 'Video Printer',
+                      subtitle:
+                          'Printer used specifically for video-related prints with custom settings.',
+                      currentPrinter: state.videoPrinter,
+                      onChanged: (printer) {
+                        if (printer != null) {
+                          ref
+                              .read(printerProvider.notifier)
+                              .setVideoPrinter(printer);
+                        }
+                      },
+                    ),
                     const SizedBox(height: 48),
 
                     // Camera Configuration Section

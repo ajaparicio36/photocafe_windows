@@ -16,7 +16,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$PrinterState {
 
- String? get cutEnabledPrinter; String? get cutDisabledPrinter; String? get photoCameraName; String? get videoCameraName; int get layoutMode;// 2 for 2x2 layout, 4 for 4x4 layout
+ String? get cutEnabledPrinter; String? get cutDisabledPrinter; String? get videoPrinter; String? get photoCameraName; String? get videoCameraName; int get layoutMode;// 2 for 2x2 layout, 4 for 4x4 layout
  String? get error;
 /// Create a copy of PrinterState
 /// with the given fields replaced by the non-null parameter values.
@@ -30,16 +30,16 @@ $PrinterStateCopyWith<PrinterState> get copyWith => _$PrinterStateCopyWithImpl<P
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is PrinterState&&(identical(other.cutEnabledPrinter, cutEnabledPrinter) || other.cutEnabledPrinter == cutEnabledPrinter)&&(identical(other.cutDisabledPrinter, cutDisabledPrinter) || other.cutDisabledPrinter == cutDisabledPrinter)&&(identical(other.photoCameraName, photoCameraName) || other.photoCameraName == photoCameraName)&&(identical(other.videoCameraName, videoCameraName) || other.videoCameraName == videoCameraName)&&(identical(other.layoutMode, layoutMode) || other.layoutMode == layoutMode)&&(identical(other.error, error) || other.error == error));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is PrinterState&&(identical(other.cutEnabledPrinter, cutEnabledPrinter) || other.cutEnabledPrinter == cutEnabledPrinter)&&(identical(other.cutDisabledPrinter, cutDisabledPrinter) || other.cutDisabledPrinter == cutDisabledPrinter)&&(identical(other.videoPrinter, videoPrinter) || other.videoPrinter == videoPrinter)&&(identical(other.photoCameraName, photoCameraName) || other.photoCameraName == photoCameraName)&&(identical(other.videoCameraName, videoCameraName) || other.videoCameraName == videoCameraName)&&(identical(other.layoutMode, layoutMode) || other.layoutMode == layoutMode)&&(identical(other.error, error) || other.error == error));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,cutEnabledPrinter,cutDisabledPrinter,photoCameraName,videoCameraName,layoutMode,error);
+int get hashCode => Object.hash(runtimeType,cutEnabledPrinter,cutDisabledPrinter,videoPrinter,photoCameraName,videoCameraName,layoutMode,error);
 
 @override
 String toString() {
-  return 'PrinterState(cutEnabledPrinter: $cutEnabledPrinter, cutDisabledPrinter: $cutDisabledPrinter, photoCameraName: $photoCameraName, videoCameraName: $videoCameraName, layoutMode: $layoutMode, error: $error)';
+  return 'PrinterState(cutEnabledPrinter: $cutEnabledPrinter, cutDisabledPrinter: $cutDisabledPrinter, videoPrinter: $videoPrinter, photoCameraName: $photoCameraName, videoCameraName: $videoCameraName, layoutMode: $layoutMode, error: $error)';
 }
 
 
@@ -50,7 +50,7 @@ abstract mixin class $PrinterStateCopyWith<$Res>  {
   factory $PrinterStateCopyWith(PrinterState value, $Res Function(PrinterState) _then) = _$PrinterStateCopyWithImpl;
 @useResult
 $Res call({
- String? cutEnabledPrinter, String? cutDisabledPrinter, String? photoCameraName, String? videoCameraName, int layoutMode, String? error
+ String? cutEnabledPrinter, String? cutDisabledPrinter, String? videoPrinter, String? photoCameraName, String? videoCameraName, int layoutMode, String? error
 });
 
 
@@ -67,10 +67,11 @@ class _$PrinterStateCopyWithImpl<$Res>
 
 /// Create a copy of PrinterState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? cutEnabledPrinter = freezed,Object? cutDisabledPrinter = freezed,Object? photoCameraName = freezed,Object? videoCameraName = freezed,Object? layoutMode = null,Object? error = freezed,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? cutEnabledPrinter = freezed,Object? cutDisabledPrinter = freezed,Object? videoPrinter = freezed,Object? photoCameraName = freezed,Object? videoCameraName = freezed,Object? layoutMode = null,Object? error = freezed,}) {
   return _then(_self.copyWith(
 cutEnabledPrinter: freezed == cutEnabledPrinter ? _self.cutEnabledPrinter : cutEnabledPrinter // ignore: cast_nullable_to_non_nullable
 as String?,cutDisabledPrinter: freezed == cutDisabledPrinter ? _self.cutDisabledPrinter : cutDisabledPrinter // ignore: cast_nullable_to_non_nullable
+as String?,videoPrinter: freezed == videoPrinter ? _self.videoPrinter : videoPrinter // ignore: cast_nullable_to_non_nullable
 as String?,photoCameraName: freezed == photoCameraName ? _self.photoCameraName : photoCameraName // ignore: cast_nullable_to_non_nullable
 as String?,videoCameraName: freezed == videoCameraName ? _self.videoCameraName : videoCameraName // ignore: cast_nullable_to_non_nullable
 as String?,layoutMode: null == layoutMode ? _self.layoutMode : layoutMode // ignore: cast_nullable_to_non_nullable
@@ -86,11 +87,12 @@ as String?,
 @JsonSerializable()
 
 class _PrinterState implements PrinterState {
-  const _PrinterState({this.cutEnabledPrinter, this.cutDisabledPrinter, this.photoCameraName, this.videoCameraName, this.layoutMode = 2, this.error});
+  const _PrinterState({this.cutEnabledPrinter, this.cutDisabledPrinter, this.videoPrinter, this.photoCameraName, this.videoCameraName, this.layoutMode = 2, this.error});
   factory _PrinterState.fromJson(Map<String, dynamic> json) => _$PrinterStateFromJson(json);
 
 @override final  String? cutEnabledPrinter;
 @override final  String? cutDisabledPrinter;
+@override final  String? videoPrinter;
 @override final  String? photoCameraName;
 @override final  String? videoCameraName;
 @override@JsonKey() final  int layoutMode;
@@ -110,16 +112,16 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PrinterState&&(identical(other.cutEnabledPrinter, cutEnabledPrinter) || other.cutEnabledPrinter == cutEnabledPrinter)&&(identical(other.cutDisabledPrinter, cutDisabledPrinter) || other.cutDisabledPrinter == cutDisabledPrinter)&&(identical(other.photoCameraName, photoCameraName) || other.photoCameraName == photoCameraName)&&(identical(other.videoCameraName, videoCameraName) || other.videoCameraName == videoCameraName)&&(identical(other.layoutMode, layoutMode) || other.layoutMode == layoutMode)&&(identical(other.error, error) || other.error == error));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _PrinterState&&(identical(other.cutEnabledPrinter, cutEnabledPrinter) || other.cutEnabledPrinter == cutEnabledPrinter)&&(identical(other.cutDisabledPrinter, cutDisabledPrinter) || other.cutDisabledPrinter == cutDisabledPrinter)&&(identical(other.videoPrinter, videoPrinter) || other.videoPrinter == videoPrinter)&&(identical(other.photoCameraName, photoCameraName) || other.photoCameraName == photoCameraName)&&(identical(other.videoCameraName, videoCameraName) || other.videoCameraName == videoCameraName)&&(identical(other.layoutMode, layoutMode) || other.layoutMode == layoutMode)&&(identical(other.error, error) || other.error == error));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
-int get hashCode => Object.hash(runtimeType,cutEnabledPrinter,cutDisabledPrinter,photoCameraName,videoCameraName,layoutMode,error);
+int get hashCode => Object.hash(runtimeType,cutEnabledPrinter,cutDisabledPrinter,videoPrinter,photoCameraName,videoCameraName,layoutMode,error);
 
 @override
 String toString() {
-  return 'PrinterState(cutEnabledPrinter: $cutEnabledPrinter, cutDisabledPrinter: $cutDisabledPrinter, photoCameraName: $photoCameraName, videoCameraName: $videoCameraName, layoutMode: $layoutMode, error: $error)';
+  return 'PrinterState(cutEnabledPrinter: $cutEnabledPrinter, cutDisabledPrinter: $cutDisabledPrinter, videoPrinter: $videoPrinter, photoCameraName: $photoCameraName, videoCameraName: $videoCameraName, layoutMode: $layoutMode, error: $error)';
 }
 
 
@@ -130,7 +132,7 @@ abstract mixin class _$PrinterStateCopyWith<$Res> implements $PrinterStateCopyWi
   factory _$PrinterStateCopyWith(_PrinterState value, $Res Function(_PrinterState) _then) = __$PrinterStateCopyWithImpl;
 @override @useResult
 $Res call({
- String? cutEnabledPrinter, String? cutDisabledPrinter, String? photoCameraName, String? videoCameraName, int layoutMode, String? error
+ String? cutEnabledPrinter, String? cutDisabledPrinter, String? videoPrinter, String? photoCameraName, String? videoCameraName, int layoutMode, String? error
 });
 
 
@@ -147,10 +149,11 @@ class __$PrinterStateCopyWithImpl<$Res>
 
 /// Create a copy of PrinterState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? cutEnabledPrinter = freezed,Object? cutDisabledPrinter = freezed,Object? photoCameraName = freezed,Object? videoCameraName = freezed,Object? layoutMode = null,Object? error = freezed,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? cutEnabledPrinter = freezed,Object? cutDisabledPrinter = freezed,Object? videoPrinter = freezed,Object? photoCameraName = freezed,Object? videoCameraName = freezed,Object? layoutMode = null,Object? error = freezed,}) {
   return _then(_PrinterState(
 cutEnabledPrinter: freezed == cutEnabledPrinter ? _self.cutEnabledPrinter : cutEnabledPrinter // ignore: cast_nullable_to_non_nullable
 as String?,cutDisabledPrinter: freezed == cutDisabledPrinter ? _self.cutDisabledPrinter : cutDisabledPrinter // ignore: cast_nullable_to_non_nullable
+as String?,videoPrinter: freezed == videoPrinter ? _self.videoPrinter : videoPrinter // ignore: cast_nullable_to_non_nullable
 as String?,photoCameraName: freezed == photoCameraName ? _self.photoCameraName : photoCameraName // ignore: cast_nullable_to_non_nullable
 as String?,videoCameraName: freezed == videoCameraName ? _self.videoCameraName : videoCameraName // ignore: cast_nullable_to_non_nullable
 as String?,layoutMode: null == layoutMode ? _self.layoutMode : layoutMode // ignore: cast_nullable_to_non_nullable

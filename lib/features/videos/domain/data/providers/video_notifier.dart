@@ -78,8 +78,7 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
           '-p',
         ]);
 
-        if (checkResult.exitCode == 0 &&
-            checkResult.stdout.toString().contains('VIDEO_CAPTURE_SUCCESS')) {
+        if (checkResult.exitCode == 0) {
           final mjpegFile = File(fullWindowsPath);
 
           // Wait for file to be fully written

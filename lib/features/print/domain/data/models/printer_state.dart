@@ -8,6 +8,7 @@ sealed class PrinterState with _$PrinterState {
   const factory PrinterState({
     String? cutEnabledPrinter,
     String? cutDisabledPrinter,
+    String? videoPrinter,
     String? photoCameraName,
     String? videoCameraName,
     @Default(2) int layoutMode, // 2 for 2x2 layout, 4 for 4x4 layout

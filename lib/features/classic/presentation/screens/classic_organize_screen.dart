@@ -132,90 +132,70 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
       );
     }
 
-    return SizedBox(
-      height: 140, // Increased height to accommodate scrollbar
-      child: Scrollbar(
-        controller: _frameSelectorController,
-        child: ListView.builder(
-          controller: _frameSelectorController,
-          scrollDirection: Axis.horizontal,
-          itemCount: availableFrames.length,
-          itemBuilder: (context, index) {
-            final frame = availableFrames[index];
-            final isSelected = _selectedFrame == frame.id;
+    return Column(
+      children: availableFrames.map((frame) {
+        final isSelected = _selectedFrame == frame.id;
 
-            return Container(
-              width: 280, // Fixed width for each frame card
-              margin: EdgeInsets.only(
-                right: index < availableFrames.length - 1 ? 16 : 0,
-                bottom: 16, // Space for scrollbar
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.outline,
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Radio<String>(
+                value: frame.id,
+                groupValue: _selectedFrame,
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      _selectedFrame = value;
+                    });
+                  }
+                },
               ),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: isSelected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.outline,
-                  width: isSelected ? 2 : 1,
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      frame.name,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.primary
+                            : null,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      frame.description,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontSize: 14,
+                        color: Theme.of(
+                          context,
+                        ).colorScheme.onSurface.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  Radio<String>(
-                    value: frame.id,
-                    groupValue: _selectedFrame,
-                    onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          _selectedFrame = value;
-                        });
-                      }
-                    },
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          frame.name,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: isSelected
-                                    ? Theme.of(context).colorScheme.primary
-                                    : null,
-                              ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          frame.description,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontSize: 14,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.7),
-                              ),
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-      ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -316,11 +296,11 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                       ),
                     ),
 
-                    const SizedBox(width: 32),
+                    const SizedBox(width: 24),
 
-                    // Right panel - Frame selection and preview
+                    // Middle panel - Frame selection
                     Expanded(
-                      flex: 3,
+                      flex: 2,
                       child: Container(
                         padding: const EdgeInsets.all(32),
                         decoration: BoxDecoration(
@@ -358,47 +338,13 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                             const SizedBox(height: 24),
 
                             // Dynamic frame selector
-                            _buildFrameSelector(photoState),
-
-                            const SizedBox(height: 32),
-
-                            // Frame Preview
-                            Text(
-                              'Preview',
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            const SizedBox(height: 16),
-
                             Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.outline,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: _buildFramePreview(photoState),
-                                ),
+                              child: SingleChildScrollView(
+                                child: _buildFrameSelector(photoState),
                               ),
                             ),
 
-                            const SizedBox(height: 32),
+                            const SizedBox(height: 24),
 
                             // Proceed button
                             Container(
@@ -460,6 +406,63 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                                           ),
                                         ],
                                       ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 24),
+
+                    // Right panel - Frame preview
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.surface,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Frame Preview header
+                            Text(
+                              'Preview',
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
+                            const SizedBox(height: 24),
+
+                            Expanded(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.outline,
+                                    width: 2,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(18),
+                                  child: _buildFramePreview(photoState),
+                                ),
                               ),
                             ),
                           ],

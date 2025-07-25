@@ -17,6 +17,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     final prefs = await _prefs;
     final cutEnabledPrinter = prefs.getString('cutEnabledPrinter');
     final cutDisabledPrinter = prefs.getString('cutDisabledPrinter');
+    final videoPrinter = prefs.getString('videoPrinter');
     final photoCameraName = prefs.getString('photoCameraName');
     final videoCameraName = prefs.getString('videoCameraName');
     final layoutMode = prefs.getInt('layoutMode') ?? 4; // Default to 4x4
@@ -27,6 +28,9 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
           : null,
       cutDisabledPrinter: availablePrinters.contains(cutDisabledPrinter)
           ? cutDisabledPrinter
+          : null,
+      videoPrinter: availablePrinters.contains(videoPrinter)
+          ? videoPrinter
           : null,
       photoCameraName: photoCameraName,
       videoCameraName: videoCameraName,
@@ -76,6 +80,18 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
           cutDisabledPrinter: printerName,
           error: null,
         );
+      } catch (e) {
+        return state.value!.copyWith(error: e.toString());
+      }
+    });
+  }
+
+  Future<void> setVideoPrinter(String printerName) async {
+    state = await AsyncValue.guard(() async {
+      try {
+        final prefs = await _prefs;
+        await prefs.setString('videoPrinter', printerName);
+        return state.value!.copyWith(videoPrinter: printerName, error: null);
       } catch (e) {
         return state.value!.copyWith(error: e.toString());
       }
@@ -153,6 +169,43 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
       return;
     } catch (e) {
       throw Exception('Failed to print PDF: $e');
+    }
+  }
+
+  Future<void> printPdfBytesForVideo(Uint8List pdfBytes) async {
+    final printerName = state.value?.videoPrinter;
+
+    if (printerName == null || printerName.isEmpty) {
+      throw Exception('No video printer selected.');
+    }
+
+    try {
+      final tempDir = await getTemporaryDirectory();
+      final tempFile = File(
+        p.join(
+          tempDir.path,
+          'photobooth_video_print_${DateTime.now().millisecondsSinceEpoch}.pdf',
+        ),
+      );
+      await tempFile.writeAsBytes(pdfBytes);
+
+      final result = await Process.run('cmd.exe', [
+        '/c',
+        'PDFtoPrinter',
+        '/s',
+        tempFile.path,
+        printerName,
+      ], runInShell: true);
+
+      if (result.exitCode != 0) {
+        throw Exception(
+          'Failed to print PDF to video printer: ${result.stderr}',
+        );
+      }
+
+      return;
+    } catch (e) {
+      throw Exception('Failed to print PDF to video printer: $e');
     }
   }
 }
