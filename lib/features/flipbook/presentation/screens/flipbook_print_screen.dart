@@ -48,7 +48,7 @@ class _FlipbookPrintScreenState extends ConsumerState<FlipbookPrintScreen> {
     try {
       final printerNotifier = ref.read(printerProvider.notifier);
       // Flipbooks should always be cut
-      await printerNotifier.printPdfBytes(_actualPdfBytes!, cut: true);
+      await printerNotifier.printPdfBytesForVideo(_actualPdfBytes!);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Document sent to printer successfully!')),
