@@ -139,13 +139,43 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
 
     final videoNotifier = ref.read(videoProvider.notifier);
 
+    // Start the recording countdown timer immediately
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (_countdown > 1) {
+        if (mounted) {
+          setState(() {
+            _countdown--;
+          });
+        }
+      } else {
+        timer.cancel();
+        if (mounted) {
+          setState(() {
+            _countdown = 0;
+          });
+        }
+      }
+    });
+
     try {
-      // First try gphoto2 through the video notifier
-      print('Attempting gphoto2 video recording...');
-      final gphoto2File = await videoNotifier.captureVideoWithGphoto2();
+      // Start gphoto2 capture in parallel with countdown - don't await
+      print('Starting gphoto2 video recording...');
+      final gphoto2Future = videoNotifier.captureVideoWithGphoto2();
+
+      // Wait for 7 seconds (the recording duration)
+      await Future.delayed(const Duration(seconds: 7));
+
+      // Now wait for gphoto2 to complete (it should be done by now)
+      final gphoto2File = await gphoto2Future.timeout(
+        const Duration(seconds: 5), // Give it more time for conversion
+        onTimeout: () {
+          print('gphoto2 capture timed out');
+          return null;
+        },
+      );
 
       if (gphoto2File != null) {
-        print('gphoto2 recording successful!');
+        print('gphoto2 recording successful! File: ${gphoto2File.path}');
 
         // Save the gphoto2 video through the notifier
         await videoNotifier.saveVideoFromGphoto2(gphoto2File);
@@ -158,6 +188,8 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         // Set up video preview
         await _setupVideoPreview();
         return;
+      } else {
+        print('gphoto2 capture failed or timed out, falling back to camera');
       }
     } catch (e) {
       print('gphoto2 recording failed: $e');
@@ -170,6 +202,19 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
 
   Future<void> _startCameraRecording() async {
     try {
+      // Only start camera recording if not already recording
+      if (_cameraController!.value.isRecordingVideo) {
+        print('Camera is already recording, skipping camera fallback');
+        return;
+      }
+
+      // Reset countdown for camera recording only if we're not in the middle of one
+      if (_countdown <= 0) {
+        setState(() {
+          _countdown = 7;
+        });
+      }
+
       // Start recording using the camera controller
       await _cameraController!.startVideoRecording();
       print('Video recording started with camera controller');
@@ -179,23 +224,25 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         await _stopCameraRecording();
       });
 
-      // Start recording countdown timer (no sound effects during recording)
-      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (_countdown > 1) {
-          if (mounted) {
-            setState(() {
-              _countdown--;
-            });
+      // Continue the countdown timer if not already running
+      if (_countdownTimer?.isActive != true) {
+        _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (_countdown > 1) {
+            if (mounted) {
+              setState(() {
+                _countdown--;
+              });
+            }
+          } else {
+            timer.cancel();
+            if (mounted) {
+              setState(() {
+                _countdown = 0;
+              });
+            }
           }
-        } else {
-          timer.cancel();
-          if (mounted) {
-            setState(() {
-              _countdown = 0;
-            });
-          }
-        }
-      });
+        });
+      }
     } catch (e) {
       print('Error starting camera recording: $e');
       setState(() {
@@ -212,6 +259,16 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     if (!_isRecording || _cameraController == null) return;
 
     try {
+      // Check if camera is actually recording before trying to stop
+      if (!_cameraController!.value.isRecordingVideo) {
+        print('Camera is not recording, cannot stop');
+        setState(() {
+          _isRecording = false;
+          _countdown = 0;
+        });
+        return;
+      }
+
       print('Stopping camera recording...');
       final videoXFile = await _cameraController!.stopVideoRecording();
 
@@ -249,10 +306,23 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         await _videoPlayerController?.dispose();
         _videoPlayerController = null;
 
+        final videoFile = File(videoState!.videoPath!);
+
+        // Verify the file exists and has content
+        if (!await videoFile.exists()) {
+          throw Exception('Video file does not exist: ${videoState.videoPath}');
+        }
+
+        final fileSize = await videoFile.length();
+        if (fileSize < 1024) {
+          throw Exception('Video file is too small: $fileSize bytes');
+        }
+
+        print('Setting up video preview for: ${videoState.videoPath}');
+        print('Video file size: $fileSize bytes');
+
         // Create new controller
-        _videoPlayerController = VideoPlayerController.file(
-          File(videoState!.videoPath!),
-        );
+        _videoPlayerController = VideoPlayerController.file(videoFile);
 
         // Initialize with error handling
         await _videoPlayerController!.initialize();
@@ -262,6 +332,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
           await _videoPlayerController!.setLooping(true);
           await _videoPlayerController!.play();
           setState(() {});
+          print('Video preview setup successfully');
         }
       } catch (e) {
         print('Error setting up video preview: $e');
@@ -282,7 +353,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     return Column(
       children: [
         Expanded(
-          flex: 3,
+          flex: 4, // Increased from 3 to give more space
           child: Center(
             child: AspectRatio(
               aspectRatio: 16 / 10,
@@ -305,18 +376,21 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
           child: Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: 40.0,
-              vertical: 20.0,
+              vertical: 10.0, // Reduced from 20.0
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 SizedBox(
-                  width: 200,
-                  height: 60,
+                  width: 180, // Reduced from 200
+                  height: 50, // Reduced from 60
                   child: OutlinedButton.icon(
                     onPressed: _retakeVideo,
-                    icon: const Icon(Icons.replay, size: 24),
-                    label: const Text('Retake', style: TextStyle(fontSize: 18)),
+                    icon: const Icon(Icons.replay, size: 20), // Reduced from 24
+                    label: const Text(
+                      'Retake',
+                      style: TextStyle(fontSize: 16),
+                    ), // Reduced from 18
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white, width: 2),
@@ -327,16 +401,19 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
                   ),
                 ),
                 SizedBox(
-                  width: 200,
-                  height: 60,
+                  width: 180, // Reduced from 200
+                  height: 50, // Reduced from 60
                   child: ElevatedButton.icon(
                     onPressed: () {
                       context.go('/flipbook/filter');
                     },
-                    icon: const Icon(Icons.check_circle, size: 24),
+                    icon: const Icon(
+                      Icons.check_circle,
+                      size: 20,
+                    ), // Reduced from 24
                     label: const Text(
                       'Proceed',
-                      style: TextStyle(fontSize: 18),
+                      style: TextStyle(fontSize: 16), // Reduced from 18
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,

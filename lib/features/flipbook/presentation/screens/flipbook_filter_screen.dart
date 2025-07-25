@@ -89,7 +89,9 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
         children: [
           ScreenHeader(
             title: 'Apply a Filter',
-            subtitle: 'Choose a filter to apply to your video',
+            subtitle: videoState.hasValue
+                ? 'Choose a filter for your 100-frame flipbook (50 pages)'
+                : 'Choose a filter to apply to your video',
             backRoute: '/flipbook/capture',
           ),
           const SizedBox(height: 40),
@@ -115,7 +117,7 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
                     CircularProgressIndicator(),
                     SizedBox(height: 16),
                     Text(
-                      'Processing video...',
+                      'Processing video into 100 frames...',
                       style: TextStyle(color: Colors.white, fontSize: 18),
                     ),
                   ],

@@ -22,6 +22,80 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
     FlipbookFrameLayout layout,
   );
 
+  pw.Widget _buildFrameOnPage(
+    pw.MemoryImage frameImage,
+    pw.MemoryImage? frameBackgroundImage, // Pre-loaded background
+    FlipbookFrameLayout layout,
+    int positionIndex,
+    int frameNumber,
+  ) {
+    final halfPageHeight = layout.pageHeight / 2;
+    final yOffset = positionIndex * halfPageHeight;
+    final framePosition =
+        layout.framePositions[0]; // Use first position as template
+
+    // Scale frame position for half-page height
+    final scaledFramePosition = FlipbookFramePosition(
+      left: framePosition.left,
+      top: framePosition.top * 0.5, // Scale for half page
+      width: framePosition.width,
+      height: framePosition.height * 0.5, // Scale for half page
+    );
+
+    return pw.Positioned(
+      left: 0,
+      top: yOffset,
+      child: pw.Container(
+        width: layout.pageWidth,
+        height: halfPageHeight,
+        child: pw.Stack(
+          children: [
+            // White background
+            pw.Positioned.fill(child: pw.Container(color: PdfColors.white)),
+
+            // Frame content (behind frame background)
+            pw.Positioned(
+              left: scaledFramePosition.left,
+              top: scaledFramePosition.top,
+              child: pw.Container(
+                width: scaledFramePosition.width,
+                height: scaledFramePosition.height,
+                child: pw.Image(frameImage, fit: pw.BoxFit.cover),
+              ),
+            ),
+
+            // Frame background/border (on top of content)
+            if (frameBackgroundImage != null)
+              pw.Positioned.fill(
+                child: pw.Image(frameBackgroundImage, fit: pw.BoxFit.fill),
+              ),
+
+            // Frame number
+            pw.Positioned(
+              left: 5,
+              bottom: 5,
+              child: pw.Container(
+                padding: const pw.EdgeInsets.all(2),
+                decoration: const pw.BoxDecoration(
+                  color: PdfColors.white,
+                  borderRadius: pw.BorderRadius.all(pw.Radius.circular(2)),
+                ),
+                child: pw.Text(
+                  '$frameNumber',
+                  style: pw.TextStyle(
+                    fontSize: 8,
+                    fontWeight: pw.FontWeight.bold,
+                    color: PdfColors.black,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // Common PDF generation logic using the frame layout
   Future<Uint8List> generatePdfFromLayout(
     List<FrameModel> frames,
@@ -29,55 +103,102 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
   ) async {
     final pdf = pw.Document();
 
-    // Load the frame background
-    final frameImageBytes = await rootBundle.load(layout.frameAssetPath);
-    final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
-
     // Sort frames by index to ensure correct order
-    final sortedFrames = List.from(frames)
+    final sortedFrames = List<FrameModel>.from(frames)
       ..sort((a, b) => a.index.compareTo(b.index));
+
+    print('Generating PDF with ${sortedFrames.length} frames for flipbook');
+
+    // Ensure we have exactly 100 frames for 50-page flipbook
+    final targetFrameCount = 100;
+    List<FrameModel> processedFrames;
+
+    if (sortedFrames.length < targetFrameCount) {
+      print(
+        'Warning: Only ${sortedFrames.length} frames available, expected $targetFrameCount',
+      );
+      // Duplicate frames to reach target count
+      processedFrames = List<FrameModel>.from(sortedFrames);
+      while (processedFrames.length < targetFrameCount) {
+        final framesToAdd = (targetFrameCount - processedFrames.length).clamp(
+          0,
+          sortedFrames.length,
+        );
+        processedFrames.addAll(sortedFrames.take(framesToAdd));
+      }
+    } else if (sortedFrames.length > targetFrameCount) {
+      print(
+        'Trimming ${sortedFrames.length} frames to exactly $targetFrameCount',
+      );
+      processedFrames = sortedFrames.take(targetFrameCount).toList();
+    } else {
+      processedFrames = sortedFrames;
+    }
+
+    // Load the frame background image once
+    pw.MemoryImage? frameBackgroundImage;
+    try {
+      final frameImageBytes = await rootBundle.load(layout.frameAssetPath);
+      frameBackgroundImage = pw.MemoryImage(
+        frameImageBytes.buffer.asUint8List(),
+      );
+      print('Successfully loaded frame background: ${layout.frameAssetPath}');
+    } catch (e) {
+      print('Warning: Could not load frame asset ${layout.frameAssetPath}: $e');
+    }
 
     // Load frame images
     final frameImages = <pw.MemoryImage>[];
-    for (final frame in sortedFrames) {
+    for (final frame in processedFrames) {
       final file = File(frame.path);
       if (await file.exists()) {
-        final imageBytes = await file.readAsBytes();
-        frameImages.add(pw.MemoryImage(imageBytes));
+        try {
+          final imageBytes = await file.readAsBytes();
+          frameImages.add(pw.MemoryImage(imageBytes));
+        } catch (e) {
+          print('Error loading frame image ${frame.path}: $e');
+          // Skip this frame if it can't be loaded
+        }
+      } else {
+        print('Frame file not found: ${frame.path}');
       }
     }
 
-    // Create page format based on layout
-    final pageFormat = layout.isLandscape
-        ? PdfPageFormat.a6.landscape
-        : PdfPageFormat.a6;
+    print('Loaded ${frameImages.length} frame images for PDF generation');
 
-    // Generate pages with 2 frames per page
-    for (int i = 0; i < frameImages.length; i += 2) {
+    // Use A6 landscape format
+    final pageFormat = PdfPageFormat.a6.landscape;
+
+    // Generate 50 pages with 2 frames per page
+    final totalPages = 50;
+    for (int pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+      final frameIndex1 = pageIndex * 2;
+      final frameIndex2 = pageIndex * 2 + 1;
+
       pdf.addPage(
         pw.Page(
           pageFormat: pageFormat,
           margin: const pw.EdgeInsets.all(0),
           build: (pw.Context context) {
-            return pw.Stack(
+            return pw.Column(
               children: [
-                // First frame on the page
-                if (i < frameImages.length)
+                // First frame on the page (top half)
+                if (frameIndex1 < frameImages.length)
                   _buildFrameOnPage(
-                    frameImages[i],
-                    frameImage,
+                    frameImages[frameIndex1],
+                    frameBackgroundImage,
                     layout,
-                    0,
-                    i + 1,
+                    0, // Position index (top half)
+                    frameIndex1 + 1, // Frame number (1-based)
                   ),
-                // Second frame on the page
-                if (i + 1 < frameImages.length)
+                // Second frame on the page (bottom half)
+                if (frameIndex2 < frameImages.length)
                   _buildFrameOnPage(
-                    frameImages[i + 1],
-                    frameImage,
+                    frameImages[frameIndex2],
+                    frameBackgroundImage,
                     layout,
-                    1,
-                    i + 2,
+                    1, // Position index (bottom half)
+                    frameIndex2 + 1, // Frame number (1-based)
                   ),
               ],
             );
@@ -86,62 +207,8 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
       );
     }
 
+    print('Generated PDF with $totalPages pages for flipbook (A6 landscape)');
     return pdf.save();
-  }
-
-  pw.Widget _buildFrameOnPage(
-    pw.MemoryImage frameImage,
-    pw.MemoryImage backgroundImage,
-    FlipbookFrameLayout layout,
-    int positionIndex,
-    int frameNumber,
-  ) {
-    final yOffset = positionIndex * layout.pageHeight;
-    final framePosition =
-        layout.framePositions[0]; // Use first position as template
-
-    return pw.Positioned(
-      left: 0,
-      top: yOffset,
-      child: pw.Container(
-        width: layout.pageWidth,
-        height: layout.pageHeight,
-        child: pw.Stack(
-          children: [
-            // Frame content (behind frame)
-            pw.Positioned(
-              left: framePosition.left,
-              top: framePosition.top,
-              child: pw.Image(
-                frameImage,
-                fit: pw.BoxFit.cover,
-                width: framePosition.width,
-                height: framePosition.height,
-              ),
-            ),
-            // Frame background (on top)
-            pw.Image(
-              backgroundImage,
-              fit: pw.BoxFit.fill,
-              width: layout.pageWidth,
-              height: layout.pageHeight,
-            ),
-            // Frame number
-            pw.Positioned(
-              left: 5,
-              top: layout.pageHeight / 2 - 10,
-              child: pw.Text(
-                '$frameNumber',
-                style: pw.TextStyle(
-                  fontSize: 12,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   // Common build method for all frames

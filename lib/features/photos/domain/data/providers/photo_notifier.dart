@@ -140,31 +140,132 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         .replaceAll(r'\', '/')
         .replaceAll('C:', '/mnt/c');
 
-    final result = await Process.run('wsl.exe', [
-      'bash',
-      '-c',
-      'gphoto2 --capture-image-and-download --stdout > "$wslPath"',
-    ]);
+    try {
+      // Reset camera and ensure no processes are using it
+      await _resetGphoto2Camera();
 
-    print('gphoto2 capture result: ${result.exitCode}');
-    print('gphoto2 stderr: ${result.stderr}');
+      // Wait for camera to be ready
+      await Future.delayed(const Duration(milliseconds: 1000));
 
-    if (result.exitCode != 0) {
-      print('gphoto2 capture failed with exit code: ${result.exitCode}');
-      return null;
-    }
-
-    final file = File(fullWindowsPath);
-    if (await file.exists()) {
-      final fileSize = await file.length();
-      print('gphoto2 captured file size: $fileSize bytes');
-      if (fileSize > 1024) {
-        // Ensure file is not empty
-        return file;
+      // Check camera readiness
+      final isReady = await _checkCameraReady();
+      if (!isReady) {
+        print('Camera not ready for gphoto2 photo capture');
+        return null;
       }
+
+      // Try capture with retries
+      for (int attempt = 1; attempt <= 3; attempt++) {
+        print('gphoto2 photo capture attempt $attempt/3');
+
+        final result = await Process.run('wsl.exe', [
+          'bash',
+          '-c',
+          'timeout 10s gphoto2 --capture-image-and-download --stdout > "$wslPath" 2>/dev/null',
+        ]);
+
+        print('gphoto2 photo attempt $attempt - exit code: ${result.exitCode}');
+        if (result.stderr.isNotEmpty) {
+          print('gphoto2 photo attempt $attempt - stderr: ${result.stderr}');
+        }
+
+        if (result.exitCode == 0) {
+          final file = File(fullWindowsPath);
+          if (await file.exists()) {
+            final fileSize = await file.length();
+            print('gphoto2 photo captured, size: $fileSize bytes');
+
+            if (fileSize > 1024) {
+              return file;
+            } else {
+              print('gphoto2 photo file too small, deleting and retrying...');
+              await file.delete();
+            }
+          }
+        }
+
+        // If failed and not last attempt, reset camera and wait
+        if (attempt < 3) {
+          print('gphoto2 photo capture failed, resetting camera for retry...');
+          await _resetGphoto2Camera();
+          await Future.delayed(const Duration(milliseconds: 2000));
+        }
+      }
+
+      print('All gphoto2 photo capture attempts failed');
+    } catch (e) {
+      print('gphoto2 photo capture error: $e');
     }
 
     return null;
+  }
+
+  Future<void> _resetGphoto2Camera() async {
+    try {
+      print('Resetting gphoto2 camera for photos...');
+
+      // Kill any existing gphoto2 processes
+      await Process.run('wsl.exe', [
+        'bash',
+        '-c',
+        'pkill -f gphoto2 2>/dev/null || true',
+      ]);
+
+      // Wait for processes to die
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Reset camera connection
+      await Process.run('wsl.exe', [
+        'bash',
+        '-c',
+        'gphoto2 --reset 2>/dev/null || true',
+      ]);
+
+      print('Camera reset completed for photos');
+    } catch (e) {
+      print('Camera reset error (non-fatal): $e');
+    }
+  }
+
+  Future<bool> _checkCameraReady() async {
+    try {
+      // Check if camera is ready and not busy
+      final detectResult = await Process.run('wsl.exe', [
+        'bash',
+        '-c',
+        'timeout 5s gphoto2 --auto-detect 2>&1',
+      ]);
+
+      if (detectResult.exitCode != 0) {
+        print(
+          'Camera detection failed for photos with exit code: ${detectResult.exitCode}',
+        );
+        return false;
+      }
+
+      final output = detectResult.stdout.toString();
+      print('Camera detection output for photos: $output');
+
+      // Check for Canon EOS specifically
+      if (output.contains('Canon') && output.contains('EOS')) {
+        // Do a quick abilities check to ensure camera is responsive
+        final abilitiesResult = await Process.run('wsl.exe', [
+          'bash',
+          '-c',
+          'timeout 3s gphoto2 --abilities 2>/dev/null | head -5',
+        ]);
+
+        if (abilitiesResult.exitCode == 0) {
+          print('Canon EOS camera detected and responsive for photos');
+          return true;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      print('Camera ready check error for photos: $e');
+      return false;
+    }
   }
 
   Future<void> addPhoto(Uint8List imageBytes) async {

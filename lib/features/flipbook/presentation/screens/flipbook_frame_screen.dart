@@ -148,9 +148,11 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
     return ScreenContainer(
       child: Column(
         children: [
-          const ScreenHeader(
+          ScreenHeader(
             title: 'Apply a Frame',
-            subtitle: 'Choose a frame for your flipbook pages',
+            subtitle: videoState.hasValue && videoState.value!.frames.isNotEmpty
+                ? 'Choose a frame for your ${videoState.value!.frames.length}-frame flipbook (${(videoState.value!.frames.length / 2).ceil()} pages)'
+                : 'Choose a frame for your flipbook pages',
             backRoute: '/flipbook/filter',
           ),
           const SizedBox(height: 40),
