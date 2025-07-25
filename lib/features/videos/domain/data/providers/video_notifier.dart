@@ -56,44 +56,38 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       for (int attempt = 1; attempt <= 2; attempt++) {
         print('gphoto2 video capture attempt $attempt/2 (using tmux session)');
 
+        // reset first then delay
+
+        await _resetGphoto2CameraInTmux();
+        await Future.delayed(const Duration(milliseconds: 500));
+
         // Send capture command to tmux session
         await Process.run('wsl.exe', [
           'tmux',
           'send-keys',
           '-t',
           _tmuxSession,
-          'timeout 12s gphoto2 --capture-movie=7s --stdout > "$wslPath" 2>/dev/null && echo "VIDEO_CAPTURE_SUCCESS" || echo "VIDEO_CAPTURE_FAILED"',
+          'gphoto2 --capture-movie=7s --stdout > "$wslPath" 2>/dev/null && echo "VIDEO_CAPTURE_SUCCESS" || echo "VIDEO_CAPTURE_FAILED"',
           'Enter',
         ]);
 
         // Wait for capture to complete (7s + 3s buffer)
         await Future.delayed(const Duration(seconds: 10));
 
-        // Check if capture was successful
-        final checkResult = await Process.run('wsl.exe', [
-          'tmux',
-          'capture-pane',
-          '-t',
-          _tmuxSession,
-          '-p',
-        ]);
+        final mjpegFile = File(fullWindowsPath);
 
-        if (checkResult.exitCode == 0) {
-          final mjpegFile = File(fullWindowsPath);
-
-          // Wait for file to be fully written
-          for (int i = 0; i < 15; i++) {
-            if (await mjpegFile.exists()) {
-              final fileSize = await mjpegFile.length();
-              if (fileSize > 1024) {
-                print('gphoto2 MJPEG captured via tmux, size: $fileSize bytes');
-                // Convert MJPEG to MP4 before returning
-                final mp4File = await _convertMjpegToMp4(mjpegFile);
-                return mp4File;
-              }
+        // Wait for file to be fully written
+        for (int i = 0; i < 15; i++) {
+          if (await mjpegFile.exists()) {
+            final fileSize = await mjpegFile.length();
+            if (fileSize > 1024) {
+              print('gphoto2 MJPEG captured via tmux, size: $fileSize bytes');
+              // Convert MJPEG to MP4 before returning
+              final mp4File = await _convertMjpegToMp4(mjpegFile);
+              return mp4File;
             }
-            await Future.delayed(const Duration(milliseconds: 300));
           }
+          await Future.delayed(const Duration(milliseconds: 300));
         }
 
         // If failed and not last attempt, reset camera in tmux session

@@ -147,46 +147,38 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
       // Use tmux session for instant gphoto2 capture
       for (int attempt = 1; attempt <= 2; attempt++) {
-        print('gphoto2 photo capture attempt $attempt/2 (using tmux session)');
+        // reset gphoto2
+
+        await _resetGphoto2CameraInTmux();
+
+        await Future.delayed(const Duration(milliseconds: 500));
 
         final result = await Process.run('wsl.exe', [
           'tmux',
           'send-keys',
           '-t',
           _tmuxSession,
-          'timeout 8s gphoto2 --capture-image-and-download --stdout > "$wslPath" 2>/dev/null && echo "CAPTURE_SUCCESS" || echo "CAPTURE_FAILED"',
+          'gphoto2 --capture-image-and-download --stdout > "$wslPath" 2>/dev/null && echo "CAPTURE_SUCCESS" || echo "CAPTURE_FAILED"',
           'Enter',
         ]);
 
         if (result.exitCode == 0) {
           // Wait for capture to complete and check result
           await Future.delayed(const Duration(milliseconds: 500));
+          final file = File(fullWindowsPath);
 
-          // Check if capture was successful by examining the output
-          final checkResult = await Process.run('wsl.exe', [
-            'tmux',
-            'capture-pane',
-            '-t',
-            _tmuxSession,
-            '-p',
-          ]);
-
-          if (checkResult.exitCode == 0) {
-            final file = File(fullWindowsPath);
-
-            // Wait a bit more for file to be fully written
-            for (int i = 0; i < 10; i++) {
-              if (await file.exists()) {
-                final fileSize = await file.length();
-                if (fileSize > 1024) {
-                  print(
-                    'gphoto2 photo captured successfully via tmux, size: $fileSize bytes',
-                  );
-                  return file;
-                }
+          // Wait a bit more for file to be fully written
+          for (int i = 0; i < 10; i++) {
+            if (await file.exists()) {
+              final fileSize = await file.length();
+              if (fileSize > 1024) {
+                print(
+                  'gphoto2 photo captured successfully via tmux, size: $fileSize bytes',
+                );
+                return file;
               }
-              await Future.delayed(const Duration(milliseconds: 200));
             }
+            await Future.delayed(const Duration(milliseconds: 200));
           }
         }
 
