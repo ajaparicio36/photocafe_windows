@@ -47,11 +47,10 @@ class FlipbookFrameDefinition {
 }
 
 class FlipbookFrameConstants {
-  // A6 landscape dimensions in points (1 point = 1/72 inch)
-  // A6 = 105 × 148 mm = 297.6 × 419.5 points
-  // Landscape = 419.5 × 297.6 points
-  static const double a6LandscapeWidth = 419.5;
-  static const double a6LandscapeHeight = 297.6;
+  // 4x6 inch dimensions in points (1 point = 1/72 inch)
+  // 4x6 inches = 288 × 432 points
+  static const double a6LandscapeWidth = 432.0;
+  static const double a6LandscapeHeight = 288.0;
 
   // Standard Flipbook Frame Layout - A6 Landscape
   static const flipbookFrameOne = FlipbookFrameLayout(
@@ -63,7 +62,7 @@ class FlipbookFrameConstants {
       // Frame position for A6 landscape
       FlipbookFramePosition(
         left: 215.0,
-        top: 22.0,
+        top: 20.0,
         width: 220, // pageWidth - 40 (20px margins on each side)
         height: 248, // pageHeight - 40 (20px margins on each side)
       ),
@@ -77,7 +76,7 @@ class FlipbookFrameConstants {
     frameAssetPath: 'assets/flipbook/frame2.png',
     framePositions: [
       // Frame position for A6 landscape
-      FlipbookFramePosition(left: 215.0, top: 25.0, width: 210, height: 238),
+      FlipbookFramePosition(left: 215.0, top: 23.0, width: 210, height: 238),
     ],
   );
 
@@ -88,7 +87,7 @@ class FlipbookFrameConstants {
     frameAssetPath: 'assets/flipbook/frame3.png',
     framePositions: [
       // Frame position for A6 landscape
-      FlipbookFramePosition(left: 200.0, top: 18.0, width: 228, height: 258),
+      FlipbookFramePosition(left: 200.0, top: 16.0, width: 228, height: 258),
     ],
   );
 
@@ -99,7 +98,7 @@ class FlipbookFrameConstants {
     frameAssetPath: 'assets/flipbook/frame4.png',
     framePositions: [
       // Frame position for A6 landscape
-      FlipbookFramePosition(left: 215, top: 20.0, width: 220, height: 248),
+      FlipbookFramePosition(left: 215, top: 18.0, width: 220, height: 248),
     ],
   );
 
@@ -110,7 +109,7 @@ class FlipbookFrameConstants {
     frameAssetPath: 'assets/flipbook/frame5.png',
     framePositions: [
       // Frame position for A6 landscape
-      FlipbookFramePosition(left: 200, top: 18.0, width: 232, height: 262),
+      FlipbookFramePosition(left: 200, top: 16.0, width: 232, height: 262),
     ],
   );
 
@@ -121,7 +120,7 @@ class FlipbookFrameConstants {
     frameAssetPath: 'assets/flipbook/frame6.png',
     framePositions: [
       // Frame position for A6 landscape
-      FlipbookFramePosition(left: 210, top: 16, width: 220, height: 262),
+      FlipbookFramePosition(left: 210, top: 14, width: 220, height: 262),
     ],
   );
 

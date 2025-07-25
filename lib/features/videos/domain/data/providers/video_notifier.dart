@@ -12,6 +12,7 @@ import 'package:photocafe_windows/features/videos/domain/data/constants/filter_c
 
 class VideoNotifier extends AsyncNotifier<VideoState> {
   Process? _ffmpegProcess;
+  static const String _tmuxSession = 'photocafe';
 
   @override
   Future<VideoState> build() async {
@@ -45,67 +46,235 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
         .replaceAll(r'\', '/')
         .replaceAll('C:', '/mnt/c');
 
-    print('Attempting gphoto2 video capture to: $wslPath');
+    print('Attempting gphoto2 video capture via tmux to: $wslPath');
 
     try {
-      // Reset camera and ensure no processes are using it
-      await _resetGphoto2Camera();
+      // Ensure tmux session exists and is ready
+      await _ensureTmuxSession();
 
-      // Wait a moment for camera to be ready
-      await Future.delayed(const Duration(milliseconds: 1000));
+      // Try capture with fewer retries since tmux session is persistent
+      for (int attempt = 1; attempt <= 2; attempt++) {
+        print('gphoto2 video capture attempt $attempt/2 (using tmux session)');
 
-      // Check camera with more detailed detection
-      final isReady = await _checkCameraReady();
-      if (!isReady) {
-        print('Camera not ready for gphoto2 capture');
-        return null;
-      }
-
-      // Try capture with retries - now captures MJPEG
-      for (int attempt = 1; attempt <= 3; attempt++) {
-        print('gphoto2 capture attempt $attempt/3');
-
-        final result = await Process.run('wsl.exe', [
-          'bash',
-          '-c',
-          'timeout 15s gphoto2 --capture-movie=7s --stdout > "$wslPath" 2>/dev/null && echo "success" || echo "failed"',
+        // Send capture command to tmux session
+        await Process.run('wsl.exe', [
+          'tmux',
+          'send-keys',
+          '-t',
+          _tmuxSession,
+          'timeout 12s gphoto2 --capture-movie=7s --stdout > "$wslPath" 2>/dev/null && echo "VIDEO_CAPTURE_SUCCESS" || echo "VIDEO_CAPTURE_FAILED"',
+          'Enter',
         ]);
 
-        print('gphoto2 attempt $attempt - exit code: ${result.exitCode}');
-        print('gphoto2 attempt $attempt - output: ${result.stdout}');
+        // Wait for capture to complete (7s + 3s buffer)
+        await Future.delayed(const Duration(seconds: 10));
 
-        if (result.exitCode == 0 &&
-            result.stdout.toString().contains('success')) {
+        // Check if capture was successful
+        final checkResult = await Process.run('wsl.exe', [
+          'tmux',
+          'capture-pane',
+          '-t',
+          _tmuxSession,
+          '-p',
+        ]);
+
+        if (checkResult.exitCode == 0 &&
+            checkResult.stdout.toString().contains('VIDEO_CAPTURE_SUCCESS')) {
           final mjpegFile = File(fullWindowsPath);
-          if (await mjpegFile.exists()) {
-            final fileSize = await mjpegFile.length();
-            print('gphoto2 MJPEG captured successfully, size: $fileSize bytes');
 
-            if (fileSize > 1024) {
-              // Convert MJPEG to MP4 before returning
-              final mp4File = await _convertMjpegToMp4(mjpegFile);
-              return mp4File;
-            } else {
-              print('gphoto2 MJPEG file too small, deleting and retrying...');
-              await mjpegFile.delete();
+          // Wait for file to be fully written
+          for (int i = 0; i < 15; i++) {
+            if (await mjpegFile.exists()) {
+              final fileSize = await mjpegFile.length();
+              if (fileSize > 1024) {
+                print('gphoto2 MJPEG captured via tmux, size: $fileSize bytes');
+                // Convert MJPEG to MP4 before returning
+                final mp4File = await _convertMjpegToMp4(mjpegFile);
+                return mp4File;
+              }
             }
+            await Future.delayed(const Duration(milliseconds: 300));
           }
         }
 
-        // If failed and not last attempt, reset camera and wait
-        if (attempt < 3) {
-          print('gphoto2 capture failed, resetting camera for retry...');
-          await _resetGphoto2Camera();
-          await Future.delayed(const Duration(milliseconds: 2000));
+        // If failed and not last attempt, reset camera in tmux session
+        if (attempt < 2) {
+          print(
+            'gphoto2 video capture failed, resetting camera in tmux session...',
+          );
+          await _resetGphoto2CameraInTmux();
+          await Future.delayed(const Duration(milliseconds: 1500));
         }
       }
 
-      print('All gphoto2 capture attempts failed, will use fallback');
+      print('All gphoto2 video capture attempts failed, will use fallback');
     } catch (e) {
-      print('gphoto2 capture error: $e');
+      print('gphoto2 video capture error: $e');
     }
 
     return null;
+  }
+
+  Future<void> _ensureTmuxSession() async {
+    try {
+      // Check if session exists
+      final checkResult = await Process.run('wsl.exe', [
+        'tmux',
+        'has-session',
+        '-t',
+        _tmuxSession,
+      ]);
+
+      if (checkResult.exitCode != 0) {
+        print('Tmux session not found, creating new one...');
+        await _createTmuxSession();
+      } else {
+        print('Tmux session $_tmuxSession is ready for video');
+      }
+    } catch (e) {
+      print('Error checking tmux session: $e');
+      await _createTmuxSession();
+    }
+  }
+
+  Future<void> _createTmuxSession() async {
+    try {
+      print('Creating tmux session $_tmuxSession for video...');
+
+      // Kill existing session if any
+      await Process.run('wsl.exe', [
+        'tmux',
+        'kill-session',
+        '-t',
+        _tmuxSession,
+      ]);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Create new session
+      await Process.run('wsl.exe', [
+        'tmux',
+        'new-session',
+        '-d',
+        '-s',
+        _tmuxSession,
+      ]);
+
+      // Initialize gphoto2 in the session
+      await Process.run('wsl.exe', [
+        'tmux',
+        'send-keys',
+        '-t',
+        _tmuxSession,
+        'echo "PhotoCafe gphoto2 session ready for video"',
+        'Enter',
+      ]);
+
+      await Process.run('wsl.exe', [
+        'tmux',
+        'send-keys',
+        '-t',
+        _tmuxSession,
+        'gphoto2 --reset',
+        'Enter',
+      ]);
+
+      print('Tmux session created and initialized for video');
+    } catch (e) {
+      print('Error creating tmux session for video: $e');
+    }
+  }
+
+  Future<void> _resetGphoto2CameraInTmux() async {
+    try {
+      print('Resetting gphoto2 camera in tmux session for video...');
+
+      // Kill any gphoto2 processes in the session
+      await Process.run('wsl.exe', [
+        'tmux',
+        'send-keys',
+        '-t',
+        _tmuxSession,
+        'C-c', // Send Ctrl+C to interrupt any running command
+      ]);
+
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      await Process.run('wsl.exe', [
+        'tmux',
+        'send-keys',
+        '-t',
+        _tmuxSession,
+        'pkill -f gphoto2 2>/dev/null || true',
+        'Enter',
+      ]);
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      // Reset camera
+      await Process.run('wsl.exe', [
+        'tmux',
+        'send-keys',
+        '-t',
+        _tmuxSession,
+        'gphoto2 --reset 2>/dev/null || true',
+        'Enter',
+      ]);
+
+      print('Camera reset completed in tmux session for video');
+    } catch (e) {
+      print('Camera reset error in tmux for video (non-fatal): $e');
+    }
+  }
+
+  Future<void> _resetGphoto2Camera() async {
+    // Use tmux session instead of direct WSL calls
+    await _resetGphoto2CameraInTmux();
+  }
+
+  Future<bool> _checkCameraReady() async {
+    try {
+      // Ensure tmux session exists
+      await _ensureTmuxSession();
+
+      // Check camera using tmux session
+      await Process.run('wsl.exe', [
+        'tmux',
+        'send-keys',
+        '-t',
+        _tmuxSession,
+        'timeout 3s gphoto2 --auto-detect 2>&1',
+        'Enter',
+      ]);
+
+      // Wait for command to complete
+      await Future.delayed(const Duration(milliseconds: 3500));
+
+      // Capture the output
+      final result = await Process.run('wsl.exe', [
+        'tmux',
+        'capture-pane',
+        '-t',
+        _tmuxSession,
+        '-p',
+      ]);
+
+      if (result.exitCode == 0) {
+        final output = result.stdout.toString();
+        print('Camera detection output from tmux for video: $output');
+
+        // Check for Canon EOS specifically
+        if (output.contains('Canon') && output.contains('EOS')) {
+          print('Canon EOS camera detected and responsive via tmux for video');
+          return true;
+        }
+      }
+
+      return false;
+    } catch (e) {
+      print('Camera ready check error via tmux for video: $e');
+      return false;
+    }
   }
 
   Future<File?> _convertMjpegToMp4(File mjpegFile) async {
@@ -357,7 +526,7 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
         throw Exception('Video file not found at: ${currentState.videoPath}');
       }
 
-      print('Splitting 7-second video into 100 frames for 50-page flipbook...');
+      print('Splitting 7-second video into 50 frames for 50-page flipbook...');
 
       // Create a unique frame directory for this video session
       final sessionId = DateTime.now().millisecondsSinceEpoch;
@@ -378,20 +547,20 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       }
 
       try {
-        // Extract 100 frames from 7-second video (100/7 ≈ 14.3 fps)
+        // Extract 50 frames from 7-second video (50/7 ≈ 7.14 fps)
         final framePattern = p.join(frameDir.path, 'frame_%03d.jpg');
 
         final ffmpegArgs = [
           '-i', currentState.videoPath!,
           '-vf',
-          'fps=100/7,scale=${VideoFilterConstants.videoWidth}:${VideoFilterConstants.videoHeight}',
-          '-frames:v', '100', // Explicitly limit to 100 frames
+          'fps=50/7,scale=${VideoFilterConstants.videoWidth}:${VideoFilterConstants.videoHeight}',
+          '-frames:v', '50', // Explicitly limit to 50 frames
           '-q:v', '2', // High quality JPEG
           '-y', // Overwrite existing files
           framePattern,
         ];
 
-        print('Extracting 100 frames: ffmpeg ${ffmpegArgs.join(' ')}');
+        print('Extracting 50 frames: ffmpeg ${ffmpegArgs.join(' ')}');
         final process = await Process.run('ffmpeg', ffmpegArgs);
 
         if (process.exitCode != 0) {
@@ -414,14 +583,14 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
 
         print('Found ${frameFiles.length} frames in session directory');
 
-        // Ensure we have exactly 100 frames
-        if (frameFiles.length < 100) {
+        // Ensure we have exactly 50 frames
+        if (frameFiles.length < 50) {
           print(
-            'Warning: Only ${frameFiles.length} frames extracted, expected 100',
+            'Warning: Only ${frameFiles.length} frames extracted, expected 50',
           );
-        } else if (frameFiles.length > 100) {
-          print('Trimming to exactly 100 frames');
-          frameFiles.removeRange(100, frameFiles.length);
+        } else if (frameFiles.length > 50) {
+          print('Trimming to exactly 50 frames');
+          frameFiles.removeRange(50, frameFiles.length);
         }
 
         // Create FrameModel objects
@@ -623,70 +792,6 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     if (currentState == null) return <FrameModel>[];
 
     return currentState.frames.where((frame) => frame.isSelected).toList();
-  }
-
-  Future<void> _resetGphoto2Camera() async {
-    try {
-      print('Resetting gphoto2 camera...');
-
-      // Kill any existing gphoto2 processes
-      await Process.run('wsl.exe', [
-        'bash',
-        '-c',
-        'pkill -f gphoto2 2>/dev/null || true',
-      ]);
-
-      // Wait for processes to die
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Reset camera connection
-      await Process.run('wsl.exe', [
-        'bash',
-        '-c',
-        'gphoto2 --reset 2>/dev/null || true',
-      ]);
-
-      print('Camera reset completed');
-    } catch (e) {
-      print('Camera reset error (non-fatal): $e');
-    }
-  }
-
-  Future<bool> _checkCameraReady() async {
-    try {
-      // More comprehensive camera check
-      final detectResult = await Process.run('wsl.exe', [
-        'bash',
-        '-c',
-        'timeout 5s gphoto2 --auto-detect 2>&1',
-      ]);
-
-      if (detectResult.exitCode != 0) {
-        print(
-          'Camera detection failed with exit code: ${detectResult.exitCode}',
-        );
-        return false;
-      }
-
-      final output = detectResult.stdout.toString();
-      print('Camera detection output: $output');
-
-      // Check for Canon EOS specifically
-      if (output.contains('Canon') && output.contains('EOS')) {
-        print('Canon EOS camera detected and ready');
-        return true;
-      }
-
-      if (output.contains('No cameras detected')) {
-        print('No cameras detected by gphoto2');
-        return false;
-      }
-
-      return output.trim().isNotEmpty && !output.contains('error');
-    } catch (e) {
-      print('Camera ready check error: $e');
-      return false;
-    }
   }
 }
 

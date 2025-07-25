@@ -167,7 +167,10 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
     print('Loaded ${frameImages.length} frame images for PDF generation');
 
     // Use A6 landscape format
-    final pageFormat = PdfPageFormat.a6.landscape;
+    final pageFormat = const PdfPageFormat(
+      6 * PdfPageFormat.inch,
+      4 * PdfPageFormat.inch,
+    );
 
     // Generate 50 pages with 2 frames per page
     final totalPages = 50;
