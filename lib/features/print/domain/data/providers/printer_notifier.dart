@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:windows_printer/windows_printer.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:window_manager/window_manager.dart';
 
 class PrinterNotifier extends AsyncNotifier<PrinterState> {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -21,6 +22,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     final photoCameraName = prefs.getString('photoCameraName');
     final videoCameraName = prefs.getString('videoCameraName');
     final layoutMode = prefs.getInt('layoutMode') ?? 4; // Default to 4x4
+    final isFullscreen = prefs.getBool('isFullscreen') ?? false;
 
     return PrinterState(
       cutEnabledPrinter: availablePrinters.contains(cutEnabledPrinter)
@@ -35,6 +37,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
       photoCameraName: photoCameraName,
       videoCameraName: videoCameraName,
       layoutMode: layoutMode,
+      isFullscreen: isFullscreen,
     );
   }
 
@@ -128,6 +131,26 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
         final prefs = await _prefs;
         await prefs.setInt('layoutMode', mode);
         return state.value!.copyWith(layoutMode: mode, error: null);
+      } catch (e) {
+        return state.value!.copyWith(error: e.toString());
+      }
+    });
+  }
+
+  Future<void> setFullscreenMode(bool isFullscreen) async {
+    state = await AsyncValue.guard(() async {
+      try {
+        final prefs = await _prefs;
+        await prefs.setBool('isFullscreen', isFullscreen);
+
+        // Apply fullscreen setting immediately
+        if (isFullscreen) {
+          await windowManager.setFullScreen(true);
+        } else {
+          await windowManager.setFullScreen(false);
+        }
+
+        return state.value!.copyWith(isFullscreen: isFullscreen, error: null);
       } catch (e) {
         return state.value!.copyWith(error: e.toString());
       }

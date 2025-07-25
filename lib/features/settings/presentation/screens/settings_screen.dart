@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
+import 'package:photocafe_windows/features/print/domain/data/models/printer_state.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:windows_printer/windows_printer.dart';
 import 'dart:typed_data';
@@ -130,6 +131,16 @@ printing functionality is working.
               child: printerState.when(
                 data: (state) => ListView(
                   children: [
+                    // Display Configuration Section
+                    _buildSectionHeader(
+                      context,
+                      'Display Configuration',
+                      Icons.display_settings_rounded,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildFullscreenToggle(context, state),
+                    const SizedBox(height: 48),
+
                     _buildSectionHeader(
                       context,
                       'Printer Configuration',
@@ -501,6 +512,54 @@ printing functionality is working.
     }
 
     return true;
+  }
+
+  Widget _buildFullscreenToggle(BuildContext context, PrinterState state) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Fullscreen Mode',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Enable fullscreen mode for kiosk-style operation. The application will occupy the entire screen.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 16,
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          Switch(
+            value: state.isFullscreen,
+            onChanged: (value) {
+              ref.read(printerProvider.notifier).setFullscreenMode(value);
+            },
+            activeColor: Theme.of(context).colorScheme.primary,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildTestSection() {

@@ -7,9 +7,27 @@ import 'package:photocafe_windows/features/photos/domain/data/providers/photo_no
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
+import 'package:window_manager/window_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize window manager
+  await windowManager.ensureInitialized();
+
+  // Configure window options
+  WindowOptions windowOptions = const WindowOptions(
+    size: Size(1200, 800),
+    center: true,
+    backgroundColor: Colors.transparent,
+    skipTaskbar: false,
+    titleBarStyle: TitleBarStyle.normal,
+  );
+
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
 
   // Initialize SoLoud
   await SoLoud.instance.init();
@@ -127,6 +145,11 @@ class App extends ConsumerWidget {
       // Initialize printer provider
       final printerState = await ref.read(printerProvider.future);
       print('Printer provider initialized');
+
+      // Apply saved fullscreen setting
+      if (printerState.isFullscreen) {
+        await windowManager.setFullScreen(true);
+      }
 
       // Initialize video provider
       final videoState = await ref.read(videoProvider.future);
