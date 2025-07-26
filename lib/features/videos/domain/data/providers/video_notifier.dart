@@ -54,13 +54,6 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
 
       // Try capture with fewer retries since tmux session is persistent
       for (int attempt = 1; attempt <= 2; attempt++) {
-        print('gphoto2 video capture attempt $attempt/2 (using tmux session)');
-
-        // reset first then delay
-
-        await _resetGphoto2CameraInTmux();
-        await Future.delayed(const Duration(milliseconds: 500));
-
         // Send capture command to tmux session
         await Process.run('wsl.exe', [
           'tmux',
@@ -80,6 +73,7 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
         for (int i = 0; i < 15; i++) {
           if (await mjpegFile.exists()) {
             final fileSize = await mjpegFile.length();
+            await _resetGphoto2CameraInTmux();
             if (fileSize > 1024) {
               print('gphoto2 MJPEG captured via tmux, size: $fileSize bytes');
               // Convert MJPEG to MP4 before returning

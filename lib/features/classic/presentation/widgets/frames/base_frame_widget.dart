@@ -192,7 +192,10 @@ abstract class BaseFrameWidget extends ConsumerWidget {
 
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat.a6,
+        pageFormat: const PdfPageFormat(
+          4 * PdfPageFormat.inch,
+          6 * PdfPageFormat.inch,
+        ),
         margin: const pw.EdgeInsets.all(0),
         build: (pw.Context context) {
           return pw.Stack(

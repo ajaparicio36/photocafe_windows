@@ -147,12 +147,6 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
       // Use tmux session for instant gphoto2 capture
       for (int attempt = 1; attempt <= 2; attempt++) {
-        // reset gphoto2
-
-        await _resetGphoto2CameraInTmux();
-
-        await Future.delayed(const Duration(milliseconds: 500));
-
         final result = await Process.run('wsl.exe', [
           'tmux',
           'send-keys',
@@ -171,6 +165,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
           for (int i = 0; i < 10; i++) {
             if (await file.exists()) {
               final fileSize = await file.length();
+              await _resetGphoto2CameraInTmux();
               if (fileSize > 1024) {
                 print(
                   'gphoto2 photo captured successfully via tmux, size: $fileSize bytes',
