@@ -10,7 +10,7 @@ class SoftCopiesService {
 
   Future<SoftCopiesUploadResult> uploadMediaFiles({
     required List<File> mediaFiles,
-    required String? processedVideoPath,
+    required String? processedVideoPath, // Only the VHS processed video
     required Function(double) onProgress,
   }) async {
     try {
@@ -42,18 +42,25 @@ class SoftCopiesService {
         onProgress(currentProgress);
       }
 
-      // Add processed video if available
+      // Add processed video if available (only VHS filtered version)
       if (processedVideoPath != null) {
         final videoFile = File(processedVideoPath);
         if (await videoFile.exists()) {
+          print('Uploading VHS processed video: $processedVideoPath');
+
           final multipartFile = await MultipartFile.fromFile(
             processedVideoPath,
-            filename: 'session_video_vhs.mp4',
+            filename:
+                'session_video_vhs.mp4', // Clear naming for processed video
           );
 
           formData.files.add(MapEntry('files', multipartFile));
           currentProgress += progressPerFile;
           onProgress(currentProgress);
+        } else {
+          print(
+            'Warning: Processed video file not found at: $processedVideoPath',
+          );
         }
       }
 

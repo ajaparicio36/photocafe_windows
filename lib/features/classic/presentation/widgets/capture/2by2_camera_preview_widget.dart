@@ -4,7 +4,7 @@ import 'package:camera/camera.dart';
 class TwoByTwoCameraPreviewWidget extends StatelessWidget {
   final bool isCameraInitialized;
   final CameraController?
-  cameraController; // This is now the video camera controller
+  cameraController; // This is now the photo camera controller
 
   const TwoByTwoCameraPreviewWidget({
     super.key,
@@ -33,7 +33,7 @@ class TwoByTwoCameraPreviewWidget extends StatelessWidget {
             aspectRatio: 5 / 6, // Portrait aspect ratio for 2x2 mode (5:6)
             child: ClipRect(
               child: Transform.scale(
-                // Scale the video camera preview to fit the 5:6 aspect ratio
+                // Scale the photo camera preview to fit the 5:6 aspect ratio
                 scale: cameraController!.value.aspectRatio > (5 / 6)
                     ? cameraController!.value.aspectRatio / (5 / 6)
                     : (5 / 6) / cameraController!.value.aspectRatio,
@@ -49,12 +49,12 @@ class TwoByTwoCameraPreviewWidget extends StatelessWidget {
         ),
       );
     } catch (e) {
-      print('Error creating 2x2 video camera preview: $e');
+      print('Error creating 2x2 photo camera preview: $e');
       return Container(
         color: Colors.black,
         child: const Center(
           child: Text(
-            'Video camera preview unavailable',
+            'Photo camera preview unavailable',
             style: TextStyle(color: Colors.white),
           ),
         ),

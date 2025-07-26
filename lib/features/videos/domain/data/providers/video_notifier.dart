@@ -5,14 +5,12 @@ import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
-import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/videos/domain/data/models/frame_model.dart';
 import 'package:photocafe_windows/features/videos/domain/data/models/video_state.dart';
 import 'package:photocafe_windows/features/videos/domain/data/constants/filter_constants.dart';
 
 class VideoNotifier extends AsyncNotifier<VideoState> {
   Process? _ffmpegProcess;
-  static const String _tmuxSession = 'photocafe';
 
   @override
   Future<VideoState> build() async {
@@ -31,331 +29,31 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     );
   }
 
-  Future<File?> captureVideoWithGphoto2() async {
-    final currentState = state.value;
-    if (currentState == null) {
-      throw Exception("State is not available to capture video.");
-    }
-
-    final mjpegFileName =
-        'gphoto2_video_${DateTime.now().millisecondsSinceEpoch}.mjpg';
-    final fullWindowsPath = p.join(currentState.tempPath, mjpegFileName);
-
-    // Convert Windows path to WSL path format
-    final wslPath = fullWindowsPath
-        .replaceAll(r'\', '/')
-        .replaceAll('C:', '/mnt/c');
-
-    print('Attempting gphoto2 video capture via tmux to: $wslPath');
-
-    try {
-      // Ensure tmux session exists and is ready
-      await _ensureTmuxSession();
-
-      // Try capture with fewer retries since tmux session is persistent
-      for (int attempt = 1; attempt <= 2; attempt++) {
-        print('gphoto2 video capture attempt $attempt/2 (using tmux session)');
-
-        // reset first then delay
-
-        await _resetGphoto2CameraInTmux();
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        // Send capture command to tmux session
-        await Process.run('wsl.exe', [
-          'tmux',
-          'send-keys',
-          '-t',
-          _tmuxSession,
-          'gphoto2 --capture-movie=7s --stdout > "$wslPath" 2>/dev/null && echo "VIDEO_CAPTURE_SUCCESS" || echo "VIDEO_CAPTURE_FAILED"',
-          'Enter',
-        ]);
-
-        // Wait for capture to complete (7s + 3s buffer)
-        await Future.delayed(const Duration(seconds: 10));
-
-        final mjpegFile = File(fullWindowsPath);
-
-        // Wait for file to be fully written
-        for (int i = 0; i < 15; i++) {
-          if (await mjpegFile.exists()) {
-            final fileSize = await mjpegFile.length();
-            if (fileSize > 1024) {
-              print('gphoto2 MJPEG captured via tmux, size: $fileSize bytes');
-              // Convert MJPEG to MP4 before returning
-              final mp4File = await _convertMjpegToMp4(mjpegFile);
-              return mp4File;
-            }
-          }
-          await Future.delayed(const Duration(milliseconds: 300));
-        }
-
-        // If failed and not last attempt, reset camera in tmux session
-        if (attempt < 2) {
-          print(
-            'gphoto2 video capture failed, resetting camera in tmux session...',
-          );
-          await _resetGphoto2CameraInTmux();
-          await Future.delayed(const Duration(milliseconds: 1500));
-        }
-      }
-
-      print('All gphoto2 video capture attempts failed, will use fallback');
-    } catch (e) {
-      print('gphoto2 video capture error: $e');
-    }
-
-    return null;
-  }
-
-  Future<void> _ensureTmuxSession() async {
-    try {
-      // Check if session exists
-      final checkResult = await Process.run('wsl.exe', [
-        'tmux',
-        'has-session',
-        '-t',
-        _tmuxSession,
-      ]);
-
-      if (checkResult.exitCode != 0) {
-        print('Tmux session not found, creating new one...');
-        await _createTmuxSession();
-      } else {
-        print('Tmux session $_tmuxSession is ready for video');
-      }
-    } catch (e) {
-      print('Error checking tmux session: $e');
-      await _createTmuxSession();
-    }
-  }
-
-  Future<void> _createTmuxSession() async {
-    try {
-      print('Creating tmux session $_tmuxSession for video...');
-
-      // Kill existing session if any
-      await Process.run('wsl.exe', [
-        'tmux',
-        'kill-session',
-        '-t',
-        _tmuxSession,
-      ]);
-
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Create new session
-      await Process.run('wsl.exe', [
-        'tmux',
-        'new-session',
-        '-d',
-        '-s',
-        _tmuxSession,
-      ]);
-
-      // Initialize gphoto2 in the session
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'echo "PhotoCafe gphoto2 session ready for video"',
-        'Enter',
-      ]);
-
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'gphoto2 --reset',
-        'Enter',
-      ]);
-
-      print('Tmux session created and initialized for video');
-    } catch (e) {
-      print('Error creating tmux session for video: $e');
-    }
-  }
-
-  Future<void> _resetGphoto2CameraInTmux() async {
-    try {
-      print('Resetting gphoto2 camera in tmux session for video...');
-
-      // Kill any gphoto2 processes in the session
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'C-c', // Send Ctrl+C to interrupt any running command
-      ]);
-
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'pkill -f gphoto2 2>/dev/null || true',
-        'Enter',
-      ]);
-
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Reset camera
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'gphoto2 --reset 2>/dev/null || true',
-        'Enter',
-      ]);
-
-      print('Camera reset completed in tmux session for video');
-    } catch (e) {
-      print('Camera reset error in tmux for video (non-fatal): $e');
-    }
-  }
-
-  Future<void> _resetGphoto2Camera() async {
-    // Use tmux session instead of direct WSL calls
-    await _resetGphoto2CameraInTmux();
-  }
-
-  Future<bool> _checkCameraReady() async {
-    try {
-      // Ensure tmux session exists
-      await _ensureTmuxSession();
-
-      // Check camera using tmux session
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'timeout 3s gphoto2 --auto-detect 2>&1',
-        'Enter',
-      ]);
-
-      // Wait for command to complete
-      await Future.delayed(const Duration(milliseconds: 3500));
-
-      // Capture the output
-      final result = await Process.run('wsl.exe', [
-        'tmux',
-        'capture-pane',
-        '-t',
-        _tmuxSession,
-        '-p',
-      ]);
-
-      if (result.exitCode == 0) {
-        final output = result.stdout.toString();
-        print('Camera detection output from tmux for video: $output');
-
-        // Check for Canon EOS specifically
-        if (output.contains('Canon') && output.contains('EOS')) {
-          print('Canon EOS camera detected and responsive via tmux for video');
-          return true;
-        }
-      }
-
-      return false;
-    } catch (e) {
-      print('Camera ready check error via tmux for video: $e');
-      return false;
-    }
-  }
-
-  Future<File?> _convertMjpegToMp4(File mjpegFile) async {
-    final currentState = state.value;
-    if (currentState == null) {
-      print('State not available for MJPEG conversion');
-      return null;
-    }
-
-    final mp4FileName = mjpegFile.path.replaceAll('.mjpg', '.mp4');
-
-    try {
-      print('Converting MJPEG to MP4...');
-      print('Input: ${mjpegFile.path}');
-      print('Output: $mp4FileName');
-
-      final ffmpegArgs = [
-        '-i', mjpegFile.path,
-        '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '23',
-        '-pix_fmt', 'yuv420p',
-        '-movflags', '+faststart',
-        '-an', // No audio since MJPEG doesn't have audio
-        '-y', // Overwrite output
-        mp4FileName,
-      ];
-
-      print('Running FFmpeg: ffmpeg ${ffmpegArgs.join(' ')}');
-      final process = await Process.run('ffmpeg', ffmpegArgs);
-
-      if (process.exitCode == 0) {
-        final mp4File = File(mp4FileName);
-        if (await mp4File.exists()) {
-          final fileSize = await mp4File.length();
-          print('MJPEG to MP4 conversion successful, size: $fileSize bytes');
-
-          // Clean up the original MJPEG file
-          if (await mjpegFile.exists()) {
-            await mjpegFile.delete();
-          }
-
-          return mp4File;
-        }
-      } else {
-        print('MJPEG to MP4 conversion failed: ${process.stderr}');
-      }
-    } catch (e) {
-      print('Error converting MJPEG to MP4: $e');
-    }
-
-    // If conversion failed, clean up MJPEG file and return null
-    if (await mjpegFile.exists()) {
-      await mjpegFile.delete();
-    }
-
-    return null;
-  }
-
-  Future<void> saveVideoFromGphoto2(File gphoto2File) async {
+  Future<void> saveVideoFromPhotoCamera(XFile videoXFile) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
         throw Exception('Video state is not initialized');
       }
 
-      // The gphoto2File should already be the converted MP4 file
       final videoFileName =
-          'flipbook_gphoto2_${DateTime.now().millisecondsSinceEpoch}.mp4';
+          'flipbook_photo_camera_${DateTime.now().millisecondsSinceEpoch}.mp4';
       final videoFilePath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        // Copy converted MP4 file to our temp directory with standard naming
-        await gphoto2File.copy(videoFilePath);
+        // Read bytes from XFile and write to our designated path
+        final videoBytes = await videoXFile.readAsBytes();
+        final targetFile = File(videoFilePath);
+        await targetFile.writeAsBytes(videoBytes);
 
-        print('gphoto2 converted video saved to: $videoFilePath');
+        print('Photo camera video saved to: $videoFilePath');
 
-        final fileSize = await File(videoFilePath).length();
-        print('Final video file size: $fileSize bytes');
+        final fileSize = await targetFile.length();
+        print('Video file size: $fileSize bytes');
 
         if (fileSize < 1024) {
           print('Video file too small, creating fallback...');
           await _createFallbackVideo(videoFilePath);
-        }
-
-        // Clean up original converted file only if it's different from final path
-        if (gphoto2File.path != videoFilePath && await gphoto2File.exists()) {
-          await gphoto2File.delete();
         }
 
         return currentState.copyWith(
@@ -363,7 +61,7 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
           isRecording: false,
         );
       } catch (e) {
-        print('Error saving gphoto2 video: $e');
+        print('Error saving photo camera video: $e');
 
         // Create fallback video if saving fails
         await _createFallbackVideo(videoFilePath);
@@ -418,51 +116,6 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     } catch (e) {
       print('Error creating fallback video: $e');
     }
-  }
-
-  Future<void> saveVideoFromCapture(XFile videoXFile) async {
-    state = await AsyncValue.guard(() async {
-      final currentState = state.value;
-      if (currentState == null) {
-        throw Exception('Video state is not initialized');
-      }
-
-      final videoFileName =
-          'flipbook_camera_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final videoFilePath = p.join(currentState.tempPath, videoFileName);
-
-      try {
-        // Read bytes from XFile and write to our designated path
-        final videoBytes = await videoXFile.readAsBytes();
-        final targetFile = File(videoFilePath);
-        await targetFile.writeAsBytes(videoBytes);
-
-        print('Camera video saved to: $videoFilePath');
-
-        final fileSize = await targetFile.length();
-        print('Video file size: $fileSize bytes');
-
-        if (fileSize < 1024) {
-          print('Video file too small, creating fallback...');
-          await _createFallbackVideo(videoFilePath);
-        }
-
-        return currentState.copyWith(
-          videoPath: videoFilePath,
-          isRecording: false,
-        );
-      } catch (e) {
-        print('Error saving camera video: $e');
-
-        // Create fallback video if saving fails
-        await _createFallbackVideo(videoFilePath);
-
-        return currentState.copyWith(
-          videoPath: videoFilePath,
-          isRecording: false,
-        );
-      }
-    });
   }
 
   Future<void> clearVideo() async {

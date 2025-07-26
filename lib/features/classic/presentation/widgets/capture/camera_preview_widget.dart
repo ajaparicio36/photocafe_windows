@@ -4,7 +4,7 @@ import 'package:camera/camera.dart';
 class CameraPreviewWidget extends StatelessWidget {
   final bool isCameraInitialized;
   final CameraController?
-  cameraController; // This is now the video camera controller
+  cameraController; // This is now the photo camera controller
 
   const CameraPreviewWidget({
     super.key,
@@ -33,7 +33,7 @@ class CameraPreviewWidget extends StatelessWidget {
             aspectRatio: 4 / 3, // Landscape aspect ratio for 4x4 mode (4:3)
             child: ClipRect(
               child: Transform.scale(
-                // Scale the video camera preview to fit the 4:3 aspect ratio
+                // Scale the photo camera preview to fit the 4:3 aspect ratio
                 scale: cameraController!.value.aspectRatio > (4 / 3)
                     ? cameraController!.value.aspectRatio / (4 / 3)
                     : (4 / 3) / cameraController!.value.aspectRatio,
@@ -49,12 +49,12 @@ class CameraPreviewWidget extends StatelessWidget {
         ),
       );
     } catch (e) {
-      print('Error creating video camera preview: $e');
+      print('Error creating photo camera preview: $e');
       return Container(
         color: Colors.black,
         child: const Center(
           child: Text(
-            'Video camera preview unavailable',
+            'Photo camera preview unavailable',
             style: TextStyle(color: Colors.white),
           ),
         ),

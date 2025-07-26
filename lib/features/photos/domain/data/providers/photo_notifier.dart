@@ -11,18 +11,21 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 
 class PhotoNotifier extends AsyncNotifier<PhotoState> {
-  // Remove video controller since recording is now handled by capture screen
+  CameraController?
+  _videoCameraController; // Video camera for background recording
   Process? _ffmpegProcess;
-  static const String _tmuxSession = 'photocafe';
 
   @override
   Future<PhotoState> build() async {
     final tempPath = await getTemporaryDirectory();
-    // Create a dedicated subdirectory to avoid conflicts and for easier cleanup.
     final photoTempDir = Directory(p.join(tempPath.path, 'photos'));
     if (!await photoTempDir.exists()) {
       await photoTempDir.create(recursive: true);
     }
+
+    // Don't initialize video camera here to avoid conflicts with photo camera
+    // Video camera will be initialized when needed for recording
+
     return PhotoState(
       photos: [],
       tempPath: photoTempDir.path,
@@ -32,82 +35,279 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     );
   }
 
-  Future<void> saveVideoFromCapture(XFile videoXFile) async {
-    state = await AsyncValue.guard(() async {
-      final currentState = state.value;
-      if (currentState == null) {
-        throw Exception("State is not available to save video.");
-      }
+  Future<void> _initializeVideoCamera() async {
+    try {
+      final cameras = await availableCameras();
+      if (cameras.isNotEmpty) {
+        // Get selected video camera from settings
+        final printerStateAsync = ref.read(printerProvider);
+        final selectedVideoCameraName = printerStateAsync.hasValue
+            ? printerStateAsync.value?.videoCameraName
+            : null;
 
-      final videoFileName =
-          'session_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final videoPath = p.join(currentState.tempPath, videoFileName);
-
-      try {
-        // Read bytes from XFile and write to our designated path
-        final videoBytes = await videoXFile.readAsBytes();
-        final targetFile = File(videoPath);
-        await targetFile.writeAsBytes(videoBytes);
-
-        print('Video saved from capture to: $videoPath');
-
-        // Verify the file was written correctly
-        final fileSize = await targetFile.length();
-        print('Video file size: $fileSize bytes');
-
-        if (fileSize < 1024) {
-          print('Video file too small, creating fallback...');
-          await _createFallbackVideo(videoPath);
+        CameraDescription? selectedVideoCamera;
+        if (selectedVideoCameraName != null) {
+          try {
+            selectedVideoCamera = cameras.firstWhere(
+              (camera) => camera.name == selectedVideoCameraName,
+            );
+          } catch (e) {
+            print('Selected video camera not found, using first available');
+          }
         }
 
-        return currentState.copyWith(videoPath: videoPath);
-      } catch (e) {
-        print('Error saving video from capture: $e');
+        // Fallback to first camera if no selection or camera not found
+        selectedVideoCamera ??= cameras.first;
 
-        // Create fallback video if saving fails
-        await _createFallbackVideo(videoPath);
+        print(
+          'Initializing video camera in photo notifier for background recording',
+        );
 
-        return currentState.copyWith(videoPath: videoPath);
+        // Dispose existing controller if any
+        if (_videoCameraController != null) {
+          await _videoCameraController!.dispose();
+        }
+
+        // Initialize video camera controller for background recording
+        _videoCameraController = CameraController(
+          selectedVideoCamera,
+          ResolutionPreset.medium,
+          enableAudio: true, // Enable audio for video recording
+          imageFormatGroup: ImageFormatGroup.jpeg,
+        );
+
+        await _videoCameraController!.initialize();
+
+        print(
+          'Video camera initialized in photo notifier: ${selectedVideoCamera.name}',
+        );
       }
-    });
+    } catch (e) {
+      print('Error initializing video camera in photo notifier: $e');
+      throw e; // Rethrow to handle in calling method
+    }
   }
 
-  Future<void> setVideoRecordingState(bool isRecording) async {
-    state = await AsyncValue.guard(() async {
-      final currentState = state.value;
-      if (currentState == null) {
-        throw Exception("State is not available to set recording state.");
+  Future<void> startVideoRecording() async {
+    // Initialize video camera only when recording starts
+    if (_videoCameraController == null) {
+      await _initializeVideoCamera();
+    }
+
+    if (_videoCameraController == null ||
+        !_videoCameraController!.value.isInitialized) {
+      throw Exception('Video camera not initialized for recording');
+    }
+
+    try {
+      print('Starting video recording in photo notifier...');
+      await _videoCameraController!.startVideoRecording();
+
+      state = await AsyncValue.guard(() async {
+        final currentState = state.value;
+        if (currentState == null) {
+          throw Exception("State is not available to start video recording.");
+        }
+        return currentState.copyWith(isRecording: true);
+      });
+
+      print('Video recording started successfully in photo notifier');
+    } catch (e) {
+      print('Failed to start video recording in photo notifier: $e');
+      throw Exception('Video recording failed: $e');
+    }
+  }
+
+  Future<void> stopVideoRecording() async {
+    if (!_videoCameraController!.value.isRecordingVideo) {
+      print('No video recording to stop in photo notifier');
+      return;
+    }
+
+    try {
+      print('Stopping video recording in photo notifier...');
+      final videoXFile = await _videoCameraController!.stopVideoRecording();
+
+      // Save the raw video file
+      await _saveRawVideoFromCapture(videoXFile);
+
+      // Process the video with VHS filter (only the processed version will be uploaded)
+      await _processVideoWithVHSFilter();
+
+      state = await AsyncValue.guard(() async {
+        final currentState = state.value;
+        if (currentState == null) {
+          throw Exception("State is not available to stop video recording.");
+        }
+        return currentState.copyWith(isRecording: false);
+      });
+
+      print('Video recording stopped and processed in photo notifier');
+    } catch (e) {
+      print('Error stopping video recording in photo notifier: $e');
+
+      state = await AsyncValue.guard(() async {
+        final currentState = state.value;
+        if (currentState == null) {
+          throw Exception("State is not available to update recording state.");
+        }
+        return currentState.copyWith(isRecording: false);
+      });
+
+      throw Exception('Failed to stop video recording: $e');
+    }
+  }
+
+  Future<void> _saveRawVideoFromCapture(XFile videoXFile) async {
+    final currentState = state.value;
+    if (currentState == null) {
+      throw Exception("State is not available to save raw video.");
+    }
+
+    final rawVideoFileName =
+        'raw_session_${DateTime.now().millisecondsSinceEpoch}.mp4';
+    final rawVideoPath = p.join(currentState.tempPath, rawVideoFileName);
+
+    try {
+      final videoBytes = await videoXFile.readAsBytes();
+      final targetFile = File(rawVideoPath);
+      await targetFile.writeAsBytes(videoBytes);
+
+      print('Raw video saved to: $rawVideoPath');
+
+      final fileSize = await targetFile.length();
+      print('Raw video file size: $fileSize bytes');
+
+      if (fileSize < 1024) {
+        print('Raw video file too small, creating fallback...');
+        await _createFallbackVideo(rawVideoPath);
       }
 
-      return currentState.copyWith(isRecording: isRecording);
-    });
+      // Update state with raw video path (this will be processed later)
+      state = await AsyncValue.guard(() async {
+        final currentState = state.value;
+        if (currentState == null) {
+          throw Exception("State is not available to update video path.");
+        }
+        return currentState.copyWith(videoPath: rawVideoPath);
+      });
+    } catch (e) {
+      print('Error saving raw video: $e');
+      await _createFallbackVideo(rawVideoPath);
+
+      state = await AsyncValue.guard(() async {
+        final currentState = state.value;
+        if (currentState == null) {
+          throw Exception("State is not available to update video path.");
+        }
+        return currentState.copyWith(videoPath: rawVideoPath);
+      });
+    }
+  }
+
+  Future<void> _processVideoWithVHSFilter() async {
+    final currentState = state.value;
+    if (currentState == null || currentState.videoPath == null) {
+      throw Exception("No raw video available for VHS processing");
+    }
+
+    final rawVideoFile = File(currentState.videoPath!);
+    if (!await rawVideoFile.exists()) {
+      throw Exception("Raw video file not found: ${currentState.videoPath}");
+    }
+
+    final processedVideoFileName =
+        'vhs_processed_${DateTime.now().millisecondsSinceEpoch}.mp4';
+    final processedVideoPath = p.join(
+      currentState.tempPath,
+      processedVideoFileName,
+    );
+
+    try {
+      print('Processing raw video with VHS filter...');
+      print('Input: ${currentState.videoPath}');
+      print('Output: $processedVideoPath');
+
+      // Apply VHS filter
+      final ffmpegArgs = [
+        '-i', currentState.videoPath!,
+        '-y', // Overwrite output
+        '-v', 'info',
+        '-vf',
+        [
+          'scale=640:480', // Standard definition for VHS effect
+          'fps=24', // Standardize frame rate
+          'noise=alls=15:allf=t', // Add noise for VHS effect
+          'eq=contrast=1.4:brightness=0.1:saturation=1.5', // Enhance colors
+          'unsharp=5:5:1.5:5:5:0.0', // Add slight blur
+        ].join(','),
+        '-c:v', 'libx264',
+        '-preset', 'fast',
+        '-crf', '23',
+        '-movflags', '+faststart',
+        '-c:a', 'aac',
+        '-b:a', '128k',
+        processedVideoPath,
+      ];
+
+      print('FFmpeg VHS processing: ffmpeg ${ffmpegArgs.join(' ')}');
+      final process = await Process.run('ffmpeg', ffmpegArgs);
+
+      if (process.exitCode == 0) {
+        final processedFile = File(processedVideoPath);
+        if (await processedFile.exists()) {
+          final fileSize = await processedFile.length();
+          print('VHS processing completed successfully, size: $fileSize bytes');
+
+          // Keep both raw and processed videos (raw for backup, processed for upload)
+          // The soft copy service will use the processed version
+          print('VHS filter applied successfully');
+        } else {
+          throw Exception('Processed video file was not created');
+        }
+      } else {
+        print('VHS processing failed: ${process.stderr}');
+        throw Exception('VHS processing failed: ${process.stderr}');
+      }
+    } catch (e) {
+      print('Error in VHS processing: $e');
+      // If VHS processing fails, we still have the raw video
+      print('VHS processing failed, will use raw video as fallback');
+    }
   }
 
   Future<void> _createFallbackVideo(String outputPath) async {
     try {
       print('Creating fallback video at: $outputPath');
 
-      // Ensure the directory exists
       final outputDir = Directory(p.dirname(outputPath));
       if (!await outputDir.exists()) {
         await outputDir.create(recursive: true);
       }
 
       final ffmpegArgs = [
-        '-f', 'lavfi',
-        '-i', 'testsrc=duration=10:size=640x480:rate=25',
-        '-f', 'lavfi',
-        '-i', 'sine=frequency=1000:duration=10',
-        '-c:v', 'libx264',
-        '-preset', 'ultrafast',
-        '-pix_fmt', 'yuv420p',
-        '-c:a', 'aac',
+        '-f',
+        'lavfi',
+        '-i',
+        'testsrc=duration=10:size=640x480:rate=25',
+        '-f',
+        'lavfi',
+        '-i',
+        'sine=frequency=1000:duration=10',
+        '-c:v',
+        'libx264',
+        '-preset',
+        'ultrafast',
+        '-pix_fmt',
+        'yuv420p',
+        '-c:a',
+        'aac',
         '-shortest',
-        '-y', // Overwrite output file
+        '-y',
         outputPath,
       ];
 
-      print('Running FFmpeg with args: ${ffmpegArgs.join(' ')}');
+      print('Running FFmpeg fallback: ${ffmpegArgs.join(' ')}');
       final process = await Process.run('ffmpeg', ffmpegArgs);
 
       if (process.exitCode == 0) {
@@ -115,250 +315,12 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         if (await outputFile.exists()) {
           final fileSize = await outputFile.length();
           print('Fallback video created successfully, size: $fileSize bytes');
-        } else {
-          print('Fallback video creation completed but file not found');
         }
       } else {
         print('Fallback video creation failed: ${process.stderr}');
-        print('FFmpeg stdout: ${process.stdout}');
       }
     } catch (e) {
       print('Error creating fallback video: $e');
-    }
-  }
-
-  Future<File?> captureWithGphoto2() async {
-    final currentState = state.value;
-    if (currentState == null) {
-      throw Exception("State is not available to capture photo.");
-    }
-
-    final fileName = 'capture_${DateTime.now().millisecondsSinceEpoch}.jpg';
-    final fullWindowsPath = p.join(currentState.tempPath, fileName);
-
-    // Convert Windows path to WSL path format
-    final wslPath = fullWindowsPath
-        .replaceAll(r'\', '/')
-        .replaceAll('C:', '/mnt/c');
-
-    try {
-      // Ensure tmux session exists and is ready
-      await _ensureTmuxSession();
-
-      // Use tmux session for instant gphoto2 capture
-      for (int attempt = 1; attempt <= 2; attempt++) {
-        // reset gphoto2
-
-        await _resetGphoto2CameraInTmux();
-
-        await Future.delayed(const Duration(milliseconds: 500));
-
-        final result = await Process.run('wsl.exe', [
-          'tmux',
-          'send-keys',
-          '-t',
-          _tmuxSession,
-          'gphoto2 --capture-image-and-download --stdout > "$wslPath" 2>/dev/null && echo "CAPTURE_SUCCESS" || echo "CAPTURE_FAILED"',
-          'Enter',
-        ]);
-
-        if (result.exitCode == 0) {
-          // Wait for capture to complete and check result
-          await Future.delayed(const Duration(milliseconds: 500));
-          final file = File(fullWindowsPath);
-
-          // Wait a bit more for file to be fully written
-          for (int i = 0; i < 10; i++) {
-            if (await file.exists()) {
-              final fileSize = await file.length();
-              if (fileSize > 1024) {
-                print(
-                  'gphoto2 photo captured successfully via tmux, size: $fileSize bytes',
-                );
-                return file;
-              }
-            }
-            await Future.delayed(const Duration(milliseconds: 200));
-          }
-        }
-
-        // If failed and not last attempt, reset camera in tmux session
-        if (attempt < 2) {
-          print(
-            'gphoto2 photo capture failed, resetting camera in tmux session...',
-          );
-          await _resetGphoto2CameraInTmux();
-          await Future.delayed(const Duration(milliseconds: 1000));
-        }
-      }
-
-      print('All gphoto2 photo capture attempts failed');
-    } catch (e) {
-      print('gphoto2 photo capture error: $e');
-    }
-
-    return null;
-  }
-
-  Future<void> _ensureTmuxSession() async {
-    try {
-      // Check if session exists
-      final checkResult = await Process.run('wsl.exe', [
-        'tmux',
-        'has-session',
-        '-t',
-        _tmuxSession,
-      ]);
-
-      if (checkResult.exitCode != 0) {
-        print('Tmux session not found, creating new one...');
-        await _createTmuxSession();
-      } else {
-        print('Tmux session $_tmuxSession is ready');
-      }
-    } catch (e) {
-      print('Error checking tmux session: $e');
-      await _createTmuxSession();
-    }
-  }
-
-  Future<void> _createTmuxSession() async {
-    try {
-      print('Creating tmux session $_tmuxSession...');
-
-      // Kill existing session if any
-      await Process.run('wsl.exe', [
-        'tmux',
-        'kill-session',
-        '-t',
-        _tmuxSession,
-      ]);
-
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Create new session
-      await Process.run('wsl.exe', [
-        'tmux',
-        'new-session',
-        '-d',
-        '-s',
-        _tmuxSession,
-      ]);
-
-      // Initialize gphoto2 in the session
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'echo "PhotoCafe gphoto2 session ready for photos"',
-        'Enter',
-      ]);
-
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'gphoto2 --reset',
-        'Enter',
-      ]);
-
-      print('Tmux session created and initialized');
-    } catch (e) {
-      print('Error creating tmux session: $e');
-    }
-  }
-
-  Future<void> _resetGphoto2CameraInTmux() async {
-    try {
-      print('Resetting gphoto2 camera in tmux session...');
-
-      // Kill any gphoto2 processes in the session
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'C-c', // Send Ctrl+C to interrupt any running command
-      ]);
-
-      await Future.delayed(const Duration(milliseconds: 300));
-
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'pkill -f gphoto2 2>/dev/null || true',
-        'Enter',
-      ]);
-
-      await Future.delayed(const Duration(milliseconds: 500));
-
-      // Reset camera
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'gphoto2 --reset 2>/dev/null || true',
-        'Enter',
-      ]);
-
-      print('Camera reset completed in tmux session');
-    } catch (e) {
-      print('Camera reset error in tmux (non-fatal): $e');
-    }
-  }
-
-  Future<void> _resetGphoto2Camera() async {
-    // Use tmux session instead of direct WSL calls
-    await _resetGphoto2CameraInTmux();
-  }
-
-  Future<bool> _checkCameraReady() async {
-    try {
-      // Ensure tmux session exists
-      await _ensureTmuxSession();
-
-      // Check camera using tmux session
-      await Process.run('wsl.exe', [
-        'tmux',
-        'send-keys',
-        '-t',
-        _tmuxSession,
-        'timeout 3s gphoto2 --auto-detect 2>&1',
-        'Enter',
-      ]);
-
-      // Wait for command to complete
-      await Future.delayed(const Duration(milliseconds: 3500));
-
-      // Capture the output
-      final result = await Process.run('wsl.exe', [
-        'tmux',
-        'capture-pane',
-        '-t',
-        _tmuxSession,
-        '-p',
-      ]);
-
-      if (result.exitCode == 0) {
-        final output = result.stdout.toString();
-        print('Camera detection output from tmux: $output');
-
-        // Check for Canon EOS specifically
-        if (output.contains('Canon') && output.contains('EOS')) {
-          print('Canon EOS camera detected and responsive via tmux');
-          return true;
-        }
-      }
-
-      return false;
-    } catch (e) {
-      print('Camera ready check error via tmux: $e');
-      return false;
     }
   }
 
@@ -392,56 +354,6 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
       return currentState.copyWith(photos: updatedPhotos);
     });
-  }
-
-  Future<Uint8List> _processImageForPortrait(Uint8List imageBytes) async {
-    try {
-      final originalImage = img.decodeImage(imageBytes);
-      if (originalImage == null) return imageBytes;
-
-      // Calculate target dimensions for 5:6 aspect ratio
-      final targetWidth = 1000;
-      final targetHeight = 1200;
-
-      // Resize and crop to 5:6 aspect ratio
-      img.Image processedImage;
-
-      if (originalImage.width / originalImage.height > 5 / 6) {
-        // Image is wider than 5:6, crop horizontally
-        final newWidth = (originalImage.height * 5 / 6).round();
-        final cropX = (originalImage.width - newWidth) ~/ 2;
-        processedImage = img.copyCrop(
-          originalImage,
-          x: cropX,
-          y: 0,
-          width: newWidth,
-          height: originalImage.height,
-        );
-      } else {
-        // Image is taller than 5:6, crop vertically
-        final newHeight = (originalImage.width * 6 / 5).round();
-        final cropY = (originalImage.height - newHeight) ~/ 2;
-        processedImage = img.copyCrop(
-          originalImage,
-          x: 0,
-          y: cropY,
-          width: originalImage.width,
-          height: newHeight,
-        );
-      }
-
-      // Resize to target dimensions
-      processedImage = img.copyResize(
-        processedImage,
-        width: targetWidth,
-        height: targetHeight,
-      );
-
-      return img.encodeJpg(processedImage);
-    } catch (e) {
-      print('Error processing image for portrait: $e');
-      return imageBytes; // Return original if processing fails
-    }
   }
 
   Future<Uint8List> _processImageForLandscape(Uint8List imageBytes) async {
@@ -508,6 +420,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         if (!await photoTempDir.exists()) {
           await photoTempDir.create(recursive: true);
         }
+
+        // Don't initialize video camera here - will be done when recording starts
+
         final newState = PhotoState(
           photos: [],
           tempPath: photoTempDir.path,
@@ -522,14 +437,10 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       print(
         'Setting capture count from ${currentState.captureCount} to 4 (always capture 4 regardless of layout)',
       );
-      final newState = currentState.copyWith(
-        captureCount:
-            4, // Always capture 4 photos - layout only affects arrangement
-      );
+      final newState = currentState.copyWith(captureCount: 4);
       print('New state capture count: ${newState.captureCount}');
 
       await Future.delayed(const Duration(milliseconds: 50));
-
       return newState;
     });
 
@@ -566,10 +477,14 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       final currentState = state.value;
       if (currentState == null) return state.value!;
 
-      // Stop FFmpeg process if running (video recording is now handled by capture screen)
-      if (_ffmpegProcess != null) {
-        _ffmpegProcess!.kill();
-        _ffmpegProcess = null;
+      // Stop video recording if active
+      if (_videoCameraController != null &&
+          _videoCameraController!.value.isRecordingVideo) {
+        try {
+          await _videoCameraController!.stopVideoRecording();
+        } catch (e) {
+          print('Error stopping video recording during clear: $e');
+        }
       }
 
       // Delete all photo files from the temporary directory
@@ -580,11 +495,26 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         }
       }
 
-      // Delete video file if exists
+      // Delete video files if they exist
       if (currentState.videoPath != null) {
         final videoFile = File(currentState.videoPath!);
         if (await videoFile.exists()) {
           await videoFile.delete();
+        }
+      }
+
+      // Clean up processed video files
+      final tempDir = Directory(currentState.tempPath);
+      await for (final entity in tempDir.list()) {
+        if (entity is File &&
+            (entity.path.contains('vhs_processed_') ||
+                entity.path.contains('raw_session_'))) {
+          try {
+            await entity.delete();
+            print('Cleaned up video file: ${entity.path}');
+          } catch (e) {
+            print('Error cleaning up video file: $e');
+          }
         }
       }
 
@@ -695,6 +625,55 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
       return currentState.copyWith(photos: updatedPhotos);
     });
+  }
+
+  Future<List<File>> getAllMediaFiles() async {
+    final currentState = state.value;
+    if (currentState == null) {
+      throw Exception("State is not available to get media files");
+    }
+
+    final mediaFiles = <File>[];
+
+    // Add all photo files
+    for (final photo in currentState.photos) {
+      final file = File(photo.imagePath);
+      if (await file.exists()) {
+        mediaFiles.add(file);
+        print('Added photo file: ${photo.imagePath}');
+      } else {
+        print('Photo file not found: ${photo.imagePath}');
+      }
+    }
+
+    print('Total media files: ${mediaFiles.length}');
+    return mediaFiles;
+  }
+
+  // Get processed video specifically for soft copy upload
+  Future<File?> getProcessedVideo() async {
+    final currentState = state.value;
+    if (currentState == null) {
+      return null;
+    }
+
+    // Look for VHS processed video files in temp directory
+    final tempDir = Directory(currentState.tempPath);
+    final files = await tempDir.list().toList();
+
+    for (final file in files) {
+      if (file is File &&
+          file.path.contains('vhs_processed_') &&
+          file.path.endsWith('.mp4')) {
+        if (await file.exists()) {
+          print('Found VHS processed video: ${file.path}');
+          return file;
+        }
+      }
+    }
+
+    print('No VHS processed video found');
+    return null;
   }
 
   Future<String?> processVideoWithVHSFilter({
@@ -863,66 +842,6 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         throw Exception('VHS processing and fallback failed: $e');
       }
     }
-  }
-
-  Future<List<File>> getAllMediaFiles() async {
-    final currentState = state.value;
-    if (currentState == null) {
-      throw Exception("State is not available to get media files");
-    }
-
-    final mediaFiles = <File>[];
-
-    // Add all photo files
-    for (final photo in currentState.photos) {
-      final file = File(photo.imagePath);
-      if (await file.exists()) {
-        mediaFiles.add(file);
-        print('Added photo file: ${photo.imagePath}');
-      } else {
-        print('Photo file not found: ${photo.imagePath}');
-      }
-    }
-
-    // Add video file if available (use original, not processed for now)
-    if (currentState.videoPath != null) {
-      final videoFile = File(currentState.videoPath!);
-      if (await videoFile.exists()) {
-        mediaFiles.add(videoFile);
-        print('Added video file: ${currentState.videoPath}');
-      } else {
-        print('Video file not found: ${currentState.videoPath}');
-      }
-    }
-
-    print('Total media files: ${mediaFiles.length}');
-    return mediaFiles;
-  }
-
-  // Add method to get processed video specifically
-  Future<File?> getProcessedVideo() async {
-    final currentState = state.value;
-    if (currentState == null || currentState.videoPath == null) {
-      return null;
-    }
-
-    // Look for processed video files in temp directory
-    final tempDir = Directory(currentState.tempPath);
-    final files = await tempDir.list().toList();
-
-    for (final file in files) {
-      if (file is File &&
-          file.path.contains('vhs_filtered') &&
-          file.path.endsWith('.mp4')) {
-        if (await file.exists()) {
-          print('Found processed video: ${file.path}');
-          return file;
-        }
-      }
-    }
-
-    print('No processed video found, returning original');
-    return File(currentState.videoPath!);
   }
 }
 

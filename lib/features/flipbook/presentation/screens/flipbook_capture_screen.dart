@@ -4,9 +4,8 @@ import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/capture/camera_preview_widget.dart';
-import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
+import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/core/services/sound_service.dart';
 import 'package:video_player/video_player.dart';
 
@@ -20,7 +19,7 @@ class FlipbookCaptureScreen extends ConsumerStatefulWidget {
 
 class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   CameraController?
-  _cameraController; // Single video camera for both preview and recording
+  _photoCameraController; // Photo camera for both preview and video recording
   VideoPlayerController? _videoPlayerController;
   final SoundService _soundService = SoundService();
   bool _isCameraInitialized = false;
@@ -33,61 +32,67 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   void initState() {
     super.initState();
 
-    // Initialize sound service (this will be fast since SoLoud is already initialized)
+    // Initialize sound service
     _soundService.initialize();
 
-    _initializeCamera();
+    _initializePhotoCamera();
   }
 
   @override
   void dispose() {
-    _cameraController?.dispose();
+    _photoCameraController?.dispose();
     _videoPlayerController?.dispose();
     _countdownTimer?.cancel();
 
-    // Dispose sound service resources (but not SoLoud instance)
+    // Dispose sound service resources
     _soundService.dispose();
 
     super.dispose();
   }
 
-  Future<void> _initializeCamera() async {
+  Future<void> _initializePhotoCamera() async {
     try {
       final cameras = await availableCameras();
       if (cameras.isNotEmpty) {
         final printerState = ref.read(printerProvider).value;
-        final selectedVideoCameraName = printerState?.videoCameraName;
+        final selectedPhotoCameraName = printerState?.photoCameraName;
 
-        CameraDescription? selectedVideoCamera;
-        if (selectedVideoCameraName != null) {
+        CameraDescription? selectedPhotoCamera;
+        if (selectedPhotoCameraName != null) {
           try {
-            selectedVideoCamera = cameras.firstWhere(
-              (camera) => camera.name == selectedVideoCameraName,
+            selectedPhotoCamera = cameras.firstWhere(
+              (camera) => camera.name == selectedPhotoCameraName,
             );
           } catch (e) {
-            print('Selected video camera not found, using first available');
+            print('Selected photo camera not found, using first available');
           }
         }
-        selectedVideoCamera ??= cameras.first;
+        selectedPhotoCamera ??= cameras.first;
 
-        // Initialize single camera controller for both preview and recording
-        _cameraController = CameraController(
-          selectedVideoCamera,
+        print(
+          'Initializing photo camera for flipbook preview and video recording',
+        );
+
+        // Initialize photo camera controller for both preview and video recording
+        _photoCameraController = CameraController(
+          selectedPhotoCamera,
           ResolutionPreset.high,
           enableAudio: true, // Enable audio for video recording
           imageFormatGroup: ImageFormatGroup.jpeg,
         );
 
-        await _cameraController!.initialize();
+        await _photoCameraController!.initialize();
 
         setState(() {
           _isCameraInitialized = true;
         });
 
-        print('Video camera initialized: ${selectedVideoCamera.name}');
+        print(
+          'Photo camera initialized for flipbook: ${selectedPhotoCamera.name}',
+        );
       }
     } catch (e) {
-      print('Error initializing camera: $e');
+      print('Error initializing photo camera for flipbook: $e');
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error initializing camera: $e')));
@@ -95,7 +100,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   }
 
   Future<void> _startRecording() async {
-    if (!_isCameraInitialized || _cameraController == null) {
+    if (!_isCameraInitialized || _photoCameraController == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Camera not initialized')));
@@ -125,126 +130,47 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         // Play shutter sound when countdown reaches zero
         _soundService.playShutterSound();
         timer.cancel();
-        _attemptVideoRecording(); // Try gphoto2 first, then fallback
+        _startVideoRecording();
       }
     });
   }
 
-  Future<void> _attemptVideoRecording() async {
+  Future<void> _startVideoRecording() async {
     setState(() {
       _countdown = 7;
       _isRecording = true;
       _isCountingDown = false;
     });
 
-    final videoNotifier = ref.read(videoProvider.notifier);
-
-    // Start the recording countdown timer immediately
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_countdown > 1) {
-        if (mounted) {
-          setState(() {
-            _countdown--;
-          });
-        }
-      } else {
-        timer.cancel();
-        if (mounted) {
-          setState(() {
-            _countdown = 0;
-          });
-        }
-      }
-    });
-
     try {
-      // Start gphoto2 capture in parallel with countdown - don't await
-      print('Starting gphoto2 video recording...');
-      final gphoto2Future = videoNotifier.captureVideoWithGphoto2();
+      print('Starting video recording with photo camera...');
 
-      // Wait for 7 seconds (the recording duration)
-      await Future.delayed(const Duration(seconds: 7));
+      // Start video recording with photo camera
+      await _photoCameraController!.startVideoRecording();
 
-      // Now wait for gphoto2 to complete (it should be done by now)
-      final gphoto2File = await gphoto2Future.timeout(
-        const Duration(seconds: 5), // Give it more time for conversion
-        onTimeout: () {
-          print('gphoto2 capture timed out');
-          return null;
-        },
-      );
-
-      if (gphoto2File != null) {
-        print('gphoto2 recording successful! File: ${gphoto2File.path}');
-
-        // Save the gphoto2 video through the notifier
-        await videoNotifier.saveVideoFromGphoto2(gphoto2File);
-
-        setState(() {
-          _isRecording = false;
-          _countdown = 0;
-        });
-
-        // Set up video preview
-        await _setupVideoPreview();
-        return;
-      } else {
-        print('gphoto2 capture failed or timed out, falling back to camera');
-      }
-    } catch (e) {
-      print('gphoto2 recording failed: $e');
-    }
-
-    // If gphoto2 failed, fall back to camera controller
-    print('Falling back to camera controller recording...');
-    await _startCameraRecording();
-  }
-
-  Future<void> _startCameraRecording() async {
-    try {
-      // Only start camera recording if not already recording
-      if (_cameraController!.value.isRecordingVideo) {
-        print('Camera is already recording, skipping camera fallback');
-        return;
-      }
-
-      // Reset countdown for camera recording only if we're not in the middle of one
-      if (_countdown <= 0) {
-        setState(() {
-          _countdown = 7;
-        });
-      }
-
-      // Start recording using the camera controller
-      await _cameraController!.startVideoRecording();
-      print('Video recording started with camera controller');
-
-      // Set up automatic stop after 7 seconds
-      Timer(const Duration(seconds: 7), () async {
-        await _stopCameraRecording();
+      // Start the recording countdown timer
+      _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (_countdown > 1) {
+          if (mounted) {
+            setState(() {
+              _countdown--;
+            });
+          }
+        } else {
+          timer.cancel();
+          if (mounted) {
+            setState(() {
+              _countdown = 0;
+            });
+          }
+          // Stop recording after 7 seconds
+          _stopVideoRecording();
+        }
       });
 
-      // Continue the countdown timer if not already running
-      if (_countdownTimer?.isActive != true) {
-        _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-          if (_countdown > 1) {
-            if (mounted) {
-              setState(() {
-                _countdown--;
-              });
-            }
-          } else {
-            timer.cancel();
-            if (mounted) {
-              setState(() {
-                _countdown = 0;
-              });
-            }
-          }
-        });
-      }
+      print('Video recording started with photo camera');
     } catch (e) {
-      print('Error starting camera recording: $e');
+      print('Error starting video recording with photo camera: $e');
       setState(() {
         _isRecording = false;
         _isCountingDown = false;
@@ -255,13 +181,13 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     }
   }
 
-  Future<void> _stopCameraRecording() async {
-    if (!_isRecording || _cameraController == null) return;
+  Future<void> _stopVideoRecording() async {
+    if (!_isRecording || _photoCameraController == null) return;
 
     try {
       // Check if camera is actually recording before trying to stop
-      if (!_cameraController!.value.isRecordingVideo) {
-        print('Camera is not recording, cannot stop');
+      if (!_photoCameraController!.value.isRecordingVideo) {
+        print('Photo camera is not recording, cannot stop');
         setState(() {
           _isRecording = false;
           _countdown = 0;
@@ -269,12 +195,12 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         return;
       }
 
-      print('Stopping camera recording...');
-      final videoXFile = await _cameraController!.stopVideoRecording();
+      print('Stopping video recording with photo camera...');
+      final videoXFile = await _photoCameraController!.stopVideoRecording();
 
       // Pass the video file to the video notifier
       final videoNotifier = ref.read(videoProvider.notifier);
-      await videoNotifier.saveVideoFromCapture(videoXFile);
+      await videoNotifier.saveVideoFromPhotoCamera(videoXFile);
 
       setState(() {
         _isRecording = false;
@@ -287,7 +213,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       // Set up video preview
       await _setupVideoPreview();
     } catch (e) {
-      print('Error stopping camera recording: $e');
+      print('Error stopping video recording with photo camera: $e');
       setState(() {
         _isRecording = false;
       });
@@ -531,6 +457,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          // Photo camera preview for flipbook
           if (!showVideoPreview)
             Container(
               color: Colors.black,
@@ -547,21 +474,23 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
                       borderRadius: BorderRadius.circular(28),
                       child:
                           _isCameraInitialized &&
-                              _cameraController != null &&
-                              _cameraController!.value.isInitialized
+                              _photoCameraController != null &&
+                              _photoCameraController!.value.isInitialized
                           ? Transform.scale(
                               scale:
-                                  _cameraController!.value.aspectRatio >
+                                  _photoCameraController!.value.aspectRatio >
                                       (16 / 10)
-                                  ? _cameraController!.value.aspectRatio /
+                                  ? _photoCameraController!.value.aspectRatio /
                                         (16 / 10)
                                   : (16 / 10) /
-                                        _cameraController!.value.aspectRatio,
+                                        _photoCameraController!
+                                            .value
+                                            .aspectRatio,
                               child: Center(
                                 child: AspectRatio(
                                   aspectRatio:
-                                      _cameraController!.value.aspectRatio,
-                                  child: CameraPreview(_cameraController!),
+                                      _photoCameraController!.value.aspectRatio,
+                                  child: CameraPreview(_photoCameraController!),
                                 ),
                               ),
                             )
@@ -580,6 +509,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
 
           if (showCountdownOverlay) _buildRecordingOverlay(),
 
+          // Start recording button
           if (!showCountdownOverlay && !showVideoPreview && !hasVideo)
             Positioned(
               bottom: 60,
@@ -608,6 +538,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
               ),
             ),
 
+          // Back button
           Positioned(
             top: 60,
             left: 40,
@@ -630,6 +561,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
             ),
           ),
 
+          // Loading indicator
           if (videoState.isLoading &&
               !_isRecording &&
               !hasVideo &&
