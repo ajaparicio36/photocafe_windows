@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_state.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
@@ -11,9 +11,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 
 class PhotoNotifier extends AsyncNotifier<PhotoState> {
-  CameraController?
-  _videoCameraController; // Video camera for background recording
-  Process? _ffmpegProcess;
+  MediaStream? _videoStream;
+  MediaRecorder? _mediaRecorder;
+  RTCVideoRenderer? _videoRenderer;
 
   @override
   Future<PhotoState> build() async {
@@ -22,9 +22,6 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     if (!await photoTempDir.exists()) {
       await photoTempDir.create(recursive: true);
     }
-
-    // Don't initialize video camera here to avoid conflicts with photo camera
-    // Video camera will be initialized when needed for recording
 
     return PhotoState(
       photos: [],
@@ -37,71 +34,71 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
   Future<void> _initializeVideoCamera() async {
     try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        // Get selected video camera from settings
-        final printerStateAsync = ref.read(printerProvider);
-        final selectedVideoCameraName = printerStateAsync.hasValue
-            ? printerStateAsync.value?.videoCameraName
-            : null;
+      final printerStateAsync = ref.read(printerProvider);
+      final selectedVideoCameraDeviceId = printerStateAsync.hasValue
+          ? printerStateAsync.value?.videoCameraName
+          : null;
 
-        CameraDescription? selectedVideoCamera;
-        if (selectedVideoCameraName != null) {
-          try {
-            selectedVideoCamera = cameras.firstWhere(
-              (camera) => camera.name == selectedVideoCameraName,
-            );
-          } catch (e) {
-            print('Selected video camera not found, using first available');
-          }
-        }
+      print(
+        'Initializing video camera in photo notifier for background recording',
+      );
 
-        // Fallback to first camera if no selection or camera not found
-        selectedVideoCamera ??= cameras.first;
+      // Get user media constraints for video recording
+      final Map<String, dynamic> constraints = {
+        'video': selectedVideoCameraDeviceId != null
+            ? {
+                'deviceId': selectedVideoCameraDeviceId,
+                'width': {'ideal': 1280},
+                'height': {'ideal': 720},
+              }
+            : {
+                'width': {'ideal': 1280},
+                'height': {'ideal': 720},
+              },
+        'audio': true, // Enable audio for video recording
+      };
 
-        print(
-          'Initializing video camera in photo notifier for background recording',
-        );
+      _videoStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-        // Dispose existing controller if any
-        if (_videoCameraController != null) {
-          await _videoCameraController!.dispose();
-        }
-
-        // Initialize video camera controller for background recording
-        _videoCameraController = CameraController(
-          selectedVideoCamera,
-          ResolutionPreset.medium,
-          enableAudio: true, // Enable audio for video recording
-          imageFormatGroup: ImageFormatGroup.jpeg,
-        );
-
-        await _videoCameraController!.initialize();
-
-        print(
-          'Video camera initialized in photo notifier: ${selectedVideoCamera.name}',
-        );
-      }
+      print(
+        'Video camera initialized in photo notifier for background recording',
+      );
     } catch (e) {
       print('Error initializing video camera in photo notifier: $e');
-      throw e; // Rethrow to handle in calling method
+      throw e;
     }
   }
 
   Future<void> startVideoRecording() async {
     // Initialize video camera only when recording starts
-    if (_videoCameraController == null) {
+    if (_videoStream == null) {
       await _initializeVideoCamera();
     }
 
-    if (_videoCameraController == null ||
-        !_videoCameraController!.value.isInitialized) {
+    if (_videoStream == null) {
       throw Exception('Video camera not initialized for recording');
     }
 
     try {
       print('Starting video recording in photo notifier...');
-      await _videoCameraController!.startVideoRecording();
+
+      // Create MediaRecorder for recording
+      _mediaRecorder = MediaRecorder();
+
+      // Generate a temporary file path for recording
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception("State is not available for video recording path.");
+      }
+
+      final videoFileName =
+          'recording_${DateTime.now().millisecondsSinceEpoch}.webm';
+      final videoPath = p.join(currentState.tempPath, videoFileName);
+
+      await _mediaRecorder!.start(
+        videoPath,
+        videoTrack: _videoStream!.getVideoTracks().first,
+      );
 
       state = await AsyncValue.guard(() async {
         final currentState = state.value;
@@ -119,20 +116,18 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   }
 
   Future<void> stopVideoRecording() async {
-    if (!_videoCameraController!.value.isRecordingVideo) {
+    if (_mediaRecorder == null) {
       print('No video recording to stop in photo notifier');
       return;
     }
 
     try {
       print('Stopping video recording in photo notifier...');
-      final videoXFile = await _videoCameraController!.stopVideoRecording();
+      final recordedPath = await _mediaRecorder!.stop();
+      _mediaRecorder = null;
 
-      // Save the raw video file
-      await _saveRawVideoFromCapture(videoXFile);
-
-      // Process the video with VHS filter (only the processed version will be uploaded)
-      await _processVideoWithVHSFilter();
+      // Convert webm to mp4 and save
+      await _saveAndProcessRecording(recordedPath);
 
       state = await AsyncValue.guard(() async {
         final currentState = state.value;
@@ -158,50 +153,81 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
-  Future<void> _saveRawVideoFromCapture(XFile videoXFile) async {
+  Future<void> _saveAndProcessRecording(String recordedPath) async {
     final currentState = state.value;
     if (currentState == null) {
-      throw Exception("State is not available to save raw video.");
+      throw Exception("State is not available to save recording.");
     }
 
-    final rawVideoFileName =
-        'raw_session_${DateTime.now().millisecondsSinceEpoch}.mp4';
-    final rawVideoPath = p.join(currentState.tempPath, rawVideoFileName);
+    try {
+      // Convert webm to mp4
+      final mp4Path = await _convertWebmToMp4(recordedPath);
+
+      // Update state with mp4 path
+      state = await AsyncValue.guard(() async {
+        final currentState = state.value;
+        if (currentState == null) {
+          throw Exception("State is not available to update video path.");
+        }
+        return currentState.copyWith(videoPath: mp4Path);
+      });
+
+      // Process the video with VHS filter
+      await _processVideoWithVHSFilter();
+    } catch (e) {
+      print('Error processing recording: $e');
+      // Set the raw recording path if processing fails
+      state = await AsyncValue.guard(() async {
+        final currentState = state.value;
+        if (currentState == null) {
+          throw Exception("State is not available to update video path.");
+        }
+        return currentState.copyWith(videoPath: recordedPath);
+      });
+    }
+  }
+
+  Future<String> _convertWebmToMp4(String webmPath) async {
+    final currentState = state.value;
+    if (currentState == null) {
+      throw Exception("State is not available for conversion.");
+    }
+
+    final mp4FileName =
+        'converted_${DateTime.now().millisecondsSinceEpoch}.mp4';
+    final mp4Path = p.join(currentState.tempPath, mp4FileName);
 
     try {
-      final videoBytes = await videoXFile.readAsBytes();
-      final targetFile = File(rawVideoPath);
-      await targetFile.writeAsBytes(videoBytes);
+      print('Converting webm to mp4: $webmPath -> $mp4Path');
 
-      print('Raw video saved to: $rawVideoPath');
+      final ffmpegArgs = [
+        '-i', webmPath,
+        '-c:v', 'libx264',
+        '-c:a', 'aac',
+        '-movflags', '+faststart',
+        '-y', // Overwrite output
+        mp4Path,
+      ];
 
-      final fileSize = await targetFile.length();
-      print('Raw video file size: $fileSize bytes');
+      final process = await Process.run('ffmpeg', ffmpegArgs);
 
-      if (fileSize < 1024) {
-        print('Raw video file too small, creating fallback...');
-        await _createFallbackVideo(rawVideoPath);
+      if (process.exitCode == 0) {
+        // Clean up original webm file
+        final webmFile = File(webmPath);
+        if (await webmFile.exists()) {
+          await webmFile.delete();
+        }
+
+        print('Successfully converted to mp4: $mp4Path');
+        return mp4Path;
+      } else {
+        print('FFmpeg conversion failed: ${process.stderr}');
+        throw Exception('Conversion failed: ${process.stderr}');
       }
-
-      // Update state with raw video path (this will be processed later)
-      state = await AsyncValue.guard(() async {
-        final currentState = state.value;
-        if (currentState == null) {
-          throw Exception("State is not available to update video path.");
-        }
-        return currentState.copyWith(videoPath: rawVideoPath);
-      });
     } catch (e) {
-      print('Error saving raw video: $e');
-      await _createFallbackVideo(rawVideoPath);
-
-      state = await AsyncValue.guard(() async {
-        final currentState = state.value;
-        if (currentState == null) {
-          throw Exception("State is not available to update video path.");
-        }
-        return currentState.copyWith(videoPath: rawVideoPath);
-      });
+      print('Error converting webm to mp4: $e');
+      // Return original webm if conversion fails
+      return webmPath;
     }
   }
 
@@ -478,10 +504,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       if (currentState == null) return state.value!;
 
       // Stop video recording if active
-      if (_videoCameraController != null &&
-          _videoCameraController!.value.isRecordingVideo) {
+      if (_mediaRecorder != null) {
         try {
-          await _videoCameraController!.stopVideoRecording();
+          await _mediaRecorder!.stop();
         } catch (e) {
           print('Error stopping video recording during clear: $e');
         }

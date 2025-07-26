@@ -7,6 +7,7 @@
 #include "generated_plugin_registrant.h"
 
 #include <camera_windows/camera_windows.h>
+#include <flutter_webrtc/flutter_web_r_t_c_plugin.h>
 #include <printing/printing_plugin.h>
 #include <screen_retriever_windows/screen_retriever_windows_plugin_c_api.h>
 #include <video_player_win/video_player_win_plugin_c_api.h>
@@ -16,6 +17,8 @@
 void RegisterPlugins(flutter::PluginRegistry* registry) {
   CameraWindowsRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("CameraWindows"));
+  FlutterWebRTCPluginRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FlutterWebRTCPlugin"));
   PrintingPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PrintingPlugin"));
   ScreenRetrieverWindowsPluginCApiRegisterWithRegistrar(

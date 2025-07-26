@@ -1,16 +1,19 @@
 import 'dart:io';
 import 'dart:async';
+import 'dart:typed_data';
 
-import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:photocafe_windows/features/videos/domain/data/models/frame_model.dart';
 import 'package:photocafe_windows/features/videos/domain/data/models/video_state.dart';
 import 'package:photocafe_windows/features/videos/domain/data/constants/filter_constants.dart';
 
 class VideoNotifier extends AsyncNotifier<VideoState> {
   Process? _ffmpegProcess;
+  MediaRecorder? _mediaRecorder;
+  MediaStream? _recordingStream;
 
   @override
   Future<VideoState> build() async {
@@ -29,47 +32,124 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     );
   }
 
-  Future<void> saveVideoFromPhotoCamera(XFile videoXFile) async {
+  Future<void> startRecording(MediaStream stream) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
         throw Exception('Video state is not initialized');
       }
 
+      print('Starting MediaRecorder for flipbook recording...');
+
+      _recordingStream = stream;
+      _mediaRecorder = MediaRecorder();
+
+      // Generate output path
       final videoFileName =
-          'flipbook_photo_camera_${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final videoFilePath = p.join(currentState.tempPath, videoFileName);
+          'flipbook_recording_${DateTime.now().millisecondsSinceEpoch}.webm';
+      final outputPath = p.join(currentState.tempPath, videoFileName);
+
+      await _mediaRecorder!.start(
+        outputPath,
+        videoTrack: stream.getVideoTracks().first,
+      );
+
+      return currentState.copyWith(isRecording: true);
+    });
+  }
+
+  Future<void> stopRecording() async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null || _mediaRecorder == null) {
+        throw Exception('No recording to stop');
+      }
+
+      print('Stopping MediaRecorder...');
+
+      final recordedPath = await _mediaRecorder!.stop();
+      _mediaRecorder = null;
+      _recordingStream = null;
+
+      print('Recording saved to: $recordedPath');
+
+      // Convert webm to mp4 for compatibility
+      final mp4Path = await _convertToMp4(recordedPath);
+
+      return currentState.copyWith(videoPath: mp4Path, isRecording: false);
+    });
+  }
+
+  Future<String> _convertToMp4(String webmPath) async {
+    final currentState = state.value;
+    if (currentState == null) {
+      throw Exception('Video state is not initialized');
+    }
+
+    final outputFileName =
+        'flipbook_${DateTime.now().millisecondsSinceEpoch}.mp4';
+    final outputPath = p.join(currentState.tempPath, outputFileName);
+
+    try {
+      print('Converting webm to mp4: $webmPath -> $outputPath');
+
+      final ffmpegArgs = [
+        '-i', webmPath,
+        '-c:v', 'libx264',
+        '-c:a', 'aac',
+        '-movflags', '+faststart',
+        '-y', // Overwrite output
+        outputPath,
+      ];
+
+      final process = await Process.run('ffmpeg', ffmpegArgs);
+
+      if (process.exitCode == 0) {
+        // Clean up original webm file
+        final webmFile = File(webmPath);
+        if (await webmFile.exists()) {
+          await webmFile.delete();
+        }
+
+        print('Successfully converted to mp4: $outputPath');
+        return outputPath;
+      } else {
+        print('FFmpeg conversion failed: ${process.stderr}');
+        // Return original webm if conversion fails
+        return webmPath;
+      }
+    } catch (e) {
+      print('Error converting to mp4: $e');
+      // Return original webm if conversion fails
+      return webmPath;
+    }
+  }
+
+  Future<void> saveVideoFromPhotoCamera(String videoPath) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception('Video state is not initialized');
+      }
 
       try {
-        // Read bytes from XFile and write to our designated path
-        final videoBytes = await videoXFile.readAsBytes();
-        final targetFile = File(videoFilePath);
-        await targetFile.writeAsBytes(videoBytes);
+        print('Saving video from photo camera: $videoPath');
 
-        print('Photo camera video saved to: $videoFilePath');
-
-        final fileSize = await targetFile.length();
+        final fileSize = await File(videoPath).length();
         print('Video file size: $fileSize bytes');
 
         if (fileSize < 1024) {
           print('Video file too small, creating fallback...');
-          await _createFallbackVideo(videoFilePath);
+          await _createFallbackVideo(videoPath);
         }
 
-        return currentState.copyWith(
-          videoPath: videoFilePath,
-          isRecording: false,
-        );
+        return currentState.copyWith(videoPath: videoPath, isRecording: false);
       } catch (e) {
         print('Error saving photo camera video: $e');
-
         // Create fallback video if saving fails
-        await _createFallbackVideo(videoFilePath);
+        await _createFallbackVideo(videoPath);
 
-        return currentState.copyWith(
-          videoPath: videoFilePath,
-          isRecording: false,
-        );
+        return currentState.copyWith(videoPath: videoPath, isRecording: false);
       }
     });
   }

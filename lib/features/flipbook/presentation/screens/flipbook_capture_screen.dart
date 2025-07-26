@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/core/services/sound_service.dart';
@@ -18,8 +18,8 @@ class FlipbookCaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
-  CameraController?
-  _photoCameraController; // Photo camera for both preview and video recording
+  RTCVideoRenderer? _photoVideoRenderer;
+  MediaStream? _photoStream;
   VideoPlayerController? _videoPlayerController;
   final SoundService _soundService = SoundService();
   bool _isCameraInitialized = false;
@@ -40,7 +40,8 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
 
   @override
   void dispose() {
-    _photoCameraController?.dispose();
+    _photoStream?.dispose();
+    _photoVideoRenderer?.dispose();
     _videoPlayerController?.dispose();
     _countdownTimer?.cancel();
 
@@ -52,45 +53,42 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
 
   Future<void> _initializePhotoCamera() async {
     try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        final printerState = ref.read(printerProvider).value;
-        final selectedPhotoCameraName = printerState?.photoCameraName;
+      // Initialize video renderer
+      _photoVideoRenderer = RTCVideoRenderer();
+      await _photoVideoRenderer!.initialize();
 
-        CameraDescription? selectedPhotoCamera;
-        if (selectedPhotoCameraName != null) {
-          try {
-            selectedPhotoCamera = cameras.firstWhere(
-              (camera) => camera.name == selectedPhotoCameraName,
-            );
-          } catch (e) {
-            print('Selected photo camera not found, using first available');
-          }
-        }
-        selectedPhotoCamera ??= cameras.first;
+      final printerState = ref.read(printerProvider).value;
+      final selectedPhotoCameraDeviceId = printerState?.photoCameraName;
 
-        print(
-          'Initializing photo camera for flipbook preview and video recording',
-        );
+      print(
+        'Initializing photo camera for flipbook preview and video recording',
+      );
 
-        // Initialize photo camera controller for both preview and video recording
-        _photoCameraController = CameraController(
-          selectedPhotoCamera,
-          ResolutionPreset.high,
-          enableAudio: true, // Enable audio for video recording
-          imageFormatGroup: ImageFormatGroup.jpeg,
-        );
+      // Get user media constraints
+      final Map<String, dynamic> constraints = {
+        'video': selectedPhotoCameraDeviceId != null
+            ? {
+                'deviceId': selectedPhotoCameraDeviceId,
+                'width': {'ideal': 1920},
+                'height': {'ideal': 1080},
+              }
+            : {
+                'width': {'ideal': 1920},
+                'height': {'ideal': 1080},
+              },
+        'audio': true, // Enable audio for video recording
+      };
 
-        await _photoCameraController!.initialize();
+      _photoStream = await navigator.mediaDevices.getUserMedia(constraints);
+      _photoVideoRenderer!.srcObject = _photoStream;
 
-        setState(() {
-          _isCameraInitialized = true;
-        });
+      setState(() {
+        _isCameraInitialized = true;
+      });
 
-        print(
-          'Photo camera initialized for flipbook: ${selectedPhotoCamera.name}',
-        );
-      }
+      print(
+        'Photo camera initialized for flipbook preview and video recording',
+      );
     } catch (e) {
       print('Error initializing photo camera for flipbook: $e');
       ScaffoldMessenger.of(
@@ -100,7 +98,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   }
 
   Future<void> _startRecording() async {
-    if (!_isCameraInitialized || _photoCameraController == null) {
+    if (!_isCameraInitialized || _photoVideoRenderer == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('Camera not initialized')));
@@ -143,10 +141,15 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     });
 
     try {
-      print('Starting video recording with photo camera...');
+      print('Starting video recording with MediaRecorder...');
 
-      // Start video recording with photo camera
-      await _photoCameraController!.startVideoRecording();
+      if (_photoStream == null) {
+        throw Exception('Photo stream not available for recording');
+      }
+
+      // Start recording using VideoNotifier with MediaRecorder
+      final videoNotifier = ref.read(videoProvider.notifier);
+      await videoNotifier.startRecording(_photoStream!);
 
       // Start the recording countdown timer
       _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -168,9 +171,9 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         }
       });
 
-      print('Video recording started with photo camera');
+      print('Video recording started with MediaRecorder');
     } catch (e) {
-      print('Error starting video recording with photo camera: $e');
+      print('Error starting video recording: $e');
       setState(() {
         _isRecording = false;
         _isCountingDown = false;
@@ -182,25 +185,13 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   }
 
   Future<void> _stopVideoRecording() async {
-    if (!_isRecording || _photoCameraController == null) return;
+    if (!_isRecording) return;
 
     try {
-      // Check if camera is actually recording before trying to stop
-      if (!_photoCameraController!.value.isRecordingVideo) {
-        print('Photo camera is not recording, cannot stop');
-        setState(() {
-          _isRecording = false;
-          _countdown = 0;
-        });
-        return;
-      }
+      print('Stopping video recording...');
 
-      print('Stopping video recording with photo camera...');
-      final videoXFile = await _photoCameraController!.stopVideoRecording();
-
-      // Pass the video file to the video notifier
       final videoNotifier = ref.read(videoProvider.notifier);
-      await videoNotifier.saveVideoFromPhotoCamera(videoXFile);
+      await videoNotifier.stopRecording();
 
       setState(() {
         _isRecording = false;
@@ -213,7 +204,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       // Set up video preview
       await _setupVideoPreview();
     } catch (e) {
-      print('Error stopping video recording with photo camera: $e');
+      print('Error stopping video recording: $e');
       setState(() {
         _isRecording = false;
       });
@@ -472,27 +463,11 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(28),
-                      child:
-                          _isCameraInitialized &&
-                              _photoCameraController != null &&
-                              _photoCameraController!.value.isInitialized
-                          ? Transform.scale(
-                              scale:
-                                  _photoCameraController!.value.aspectRatio >
-                                      (16 / 10)
-                                  ? _photoCameraController!.value.aspectRatio /
-                                        (16 / 10)
-                                  : (16 / 10) /
-                                        _photoCameraController!
-                                            .value
-                                            .aspectRatio,
-                              child: Center(
-                                child: AspectRatio(
-                                  aspectRatio:
-                                      _photoCameraController!.value.aspectRatio,
-                                  child: CameraPreview(_photoCameraController!),
-                                ),
-                              ),
+                      child: _isCameraInitialized && _photoVideoRenderer != null
+                          ? RTCVideoView(
+                              _photoVideoRenderer!,
+                              objectFit: RTCVideoViewObjectFit
+                                  .RTCVideoViewObjectFitCover,
                             )
                           : const Center(
                               child: CircularProgressIndicator(

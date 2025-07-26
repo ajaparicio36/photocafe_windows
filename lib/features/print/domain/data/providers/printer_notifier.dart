@@ -8,6 +8,7 @@ import 'package:windows_printer/windows_printer.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:window_manager/window_manager.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class PrinterNotifier extends AsyncNotifier<PrinterState> {
   final Future<SharedPreferences> _prefs = SharedPreferences.getInstance();
@@ -50,11 +51,15 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     }
   }
 
-  Future<List<CameraDescription>> getAvailableCameras() async {
+  Future<List<MediaDeviceInfo>> getAvailableCameras() async {
     try {
-      final cameras = await availableCameras();
+      final devices = await navigator.mediaDevices.enumerateDevices();
+      final cameras = devices
+          .where((device) => device.kind == 'videoinput')
+          .toList();
       return cameras;
     } catch (e) {
+      print('Error getting available cameras: $e');
       return [];
     }
   }

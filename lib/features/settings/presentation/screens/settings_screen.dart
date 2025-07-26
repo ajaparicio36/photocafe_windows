@@ -1,6 +1,7 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
 import 'package:photocafe_windows/features/print/domain/data/models/printer_state.dart';
@@ -17,7 +18,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   List<String> _availablePrinters = [];
-  List<CameraDescription> _availableCameras = [];
+  List<MediaDeviceInfo> _availableCameras = [];
   bool _isTestPrinting = false;
 
   @override
@@ -141,6 +142,7 @@ printing functionality is working.
                     _buildFullscreenToggle(context, state),
                     const SizedBox(height: 48),
 
+                    // Printer Configuration Section
                     _buildSectionHeader(
                       context,
                       'Printer Configuration',
@@ -437,7 +439,8 @@ printing functionality is working.
               border: Border.all(color: Theme.of(context).colorScheme.outline),
             ),
             child: DropdownButton<String>(
-              value: _availableCameras.any((cam) => cam.name == currentCamera)
+              value:
+                  _availableCameras.any((cam) => cam.deviceId == currentCamera)
                   ? currentCamera
                   : null,
               hint: const Text('Select a camera'),
@@ -446,8 +449,13 @@ printing functionality is working.
               items: _availableCameras
                   .map(
                     (camera) => DropdownMenuItem(
-                      value: camera.name,
-                      child: Text(camera.name, overflow: TextOverflow.ellipsis),
+                      value: camera.deviceId,
+                      child: Text(
+                        camera.label.isNotEmpty
+                            ? camera.label
+                            : camera.deviceId,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   )
                   .toList(),

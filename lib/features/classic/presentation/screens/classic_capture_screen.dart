@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:camera/camera.dart';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/core/colors/colors.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/camera_preview_widget.dart';
@@ -21,8 +21,8 @@ class ClassicCaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
-  CameraController?
-  _photoCameraController; // Photo camera for preview and capture
+  RTCVideoRenderer? _photoVideoRenderer;
+  MediaStream? _photoStream;
   late final photoNotifier = ref.read(photoProvider.notifier);
   final SoundService _soundService = SoundService();
   bool _isCameraInitialized = false;
@@ -93,57 +93,43 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     if (_isDisposed) return;
 
     try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        // Get selected photo camera from settings
-        final printerStateAsync = ref.read(printerProvider);
-        final selectedPhotoCameraName = printerStateAsync.hasValue
-            ? printerStateAsync.value?.photoCameraName
-            : null;
+      // Initialize video renderer
+      _photoVideoRenderer = RTCVideoRenderer();
+      await _photoVideoRenderer!.initialize();
 
-        CameraDescription? selectedPhotoCamera;
-        if (selectedPhotoCameraName != null) {
-          try {
-            selectedPhotoCamera = cameras.firstWhere(
-              (camera) => camera.name == selectedPhotoCameraName,
-            );
-          } catch (e) {
-            print('Selected photo camera not found, using first available');
-          }
-        }
+      // Get selected photo camera from settings
+      final printerStateAsync = ref.read(printerProvider);
+      final selectedPhotoCameraDeviceId = printerStateAsync.hasValue
+          ? printerStateAsync.value?.photoCameraName
+          : null;
 
-        // Fallback to first camera if no selection or camera not found
-        selectedPhotoCamera ??= cameras.first;
+      print('Initializing photo camera for preview and capture');
 
-        print('Initializing photo camera for preview and capture');
+      // Get user media constraints
+      final Map<String, dynamic> constraints = {
+        'video': selectedPhotoCameraDeviceId != null
+            ? {
+                'deviceId': selectedPhotoCameraDeviceId,
+                'width': {'ideal': 1920},
+                'height': {'ideal': 1080},
+              }
+            : {
+                'width': {'ideal': 1920},
+                'height': {'ideal': 1080},
+              },
+        'audio': false, // No audio needed for photo camera
+      };
 
-        // Dispose existing controller if any
-        if (_photoCameraController != null) {
-          await _photoCameraController!.dispose();
-        }
+      _photoStream = await navigator.mediaDevices.getUserMedia(constraints);
+      _photoVideoRenderer!.srcObject = _photoStream;
 
-        // Initialize photo camera controller for both preview and photo capture
-        _photoCameraController = CameraController(
-          selectedPhotoCamera,
-          ResolutionPreset.high,
-          enableAudio: false, // No audio needed for photo camera
-          imageFormatGroup: ImageFormatGroup.jpeg,
-        );
-
-        if (!_isDisposed) {
-          await _photoCameraController!.initialize();
-
-          if (mounted && !_isDisposed) {
-            setState(() {
-              _isCameraInitialized = true;
-            });
-          }
-        }
-
-        print(
-          'Photo camera initialized for preview and capture: ${selectedPhotoCamera.name}',
-        );
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _isCameraInitialized = true;
+        });
       }
+
+      print('Photo camera initialized for preview and capture');
     } catch (e) {
       print('Error initializing photo camera: $e');
       if (mounted && !_isDisposed) {
@@ -260,18 +246,16 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     }
 
     try {
-      // Capture photo using photo camera controller
-      if (_photoCameraController != null &&
-          _photoCameraController!.value.isInitialized) {
-        final image = await _photoCameraController!.takePicture();
-        final photoFile = File(image.path);
-        final imageBytes = await photoFile.readAsBytes();
-        await photoNotifier.addPhoto(imageBytes);
+      // Capture photo using webrtc video renderer
+      if (_photoVideoRenderer != null && _photoStream != null) {
+        // Create a canvas to capture the current frame
+        final videoTrack = _photoStream!.getVideoTracks().first;
+        final imageData = await videoTrack.captureFrame();
 
-        // Clean up temporary file
-        if (await photoFile.exists()) {
-          await photoFile.delete();
-        }
+        // Convert to Uint8List (you may need to implement this conversion)
+        final imageBytes = await _convertImageDataToBytes(imageData);
+
+        await photoNotifier.addPhoto(imageBytes);
       } else {
         throw Exception('Photo camera not initialized');
       }
@@ -332,6 +316,13 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     }
   }
 
+  Future<Uint8List> _convertImageDataToBytes(dynamic imageData) async {
+    // This is a placeholder - you'll need to implement the actual conversion
+    // from the captured frame data to Uint8List
+    // This might involve creating a canvas, drawing the image, and converting to bytes
+    throw UnimplementedError('Frame capture conversion not implemented yet');
+  }
+
   @override
   void dispose() {
     _isDisposed = true;
@@ -343,18 +334,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     // Dispose sound service resources
     _soundService.dispose();
 
-    // Dispose photo camera controller safely
-    if (_photoCameraController != null) {
-      _photoCameraController!
-          .dispose()
-          .then((_) {
-            print('Photo camera controller disposed successfully');
-          })
-          .catchError((e) {
-            print('Error disposing photo camera controller: $e');
-          });
-      _photoCameraController = null;
-    }
+    // Dispose webrtc resources
+    _photoStream?.dispose();
+    _photoVideoRenderer?.dispose();
 
     super.dispose();
   }
@@ -386,13 +368,13 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                         );
                         return TwoByTwoCameraPreviewWidget(
                           isCameraInitialized: _isCameraInitialized,
-                          cameraController: _photoCameraController,
+                          videoRenderer: _photoVideoRenderer,
                         );
                       } else {
                         print('Using CameraPreviewWidget for 4x4 layout');
                         return CameraPreviewWidget(
                           isCameraInitialized: _isCameraInitialized,
-                          cameraController: _photoCameraController,
+                          videoRenderer: _photoVideoRenderer,
                         );
                       }
                     },
@@ -408,7 +390,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                       );
                       return CameraPreviewWidget(
                         isCameraInitialized: _isCameraInitialized,
-                        cameraController: _photoCameraController,
+                        videoRenderer: _photoVideoRenderer,
                       );
                     },
                   );

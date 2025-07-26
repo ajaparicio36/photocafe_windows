@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:camera/camera.dart';
+import 'package:flutter_webrtc/flutter_webrtc.dart';
 
 class TwoByTwoCameraPreviewWidget extends StatelessWidget {
   final bool isCameraInitialized;
-  final CameraController?
-  cameraController; // This is now the photo camera controller
+  final RTCVideoRenderer? videoRenderer;
 
   const TwoByTwoCameraPreviewWidget({
     super.key,
     required this.isCameraInitialized,
-    required this.cameraController,
+    required this.videoRenderer,
   });
 
   @override
   Widget build(BuildContext context) {
-    if (!isCameraInitialized ||
-        cameraController == null ||
-        !cameraController!.value.isInitialized) {
+    if (!isCameraInitialized || videoRenderer == null) {
       return Container(
         color: Colors.black,
         child: const Center(
@@ -32,17 +29,9 @@ class TwoByTwoCameraPreviewWidget extends StatelessWidget {
           child: AspectRatio(
             aspectRatio: 5 / 6, // Portrait aspect ratio for 2x2 mode (5:6)
             child: ClipRect(
-              child: Transform.scale(
-                // Scale the photo camera preview to fit the 5:6 aspect ratio
-                scale: cameraController!.value.aspectRatio > (5 / 6)
-                    ? cameraController!.value.aspectRatio / (5 / 6)
-                    : (5 / 6) / cameraController!.value.aspectRatio,
-                child: Center(
-                  child: AspectRatio(
-                    aspectRatio: cameraController!.value.aspectRatio,
-                    child: CameraPreview(cameraController!),
-                  ),
-                ),
+              child: RTCVideoView(
+                videoRenderer!,
+                objectFit: RTCVideoViewObjectFit.RTCVideoViewObjectFitCover,
               ),
             ),
           ),
