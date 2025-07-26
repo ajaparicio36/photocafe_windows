@@ -7,6 +7,8 @@ import 'package:photocafe_windows/features/print/domain/data/models/printer_stat
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:windows_printer/windows_printer.dart';
 import 'dart:typed_data';
+import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
+import 'package:photocafe_windows/features/flipbook/presentation/constants/frame_constants.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -19,6 +21,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   List<String> _availablePrinters = [];
   List<CameraDescription> _availableCameras = [];
   bool _isTestPrinting = false;
+  bool _isFrameTestPrinting = false;
 
   @override
   void initState() {
@@ -103,144 +106,6 @@ printing functionality is working.
         _isTestPrinting = false;
       });
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final printerState = ref.watch(printerProvider);
-
-    return ScreenContainer(
-      child: Column(
-        children: [
-          ScreenHeader(
-            title: 'Settings',
-            subtitle: 'Configure application settings',
-            backRoute: '/',
-          ),
-          const SizedBox(height: 40),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outline,
-                ),
-              ),
-              child: printerState.when(
-                data: (state) => ListView(
-                  children: [
-                    // Display Configuration Section
-                    _buildSectionHeader(
-                      context,
-                      'Display Configuration',
-                      Icons.display_settings_rounded,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildFullscreenToggle(context, state),
-                    const SizedBox(height: 48),
-
-                    _buildSectionHeader(
-                      context,
-                      'Printer Configuration',
-                      Icons.print_rounded,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildPrinterSelector(
-                      context: context,
-                      title: 'Cut Enabled Printer',
-                      subtitle:
-                          'Printer used for photo strips that require cutting.',
-                      currentPrinter: state.cutEnabledPrinter,
-                      onChanged: (printer) {
-                        if (printer != null) {
-                          ref
-                              .read(printerProvider.notifier)
-                              .setCutEnabledPrinter(printer);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    _buildPrinterSelector(
-                      context: context,
-                      title: 'Cut Disabled Printer',
-                      subtitle:
-                          'Printer used for standard prints without cutting.',
-                      currentPrinter: state.cutDisabledPrinter,
-                      onChanged: (printer) {
-                        if (printer != null) {
-                          ref
-                              .read(printerProvider.notifier)
-                              .setCutDisabledPrinter(printer);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    _buildPrinterSelector(
-                      context: context,
-                      title: 'Video Printer',
-                      subtitle:
-                          'Printer used specifically for video-related prints with custom settings.',
-                      currentPrinter: state.videoPrinter,
-                      onChanged: (printer) {
-                        if (printer != null) {
-                          ref
-                              .read(printerProvider.notifier)
-                              .setVideoPrinter(printer);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 48),
-
-                    // Camera Configuration Section
-                    _buildSectionHeader(
-                      context,
-                      'Camera Configuration',
-                      Icons.camera_alt_rounded,
-                    ),
-                    const SizedBox(height: 24),
-                    _buildCameraSelector(
-                      context: context,
-                      title: 'Photo Camera',
-                      subtitle:
-                          'Camera used for taking photos and preview display.',
-                      currentCamera: state.photoCameraName,
-                      onChanged: (camera) {
-                        if (camera != null) {
-                          ref
-                              .read(printerProvider.notifier)
-                              .setPhotoCameraName(camera);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    _buildCameraSelector(
-                      context: context,
-                      title: 'Video Recording Camera',
-                      subtitle:
-                          'Camera used for video recording during photo sessions.',
-                      currentCamera: state.videoCameraName,
-                      onChanged: (camera) {
-                        if (camera != null) {
-                          ref
-                              .read(printerProvider.notifier)
-                              .setVideoCameraName(camera);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 32),
-                    _buildTestSection(),
-                  ],
-                ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => Center(child: Text('Error: $err')),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 
   Widget _buildSectionHeader(
@@ -623,6 +488,271 @@ printing functionality is working.
                 ),
               );
             }).toList(),
+          ),
+          const SizedBox(height: 32),
+          // Frame Border Test Section
+          Row(
+            children: [
+              Icon(
+                Icons.crop_free_rounded,
+                size: 28,
+                color: Theme.of(context).colorScheme.secondary,
+              ),
+              const SizedBox(width: 16),
+              Text(
+                'Frame Border Test',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.secondary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Test frame border positioning by printing empty frames with alignment guides.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              ElevatedButton.icon(
+                onPressed: _isFrameTestPrinting ? null : _testPrintClassicFrame,
+                icon: _isFrameTestPrinting
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).colorScheme.onSecondary,
+                        ),
+                      )
+                    : Icon(Icons.grid_view_rounded),
+                label: Text('Test Classic Frame (4x6)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                ),
+              ),
+              ElevatedButton.icon(
+                onPressed: _isFrameTestPrinting
+                    ? null
+                    : _testPrintFlipbookFrame,
+                icon: _isFrameTestPrinting
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Theme.of(context).colorScheme.onSecondary,
+                        ),
+                      )
+                    : Icon(Icons.collections_rounded),
+                label: Text('Test Flipbook Frame (6x4)'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Theme.of(context).colorScheme.secondary,
+                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _testPrintClassicFrame() async {
+    setState(() {
+      _isFrameTestPrinting = true;
+    });
+
+    try {
+      await ref.read(printerProvider.notifier).testPrintClassicFrame();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Classic frame border test sent to printer'),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Classic frame test failed: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isFrameTestPrinting = false;
+      });
+    }
+  }
+
+  Future<void> _testPrintFlipbookFrame() async {
+    setState(() {
+      _isFrameTestPrinting = true;
+    });
+
+    try {
+      await ref.read(printerProvider.notifier).testPrintFlipbookFrame();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Flipbook frame border test sent to printer'),
+          backgroundColor: Theme.of(context).colorScheme.secondary,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Flipbook frame test failed: $e'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isFrameTestPrinting = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final printerState = ref.watch(printerProvider);
+
+    return ScreenContainer(
+      child: Column(
+        children: [
+          ScreenHeader(
+            title: 'Settings',
+            subtitle: 'Configure application settings',
+            backRoute: '/',
+          ),
+          const SizedBox(height: 40),
+          Expanded(
+            child: Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline,
+                ),
+              ),
+              child: printerState.when(
+                data: (state) => ListView(
+                  children: [
+                    // Display Configuration Section
+                    _buildSectionHeader(
+                      context,
+                      'Display Configuration',
+                      Icons.display_settings_rounded,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildFullscreenToggle(context, state),
+                    const SizedBox(height: 48),
+
+                    _buildSectionHeader(
+                      context,
+                      'Printer Configuration',
+                      Icons.print_rounded,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildPrinterSelector(
+                      context: context,
+                      title: 'Cut Enabled Printer',
+                      subtitle:
+                          'Printer used for photo strips that require cutting.',
+                      currentPrinter: state.cutEnabledPrinter,
+                      onChanged: (printer) {
+                        if (printer != null) {
+                          ref
+                              .read(printerProvider.notifier)
+                              .setCutEnabledPrinter(printer);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    _buildPrinterSelector(
+                      context: context,
+                      title: 'Cut Disabled Printer',
+                      subtitle:
+                          'Printer used for standard prints without cutting.',
+                      currentPrinter: state.cutDisabledPrinter,
+                      onChanged: (printer) {
+                        if (printer != null) {
+                          ref
+                              .read(printerProvider.notifier)
+                              .setCutDisabledPrinter(printer);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    _buildPrinterSelector(
+                      context: context,
+                      title: 'Video Printer',
+                      subtitle:
+                          'Printer used specifically for video-related prints with custom settings.',
+                      currentPrinter: state.videoPrinter,
+                      onChanged: (printer) {
+                        if (printer != null) {
+                          ref
+                              .read(printerProvider.notifier)
+                              .setVideoPrinter(printer);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 48),
+
+                    // Camera Configuration Section
+                    _buildSectionHeader(
+                      context,
+                      'Camera Configuration',
+                      Icons.camera_alt_rounded,
+                    ),
+                    const SizedBox(height: 24),
+                    _buildCameraSelector(
+                      context: context,
+                      title: 'Photo Camera',
+                      subtitle:
+                          'Camera used for taking photos and preview display.',
+                      currentCamera: state.photoCameraName,
+                      onChanged: (camera) {
+                        if (camera != null) {
+                          ref
+                              .read(printerProvider.notifier)
+                              .setPhotoCameraName(camera);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    _buildCameraSelector(
+                      context: context,
+                      title: 'Video Recording Camera',
+                      subtitle:
+                          'Camera used for video recording during photo sessions.',
+                      currentCamera: state.videoCameraName,
+                      onChanged: (camera) {
+                        if (camera != null) {
+                          ref
+                              .read(printerProvider.notifier)
+                              .setVideoCameraName(camera);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 32),
+                    _buildTestSection(),
+                  ],
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (err, stack) => Center(child: Text('Error: $err')),
+              ),
+            ),
           ),
         ],
       ),
