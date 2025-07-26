@@ -166,11 +166,15 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
 
     print('Loaded ${frameImages.length} frame images for PDF generation');
 
-    // Use A6 landscape format
-    final pageFormat = const PdfPageFormat(
-      6 * PdfPageFormat.inch,
-      4 * PdfPageFormat.inch,
-    );
+    // DNP DS-RX1HS specific dimensions for A6 landscape (6x4) with bleed compensation
+    const double bleedMm = 3.0; // 3mm bleed on each side
+    const double bleedPoints = bleedMm * 2.834645669; // Convert mm to points
+    const double originalWidth = 6 * PdfPageFormat.inch;
+    const double originalHeight = 4 * PdfPageFormat.inch;
+    const double adjustedWidth = originalWidth + (bleedPoints * 2);
+    const double adjustedHeight = originalHeight + (bleedPoints * 2);
+
+    final pageFormat = PdfPageFormat(adjustedWidth, adjustedHeight);
 
     // Generate 50 pages with 2 frames per page
     final totalPages = 50;
@@ -183,34 +187,48 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
           pageFormat: pageFormat,
           margin: const pw.EdgeInsets.all(0),
           build: (pw.Context context) {
-            return pw.Column(
-              children: [
-                // First frame on the page (top half)
-                if (frameIndex1 < frameImages.length)
-                  _buildFrameOnPage(
-                    frameImages[frameIndex1],
-                    frameBackgroundImage,
-                    layout,
-                    0, // Position index (top half)
-                    frameIndex1 + 1, // Frame number (1-based)
-                  ),
-                // Second frame on the page (bottom half)
-                if (frameIndex2 < frameImages.length)
-                  _buildFrameOnPage(
-                    frameImages[frameIndex2],
-                    frameBackgroundImage,
-                    layout,
-                    1, // Position index (bottom half)
-                    frameIndex2 + 1, // Frame number (1-based)
-                  ),
-              ],
+            // Scale factor and offset for DNP printer alignment
+            const double scaleFactor =
+                1.02; // Slight oversizing for full coverage
+            const double offsetX = bleedPoints * 0.7; // Center adjustment
+            const double offsetY = bleedPoints * 0.7; // Center adjustment
+
+            return pw.Transform.scale(
+              scale: scaleFactor,
+              child: pw.Transform.translate(
+                offset: const PdfPoint(-offsetX, -offsetY),
+                child: pw.Column(
+                  children: [
+                    // First frame on the page (top half)
+                    if (frameIndex1 < frameImages.length)
+                      _buildFrameOnPage(
+                        frameImages[frameIndex1],
+                        frameBackgroundImage,
+                        layout,
+                        0, // Position index (top half)
+                        frameIndex1 + 1, // Frame number (1-based)
+                      ),
+                    // Second frame on the page (bottom half)
+                    if (frameIndex2 < frameImages.length)
+                      _buildFrameOnPage(
+                        frameImages[frameIndex2],
+                        frameBackgroundImage,
+                        layout,
+                        1, // Position index (bottom half)
+                        frameIndex2 + 1, // Frame number (1-based)
+                      ),
+                  ],
+                ),
+              ),
             );
           },
         ),
       );
     }
 
-    print('Generated PDF with $totalPages pages for flipbook (A6 landscape)');
+    print(
+      'Generated PDF with $totalPages pages for flipbook (A6 landscape with DNP adjustments)',
+    );
     return pdf.save();
   }
 
