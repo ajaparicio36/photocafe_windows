@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:camera/camera.dart';
@@ -324,15 +325,15 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
-  Future<void> addPhoto(Uint8List imageBytes) async {
+  Future<void> addPhoto(Uint8List imageBytes, {int layoutMode = 4}) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
         throw Exception("State is not available to add a photo.");
       }
 
-      // Always process for landscape orientation (4:3 aspect ratio) for all photos
-      final processedImageBytes = await _processImageForLandscape(imageBytes);
+      // Minimal processing based on layout mode - just ensure correct aspect ratio
+      final processedImageBytes = await _processImageMinimal(imageBytes, layoutMode);
 
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final imagePath = p.join(currentState.tempPath, fileName);
@@ -356,52 +357,84 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     });
   }
 
-  Future<Uint8List> _processImageForLandscape(Uint8List imageBytes) async {
+  Future<Uint8List> _processImageMinimal(Uint8List imageBytes, int layoutMode) async {
     try {
-      final originalImage = img.decodeImage(imageBytes);
-      if (originalImage == null) return imageBytes;
+      return await Isolate.run(() async {
+        try {
+          final originalImage = img.decodeImage(imageBytes);
+          if (originalImage == null) return imageBytes;
 
-      // Calculate target dimensions for 4:3 aspect ratio
-      final targetWidth = 1200;
-      final targetHeight = 900;
+          // Determine target aspect ratio based on layout mode
+          double targetAspectRatio;
+          int targetWidth, targetHeight;
+          
+          if (layoutMode == 2) {
+            // 2x2 mode: Portrait 5:6 aspect ratio
+            targetAspectRatio = 5 / 6;
+            targetWidth = 500;
+            targetHeight = 600;
+          } else {
+            // 4x4 mode: Landscape 4:3 aspect ratio  
+            targetAspectRatio = 4 / 3;
+            targetWidth = 600;
+            targetHeight = 450;
+          }
 
-      // Resize and crop to 4:3 aspect ratio
-      img.Image processedImage;
+          // Only crop if needed, no resize
+          img.Image processedImage;
+          final currentAspectRatio = originalImage.width / originalImage.height;
 
-      if (originalImage.width / originalImage.height > 4 / 3) {
-        // Image is wider than 4:3, crop horizontally
-        final newWidth = (originalImage.height * 4 / 3).round();
-        final cropX = (originalImage.width - newWidth) ~/ 2;
-        processedImage = img.copyCrop(
-          originalImage,
-          x: cropX,
-          y: 0,
-          width: newWidth,
-          height: originalImage.height,
-        );
-      } else {
-        // Image is taller than 4:3, crop vertically
-        final newHeight = (originalImage.width * 3 / 4).round();
-        final cropY = (originalImage.height - newHeight) ~/ 2;
-        processedImage = img.copyCrop(
-          originalImage,
-          x: 0,
-          y: cropY,
-          width: originalImage.width,
-          height: newHeight,
-        );
-      }
+          if ((currentAspectRatio - targetAspectRatio).abs() > 0.1) {
+            // Significant aspect ratio difference, crop to match
+            if (currentAspectRatio > targetAspectRatio) {
+              // Image is wider, crop horizontally
+              final newWidth = (originalImage.height * targetAspectRatio).round();
+              final cropX = (originalImage.width - newWidth) ~/ 2;
+              processedImage = img.copyCrop(
+                originalImage,
+                x: cropX,
+                y: 0,
+                width: newWidth,
+                height: originalImage.height,
+              );
+            } else {
+              // Image is taller, crop vertically
+              final newHeight = (originalImage.width / targetAspectRatio).round();
+              final cropY = (originalImage.height - newHeight) ~/ 2;
+              processedImage = img.copyCrop(
+                originalImage,
+                x: 0,
+                y: cropY,
+                width: originalImage.width,
+                height: newHeight,
+              );
+            }
+          } else {
+            // Aspect ratio is close enough, use original
+            processedImage = originalImage;
+          }
 
-      // Resize to target dimensions
-      processedImage = img.copyResize(
-        processedImage,
-        width: targetWidth,
-        height: targetHeight,
-      );
+          // Only resize if image is significantly larger than target
+          if (processedImage.width > targetWidth * 2 || processedImage.height > targetHeight * 2) {
+            processedImage = img.copyResize(
+              processedImage,
+              width: targetWidth,
+              height: targetHeight,
+              interpolation: img.Interpolation.nearest, // Fastest interpolation
+            );
+          }
 
-      return img.encodeJpg(processedImage);
+          return img.encodeJpg(
+            processedImage,
+            quality: 90, // Higher quality, less processing
+          );
+        } catch (e) {
+          print('Error in minimal image processing: $e');
+          return imageBytes; // Return original if processing fails
+        }
+      });
     } catch (e) {
-      print('Error processing image for landscape: $e');
+      print('Error in minimal image processing: $e');
       return imageBytes; // Return original if processing fails
     }
   }

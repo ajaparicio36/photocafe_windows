@@ -263,10 +263,19 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       // Capture photo using photo camera controller
       if (_photoCameraController != null &&
           _photoCameraController!.value.isInitialized) {
+        // Get the current layout mode to determine aspect ratio
+        final printerStateAsync = ref.read(printerProvider);
+        final layoutMode = printerStateAsync.hasValue
+            ? printerStateAsync.value?.layoutMode ?? 4
+            : 4;
+
+        // Capture with preview aspect ratio to avoid post-processing
         final image = await _photoCameraController!.takePicture();
         final photoFile = File(image.path);
         final imageBytes = await photoFile.readAsBytes();
-        await photoNotifier.addPhoto(imageBytes);
+
+        // Pass the layout mode to determine processing approach
+        await photoNotifier.addPhoto(imageBytes, layoutMode: layoutMode);
 
         // Clean up temporary file
         if (await photoFile.exists()) {

@@ -30,7 +30,9 @@ class CameraPreviewWidget extends StatelessWidget {
         color: Colors.black,
         child: Center(
           child: AspectRatio(
-            aspectRatio: 4 / 3, // Landscape aspect ratio for 4x4 mode (4:3)
+            aspectRatio:
+                4 /
+                3, // Landscape aspect ratio for 4x4 mode (4:3) - captured photos will match this
             child: ClipRect(
               child: Transform.scale(
                 // Scale the photo camera preview to fit the 4:3 aspect ratio
