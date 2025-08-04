@@ -174,7 +174,6 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
       throw Exception('No printer selected for this action.');
     }
 
-    // Method 2: Try using the system's default PDF handler via temp file
     try {
       final tempDir = await getTemporaryDirectory();
       final tempFile = File(
@@ -184,18 +183,27 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
         ),
       );
       await tempFile.writeAsBytes(pdfBytes);
-      // Use process run but with PDFtoPrinter
-      final result = await Process.run('cmd.exe', [
-        '/c',
-        'PDFtoPrinter',
-        '/s',
-        tempFile.path,
-        printerName,
-        copies.toString(),
-      ], runInShell: true);
 
-      if (result.exitCode != 0) {
-        throw Exception('Failed to print PDF: ${result.stderr}');
+      // Print the specified number of copies by calling PDFtoPrinter multiple times
+      for (int i = 0; i < copies; i++) {
+        final result = await Process.run('cmd.exe', [
+          '/c',
+          'PDFtoPrinter',
+          '/s',
+          tempFile.path,
+          printerName,
+        ], runInShell: true);
+
+        if (result.exitCode != 0) {
+          throw Exception(
+            'Failed to print PDF copy ${i + 1}: ${result.stderr}',
+          );
+        }
+
+        // Small delay between copies to avoid overwhelming the printer
+        if (i < copies - 1) {
+          await Future.delayed(const Duration(milliseconds: 500));
+        }
       }
 
       return;
