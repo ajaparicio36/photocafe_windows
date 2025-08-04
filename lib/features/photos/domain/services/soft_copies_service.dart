@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photocafe_windows/core/handlers/dio_handler.dart';
@@ -11,6 +12,7 @@ class SoftCopiesService {
   Future<SoftCopiesUploadResult> uploadMediaFiles({
     required List<File> mediaFiles,
     required String? processedVideoPath, // Only the VHS processed video
+    Uint8List? pdfBytes,
     required Function(double) onProgress,
   }) async {
     try {
@@ -23,8 +25,10 @@ class SoftCopiesService {
       formData.fields.add(MapEntry('archiveId', archiveId));
 
       double currentProgress = 0.1;
-      final progressPerFile =
-          0.8 / (mediaFiles.length + (processedVideoPath != null ? 1 : 0));
+      final totalFiles = mediaFiles.length +
+          (processedVideoPath != null ? 1 : 0) +
+          (pdfBytes != null ? 1 : 0);
+      final progressPerFile = totalFiles > 0 ? 0.8 / totalFiles : 0.8;
 
       // Add photo files
       for (int i = 0; i < mediaFiles.length; i++) {
@@ -62,6 +66,18 @@ class SoftCopiesService {
             'Warning: Processed video file not found at: $processedVideoPath',
           );
         }
+      }
+
+      // Add PDF file if available
+      if (pdfBytes != null) {
+        print('Uploading PDF file...');
+        final multipartFile = MultipartFile.fromBytes(
+          pdfBytes,
+          filename: 'photostrip.pdf',
+        );
+        formData.files.add(MapEntry('files', multipartFile));
+        currentProgress += progressPerFile;
+        onProgress(currentProgress);
       }
 
       onProgress(0.9);

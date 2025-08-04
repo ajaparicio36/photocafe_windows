@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,7 +10,8 @@ class PrintActionPanel extends ConsumerStatefulWidget {
   final bool isPrinting;
   final bool splitStrips;
   final ValueChanged<bool> onSplitStripsChanged;
-  final VoidCallback onPrint;
+  final ValueChanged<int> onPrint;
+  final Uint8List? pdfBytes;
 
   const PrintActionPanel({
     super.key,
@@ -17,6 +19,7 @@ class PrintActionPanel extends ConsumerStatefulWidget {
     required this.splitStrips,
     required this.onSplitStripsChanged,
     required this.onPrint,
+    this.pdfBytes,
   });
 
   @override
@@ -24,6 +27,7 @@ class PrintActionPanel extends ConsumerStatefulWidget {
 }
 
 class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
+  int _copies = 1;
   bool _isProcessingSoftCopies = false;
   double _processingProgress = 0.0;
   String _processingStatus = '';
@@ -84,6 +88,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
       final result = await softCopiesService.uploadMediaFiles(
         mediaFiles: mediaFiles,
         processedVideoPath: processedVideoPath,
+        pdfBytes: widget.pdfBytes,
         onProgress: (progress) {
           setState(() {
             _processingProgress = 0.5 + (progress * 0.5); // 0.5 to 1.0
@@ -382,7 +387,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
             child: ElevatedButton(
               onPressed: (widget.isPrinting || _isProcessingSoftCopies)
                   ? null
-                  : widget.onPrint,
+                  : () => widget.onPrint(_copies),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 foregroundColor: Theme.of(context).colorScheme.onPrimary,
@@ -428,6 +433,59 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                         ),
                       ],
                     ),
+            ),
+          ),
+
+          // Number of copies
+          Container(
+            margin: const EdgeInsets.only(bottom: 24),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Number of Copies',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.remove_circle_outline_rounded),
+                      onPressed:
+                          (widget.isPrinting ||
+                              _isProcessingSoftCopies ||
+                              _copies <= 1)
+                          ? null
+                          : () => setState(() => _copies--),
+                      iconSize: 32,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      '$_copies',
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.add_circle_outline_rounded),
+                      onPressed: (widget.isPrinting || _isProcessingSoftCopies)
+                          ? null
+                          : () => setState(() => _copies++),
+                      iconSize: 32,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
 

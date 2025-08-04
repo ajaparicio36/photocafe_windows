@@ -35,7 +35,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
     }
   }
 
-  Future<void> _printDocument() async {
+  Future<void> _printDocument(int copies) async {
     if (_actualPdfBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -61,7 +61,11 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
 
     try {
       final printerNotifier = ref.read(printerProvider.notifier);
-      await printerNotifier.printPdfBytes(_actualPdfBytes!, cut: _splitStrips);
+      await printerNotifier.printPdfBytes(
+        _actualPdfBytes!,
+        cut: _splitStrips,
+        copies: copies,
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -253,6 +257,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                         child: PrintActionPanel(
                           isPrinting: _isPrinting,
                           splitStrips: _splitStrips,
+                          pdfBytes: _actualPdfBytes,
                           onSplitStripsChanged: (value) {
                             setState(() {
                               _splitStrips = value;

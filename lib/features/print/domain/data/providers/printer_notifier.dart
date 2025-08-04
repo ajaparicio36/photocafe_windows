@@ -161,7 +161,11 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     });
   }
 
-  Future<void> printPdfBytes(Uint8List pdfBytes, {bool cut = false}) async {
+  Future<void> printPdfBytes(
+    Uint8List pdfBytes, {
+    bool cut = false,
+    int copies = 1,
+  }) async {
     final printerName = cut
         ? state.value?.cutEnabledPrinter
         : state.value?.cutDisabledPrinter;
@@ -187,6 +191,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
         '/s',
         tempFile.path,
         printerName,
+        copies.toString(),
       ], runInShell: true);
 
       if (result.exitCode != 0) {
