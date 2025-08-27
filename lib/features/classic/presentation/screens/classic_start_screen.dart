@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
+import '../../../../core/colors/colors.dart';
 
 class ClassicStartScreen extends ConsumerWidget {
   const ClassicStartScreen({super.key});
@@ -11,16 +12,9 @@ class ClassicStartScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.primary.withOpacity(0.8),
-            ],
-          ),
-        ),
+        width: double.infinity,
+        height: double.infinity,
+        color: const Color(0xFF76220B), // Warm brown background
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(40),
@@ -30,107 +24,78 @@ class ClassicStartScreen extends ConsumerWidget {
                 Align(
                   alignment: Alignment.topLeft,
                   child: Container(
+                    width: 60,
+                    height: 60,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(16),
+                      color: const Color(0xFFFFFBEE),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: IconButton(
                       onPressed: () => context.go('/'),
                       icon: const Icon(
                         Icons.arrow_back_rounded,
-                        color: Colors.white,
-                        size: 32,
+                        color: Color(0xFF76220B),
+                        size: 28,
                       ),
-                      padding: const EdgeInsets.all(16),
                     ),
                   ),
                 ),
 
-                // Main content
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Icon
-                      Container(
-                        width: 160,
-                        height: 160,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(80),
-                        ),
-                        child: const Icon(
-                          Icons.collections_rounded,
-                          size: 80,
-                          color: Colors.white,
-                        ),
-                      ),
+                const SizedBox(height: 60),
 
-                      const SizedBox(height: 40),
-
-                      // Title
-                      Text(
-                        'Classic Photo Booth',
-                        style: Theme.of(context).textTheme.headlineLarge
-                            ?.copyWith(
-                              fontSize: 56,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Subtitle
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'Choose your photo strip layout!',
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                fontSize: 28,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500,
-                              ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-
-                      const SizedBox(height: 60),
-
-                      // Layout selection
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildModeCard(
-                            context,
-                            ref,
-                            icon: Icons.photo_library_rounded,
-                            title: '2x2 Layout',
-                            description: '4 photos in 2x2 grid (portrait)',
-                            layoutMode: 2,
-                          ),
-                          const SizedBox(width: 40),
-                          _buildModeCard(
-                            context,
-                            ref,
-                            icon: Icons.grid_on_rounded,
-                            title: '4x4 Layout',
-                            description: '4 photos in 4x1 strip (landscape)',
-                            layoutMode: 4,
-                          ),
-                        ],
-                      ),
-                    ],
+                // Logo
+                Container(
+                  height: 120,
+                  child: Image.asset(
+                    'assets/icons/clickclick_logo.png',
+                    fit: BoxFit.contain,
                   ),
+                ),
+
+                const SizedBox(height: 80),
+
+                // Classic Mode Header Button
+                GestureDetector(
+                  child: Container(
+                    height: 120,
+                    child: Image.asset(
+                      'assets/icons/classic_mode_button.png',
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 100),
+
+                // Photo options
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    // Photo Box option
+                    _buildPhotoOption(
+                      context,
+                      ref,
+                      assetPath: 'assets/icons/photobox_button.png',
+                      layoutMode: 2,
+                    ),
+
+                    const SizedBox(width: 60),
+
+                    // Photo Strip option
+                    _buildPhotoOption(
+                      context,
+                      ref,
+                      assetPath: 'assets/icons/strip_button.png',
+                      layoutMode: 4,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -140,19 +105,17 @@ class ClassicStartScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildModeCard(
+  Widget _buildPhotoOption(
     BuildContext context,
     WidgetRef ref, {
-    required IconData icon,
-    required String title,
-    required String description,
+    required String assetPath,
     required int layoutMode,
   }) {
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: () async {
           try {
-            // Show loading indicator while setting up
+            // Show loading indicator
             showDialog(
               context: context,
               barrierDismissible: false,
@@ -163,16 +126,7 @@ class ClassicStartScreen extends ConsumerWidget {
                     width: 300,
                     padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Theme.of(context).colorScheme.primary,
-                          Theme.of(
-                            context,
-                          ).colorScheme.primary.withOpacity(0.8),
-                        ],
-                      ),
+                      color: const Color(0xFFFFFBEE),
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
@@ -189,12 +143,12 @@ class ClassicStartScreen extends ConsumerWidget {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: const Color(0xFFFFFBEE),
                             borderRadius: BorderRadius.circular(40),
                           ),
                           child: const Center(
                             child: CircularProgressIndicator(
-                              color: Colors.white,
+                              color: Color(0xFF76220B),
                               strokeWidth: 4,
                             ),
                           ),
@@ -205,16 +159,16 @@ class ClassicStartScreen extends ConsumerWidget {
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                            color: const Color(0xFFFFFBEE),
                           ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Preparing ${layoutMode == 2 ? "2x2" : "4x4"} layout',
+                          'Preparing ${layoutMode == 2 ? "Photo Box" : "Photo Strip"} layout',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.8),
+                            color: const Color(0xFFFFFBEE).withOpacity(0.8),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -227,10 +181,6 @@ class ClassicStartScreen extends ConsumerWidget {
 
             final photoNotifier = ref.read(photoProvider.notifier);
             final printerNotifier = ref.read(printerProvider.notifier);
-
-            print(
-              'Setting up classic mode with layout: ${layoutMode == 2 ? "2x2" : "4x4"}',
-            );
 
             // Clear photos first
             await photoNotifier.clearAllPhotos();
@@ -285,11 +235,7 @@ class ClassicStartScreen extends ConsumerWidget {
                       width: 300,
                       padding: const EdgeInsets.all(40),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.red.shade600, Colors.red.shade700],
-                        ),
+                        color: Colors.red.shade600,
                         borderRadius: BorderRadius.circular(24),
                         boxShadow: [
                           BoxShadow(
@@ -367,40 +313,11 @@ class ClassicStartScreen extends ConsumerWidget {
             }
           }
         },
-        borderRadius: BorderRadius.circular(24),
         child: Container(
-          height: 300,
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: Colors.white.withOpacity(0.5), width: 2),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 64, color: Colors.white),
-              const SizedBox(height: 24),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                description,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 20,
-                  color: Colors.white.withOpacity(0.8),
-                ),
-              ),
-            ],
-          ),
+          color: AppColors.lightCard,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          height: 400,
+          child: Image.asset(assetPath, fit: BoxFit.contain),
         ),
       ),
     );

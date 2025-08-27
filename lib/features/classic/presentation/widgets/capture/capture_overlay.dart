@@ -128,7 +128,7 @@ class CaptureOverlay extends ConsumerWidget {
                     decoration: BoxDecoration(
                       color: Theme.of(
                         context,
-                      ).colorScheme.primary.withOpacity(0.9),
+                      ).colorScheme.primary.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -136,7 +136,7 @@ class CaptureOverlay extends ConsumerWidget {
                       children: [
                         Icon(
                           Icons.check_circle_rounded,
-                          color: Colors.white,
+                          color: Colors.black,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
@@ -144,7 +144,7 @@ class CaptureOverlay extends ConsumerWidget {
                           '${photoState.photos.length} photos captured',
                           style: const TextStyle(
                             fontSize: 20,
-                            color: Colors.white,
+                            color: Colors.black,
                             fontWeight: FontWeight.w600,
                           ),
                         ),

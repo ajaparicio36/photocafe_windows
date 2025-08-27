@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:photocafe_windows/features/classic/presentation/constants/filter_constants.dart';
+import 'package:photocafe_windows/core/colors/colors.dart';
 
 class FilterSelectionPanel extends StatelessWidget {
   final String? selectedFilter;
@@ -20,9 +21,8 @@ class FilterSelectionPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: const Color(0xFF76220B),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -31,6 +31,7 @@ class FilterSelectionPanel extends StatelessWidget {
             'Choose Filter',
             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
               fontSize: 32,
+              color: const Color(0xFFFFFBEE),
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -48,47 +49,68 @@ class FilterSelectionPanel extends StatelessWidget {
                 return Container(
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                        : Colors.transparent,
+                        ? const Color(0xFFFFFBEE)
+                        : const Color(0xFF5A1908),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.outline,
-                      width: isSelected ? 2 : 1,
-                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.1),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
                   ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(20),
-                    leading: Radio<String>(
-                      value: filterName,
-                      groupValue: selectedFilter,
-                      onChanged: (value) {
-                        if (value != null) {
-                          onFilterSelected(value);
-                        }
-                      },
-                    ),
-                    title: Text(
-                      filterName,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
+                  child: Material(
+                    color: Colors.transparent,
+                    borderRadius: BorderRadius.circular(16),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(20),
+                      leading: Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isSelected
+                              ? const Color(0xFFFFFBEE)
+                              : Colors.transparent,
+                          border: Border.all(
+                            color: isSelected
+                                ? const Color(0xFF76220B)
+                                : const Color(0xFFFFFBEE),
+                            width: 2,
+                          ),
+                        ),
+                        child: isSelected
+                            ? Icon(
+                                Icons.check,
+                                size: 16,
+                                color: const Color(0xFF76220B),
+                              )
                             : null,
                       ),
-                    ),
-                    subtitle: Text(
-                      _getFilterDescription(filterName),
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 16,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.7),
+                      title: Text(
+                        filterName,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected
+                              ? const Color(0xFF76220B)
+                              : const Color(0xFFFFFBEE),
+                        ),
                       ),
+                      subtitle: Text(
+                        _getFilterDescription(filterName),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontSize: 16,
+                          color: isSelected
+                              ? const Color(0xFF76220B).withOpacity(0.8)
+                              : const Color(0xFFFFFBEE).withOpacity(0.8),
+                        ),
+                      ),
+                      onTap: () => onFilterSelected(filterName),
                     ),
-                    onTap: () => onFilterSelected(filterName),
                   ),
                 );
               },
@@ -104,12 +126,17 @@ class FilterSelectionPanel extends StatelessWidget {
             child: ElevatedButton(
               onPressed: isApplyingFilter ? null : onApplyFilter,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                elevation: 4,
+                backgroundColor: isApplyingFilter
+                    ? const Color(0xFFFFFBEE).withOpacity(0.5)
+                    : const Color(0xFFFFFBEE),
+                foregroundColor: isApplyingFilter
+                    ? const Color(0xFF76220B).withOpacity(0.5)
+                    : const Color(0xFF76220B),
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
+                shadowColor: Colors.transparent,
               ),
               child: isApplyingFilter
                   ? Row(
@@ -120,7 +147,7 @@ class FilterSelectionPanel extends StatelessWidget {
                           height: 32,
                           child: CircularProgressIndicator(
                             strokeWidth: 3,
-                            color: Theme.of(context).colorScheme.onPrimary,
+                            color: const Color(0xFF76220B).withOpacity(0.5),
                           ),
                         ),
                         const SizedBox(width: 20),

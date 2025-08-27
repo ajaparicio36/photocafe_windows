@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:photocafe_windows/core/colors/colors.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/photos/domain/services/soft_copies_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -353,29 +354,19 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: const Color(0xFF76220B),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.touch_app_rounded,
-                size: 32,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 16),
-              Text(
-                'Choose Action',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Text(
+            'Choose Action',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontSize: 32,
+              color: const Color(0xFFFFFBEE),
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(height: 32),
 
@@ -389,10 +380,13 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                   ? null
                   : () => widget.onPrint(_copies),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.primary,
-                foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                elevation: 8,
-                shadowColor: Colors.black.withOpacity(0.3),
+                backgroundColor: widget.isPrinting
+                    ? const Color(0xFFFFFBEE).withOpacity(0.5)
+                    : const Color(0xFFFFFBEE),
+                foregroundColor: widget.isPrinting
+                    ? const Color(0xFF76220B).withOpacity(0.5)
+                    : const Color(0xFF76220B),
+                elevation: 0,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
                 ),
@@ -406,7 +400,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                           height: 40,
                           child: CircularProgressIndicator(
                             strokeWidth: 4,
-                            color: Theme.of(context).colorScheme.onPrimary,
+                            color: const Color(0xFF76220B).withOpacity(0.5),
                           ),
                         ),
                         const SizedBox(width: 24),
@@ -442,9 +436,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
-              ),
+              color: const Color(0xFF5A1908),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -454,34 +446,71 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
+                    color: const Color(0xFFFFFBEE),
                   ),
                 ),
                 const SizedBox(width: 16),
                 Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline_rounded),
-                      onPressed:
-                          (widget.isPrinting ||
-                              _isProcessingSoftCopies ||
-                              _copies <= 1)
-                          ? null
-                          : () => setState(() => _copies--),
-                      iconSize: 32,
+                    Container(
+                      decoration: BoxDecoration(
+                        color:
+                            (widget.isPrinting ||
+                                _isProcessingSoftCopies ||
+                                _copies <= 1)
+                            ? const Color(0xFF5A1908)
+                            : const Color(0xFFFFFBEE),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.remove_circle_outline_rounded,
+                          color:
+                              (widget.isPrinting ||
+                                  _isProcessingSoftCopies ||
+                                  _copies <= 1)
+                              ? const Color(0xFFFFFBEE).withOpacity(0.5)
+                              : const Color(0xFF76220B),
+                        ),
+                        onPressed:
+                            (widget.isPrinting ||
+                                _isProcessingSoftCopies ||
+                                _copies <= 1)
+                            ? null
+                            : () => setState(() => _copies--),
+                        iconSize: 32,
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       '$_copies',
                       style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFFFFBEE),
+                          ),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline_rounded),
-                      onPressed: (widget.isPrinting || _isProcessingSoftCopies)
-                          ? null
-                          : () => setState(() => _copies++),
-                      iconSize: 32,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: (widget.isPrinting || _isProcessingSoftCopies)
+                            ? const Color(0xFF5A1908)
+                            : const Color(0xFFFFFBEE),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: IconButton(
+                        icon: Icon(
+                          Icons.add_circle_outline_rounded,
+                          color: (widget.isPrinting || _isProcessingSoftCopies)
+                              ? const Color(0xFFFFFBEE).withOpacity(0.5)
+                              : const Color(0xFF76220B),
+                        ),
+                        onPressed:
+                            (widget.isPrinting || _isProcessingSoftCopies)
+                            ? null
+                            : () => setState(() => _copies++),
+                        iconSize: 32,
+                      ),
                     ),
                   ],
                 ),
@@ -495,9 +524,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
-              ),
+              color: const Color(0xFF5A1908),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -511,6 +538,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                           fontSize: 20,
+                          color: const Color(0xFFFFFBEE),
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -518,9 +546,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                         'Prints two identical strips (requires cutter)',
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           fontSize: 16,
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.onSurface.withOpacity(0.7),
+                          color: const Color(0xFFFFFBEE).withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -532,12 +558,16 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                   onChanged: (widget.isPrinting || _isProcessingSoftCopies)
                       ? null
                       : widget.onSplitStripsChanged,
+                  activeColor: const Color(0xFFFFFBEE),
+                  activeTrackColor: const Color(0xFFFFFBEE).withOpacity(0.5),
+                  inactiveThumbColor: const Color(0xFFFFFBEE).withOpacity(0.7),
+                  inactiveTrackColor: const Color(0xFFFFFBEE).withOpacity(0.3),
                 ),
               ],
             ),
           ),
 
-          // Soft copies button with progress - Fixed height constraints
+          // Soft copies button with progress
           Container(
             width: double.infinity,
             constraints: BoxConstraints(
@@ -550,10 +580,8 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                   ? null
                   : _handleSoftCopies,
               style: OutlinedButton.styleFrom(
-                side: BorderSide(
-                  color: Theme.of(context).colorScheme.outline,
-                  width: 2,
-                ),
+                backgroundColor: const Color(0xFF5A1908),
+                side: BorderSide.none,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -574,7 +602,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                                 child: CircularProgressIndicator(
                                   value: _processingProgress,
                                   strokeWidth: 4,
-                                  color: Theme.of(context).colorScheme.primary,
+                                  color: const Color(0xFFFFFBEE),
                                 ),
                               ),
                               const SizedBox(width: 16),
@@ -583,6 +611,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                                 style: TextStyle(
                                   fontSize: 22,
                                   fontWeight: FontWeight.w600,
+                                  color: const Color(0xFFFFFBEE),
                                 ),
                               ),
                             ],
@@ -593,9 +622,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                               _processingStatus,
                               style: TextStyle(
                                 fontSize: 16,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurface.withOpacity(0.7),
+                                color: const Color(0xFFFFFBEE).withOpacity(0.7),
                               ),
                               textAlign: TextAlign.center,
                               maxLines: 2,
@@ -608,7 +635,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                              color: const Color(0xFFFFFBEE),
                             ),
                           ),
                         ],
@@ -617,13 +644,18 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                   : Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.download_rounded, size: 40),
+                        Icon(
+                          Icons.download_rounded,
+                          size: 40,
+                          color: const Color(0xFFFFFBEE),
+                        ),
                         const SizedBox(width: 16),
                         Text(
                           'Get Soft Copies',
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.w600,
+                            color: const Color(0xFFFFFBEE),
                           ),
                         ),
                       ],
@@ -645,14 +677,9 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                       context.go('/');
                     },
               style: TextButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.surface,
+                backgroundColor: const Color(0xFF5A1908),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.outline.withOpacity(0.5),
-                  ),
                 ),
               ),
               child: Row(
@@ -661,9 +688,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                   Icon(
                     Icons.refresh_rounded,
                     size: 36,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
+                    color: const Color(0xFFFFFBEE).withOpacity(0.7),
                   ),
                   const SizedBox(width: 16),
                   Text(
@@ -671,9 +696,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.w600,
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.7),
+                      color: const Color(0xFFFFFBEE).withOpacity(0.7),
                     ),
                   ),
                 ],

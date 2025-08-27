@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:photocafe_windows/core/colors/colors.dart';
 import 'package:go_router/go_router.dart';
 
 class ScreenHeader extends StatelessWidget {
@@ -20,19 +21,26 @@ class ScreenHeader extends StatelessWidget {
     return Row(
       children: [
         Container(
+          width: 60,
+          height: 60,
           decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Theme.of(context).colorScheme.outline),
+            color: const Color(0xFFFFFBEE),
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: IconButton(
-            onPressed: () => context.go(backRoute),
-            icon: Icon(
+            onPressed: () => context.go('/'),
+            icon: const Icon(
               Icons.arrow_back_rounded,
-              size: 32,
-              color: Theme.of(context).colorScheme.onSurface,
+              color: Color(0xFF76220B),
+              size: 28,
             ),
-            padding: const EdgeInsets.all(16),
           ),
         ),
         const SizedBox(width: 24),
@@ -45,6 +53,7 @@ class ScreenHeader extends StatelessWidget {
                 style: Theme.of(context).textTheme.headlineLarge?.copyWith(
                   fontSize: 42,
                   fontWeight: FontWeight.bold,
+                  color: AppColors.lightCard,
                 ),
               ),
               const SizedBox(height: 8),
@@ -52,9 +61,8 @@ class ScreenHeader extends StatelessWidget {
                 subtitle,
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   fontSize: 20,
-                  color: Theme.of(
-                    context,
-                  ).colorScheme.onSurface.withOpacity(0.7),
+
+                  color: AppColors.lightCard,
                 ),
               ),
             ],

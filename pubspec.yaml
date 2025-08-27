@@ -91,6 +91,7 @@ flutter:
     - assets/icons/clickclick_logo.png
     - assets/icons/flipbook_button.png
     - assets/icons/photobox_button.png
+    - assets/icons/classic_mode_button.png
     - assets/icons/strip_button.png
     - assets/frames/frame1.png
     - assets/frames/frame2.png

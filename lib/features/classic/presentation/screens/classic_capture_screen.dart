@@ -242,7 +242,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Video recording failed: $e'),
-          backgroundColor: AppColors.error,
+          backgroundColor: AppColors.lightCard,
           duration: const Duration(seconds: 3),
         ),
       );

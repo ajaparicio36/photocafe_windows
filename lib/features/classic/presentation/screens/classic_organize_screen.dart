@@ -109,6 +109,364 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
     }
   }
 
+  @override
+  Widget build(BuildContext context) {
+    final photoStateAsync = ref.watch(photoProvider);
+
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(color: const Color(0xFF76220B)),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: photoStateAsync.when(
+            data: (photoState) {
+              if (photoState.photos.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.photo_library_outlined,
+                        size: 100,
+                        color: const Color(0xFFFFFBEE).withOpacity(0.4),
+                      ),
+                      const SizedBox(height: 30),
+                      Text(
+                        'No photos available',
+                        style: Theme.of(context).textTheme.headlineLarge
+                            ?.copyWith(
+                              fontSize: 36,
+                              color: const Color(0xFFFFFBEE),
+                            ),
+                      ),
+                      const SizedBox(height: 40),
+                      Container(
+                        width: 300,
+                        height: 80,
+                        child: ElevatedButton(
+                          onPressed: () => context.go('/classic/capture'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFFFFBEE),
+                            foregroundColor: const Color(0xFF76220B),
+                          ),
+                          child: Text(
+                            'Take Photos',
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // List<PhotoModel> sortedPhotos type
+              final List<PhotoModel> sortedPhotos = List.from(photoState.photos)
+                ..sort((a, b) => a.index.compareTo(b.index));
+
+              return Column(
+                children: [
+                  // Header with back button and title
+                  Row(
+                    children: [
+                      // Back button
+                      Container(
+                        width: 60,
+                        height: 60,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFBEE),
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: IconButton(
+                          onPressed: () => context.go('/classic/filter'),
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Color(0xFF76220B),
+                            size: 28,
+                          ),
+                        ),
+                      ),
+
+                      const Spacer(),
+
+                      // Title section
+                      Column(
+                        children: [
+                          Text(
+                            'Organize & Frame',
+                            style: TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFFFFBEE),
+                            ),
+                          ),
+                          Text(
+                            'Arrange your photos and choose a frame',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: const Color(0xFFFFFBEE).withOpacity(0.8),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const Spacer(),
+
+                      // Empty space for symmetry
+                      SizedBox(width: 60),
+                    ],
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  // Main content area
+                  Expanded(
+                    child: Row(
+                      children: [
+                        // Left panel - Photo organization
+                        Expanded(
+                          flex: 2,
+                          child: PhotoOrganizationPanel(
+                            sortedPhotos: sortedPhotos,
+                            onReorder: (oldIndex, newIndex) async {
+                              if (oldIndex < newIndex) {
+                                newIndex -= 1;
+                              }
+
+                              final items = List<PhotoModel>.from(sortedPhotos);
+                              final item = items.removeAt(oldIndex);
+                              items.insert(newIndex, item);
+
+                              await ref
+                                  .read(photoProvider.notifier)
+                                  .reorderPhotos(items);
+                            },
+                          ),
+                        ),
+
+                        const SizedBox(width: 32),
+
+                        // Middle panel - Frame selection
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            padding: const EdgeInsets.all(32),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF76220B),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Frame selection header
+                                Text(
+                                  'Select Frame',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFFFFFBEE),
+                                      ),
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Dynamic frame selector
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    child: _buildFrameSelector(photoState),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 24),
+
+                                // Proceed button
+                                Container(
+                                  width: double.infinity,
+                                  height: 80,
+                                  child: ElevatedButton(
+                                    onPressed: _isGeneratingPdf
+                                        ? null
+                                        : _proceedToPrint,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: _isGeneratingPdf
+                                          ? const Color(
+                                              0xFFFFFBEE,
+                                            ).withOpacity(0.5)
+                                          : const Color(0xFFFFFBEE),
+                                      foregroundColor: _isGeneratingPdf
+                                          ? const Color(
+                                              0xFF76220B,
+                                            ).withOpacity(0.5)
+                                          : const Color(0xFF76220B),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      shadowColor: Colors.transparent,
+                                    ),
+                                    child: _isGeneratingPdf
+                                        ? Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              SizedBox(
+                                                width: 32,
+                                                height: 32,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 3,
+                                                      color: const Color(
+                                                        0xFF76220B,
+                                                      ).withOpacity(0.5),
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 20),
+                                              Text(
+                                                'Generating...',
+                                                style: TextStyle(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.print_rounded,
+                                                size: 32,
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Text(
+                                                'Proceed to Print',
+                                                style: TextStyle(
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(width: 32),
+
+                        // Right panel - Frame preview
+                        Expanded(
+                          flex: 3,
+                          child: Container(
+                            padding: const EdgeInsets.all(32),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF76220B),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Frame Preview header
+                                Text(
+                                  'Preview',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFFFFFBEE),
+                                      ),
+                                ),
+                                const SizedBox(height: 24),
+
+                                Expanded(
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withOpacity(0.1),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(20),
+                                      child: _buildFramePreview(photoState),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: Color(0xFFFFFBEE)),
+            ),
+            error: (error, stack) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error, size: 80, color: const Color(0xFFFFFBEE)),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Error: $error',
+                    style: TextStyle(color: const Color(0xFFFFFBEE)),
+                  ),
+                  const SizedBox(height: 32),
+                  Container(
+                    width: 300,
+                    height: 80,
+                    child: ElevatedButton(
+                      onPressed: () => context.go('/classic/print'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFFBEE),
+                        foregroundColor: const Color(0xFF76220B),
+                      ),
+                      child: Text(
+                        'Skip to Print',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildFrameSelector(PhotoState photoState) {
     final availableFrames = _availableFrames;
 
@@ -119,13 +477,13 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.error.withOpacity(0.1),
+          color: const Color(0xFFFFFBEE).withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           'No frames available for ${layoutMode == 2 ? "2x2" : "4x4"} layout',
           style: TextStyle(
-            color: Theme.of(context).colorScheme.error,
+            color: const Color(0xFFFFFBEE),
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -138,61 +496,74 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: isSelected
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                : Colors.transparent,
+                ? const Color(0xFFFFFBEE)
+                : const Color(0xFF5A1908),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outline,
-              width: isSelected ? 2 : 1,
-            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-          child: Row(
-            children: [
-              Radio<String>(
-                value: frame.id,
-                groupValue: _selectedFrame,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedFrame = value;
-                    });
-                  }
-                },
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(20),
+              leading: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected
+                      ? const Color(0xFFFFFBEE)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFF76220B)
+                        : const Color(0xFFFFFBEE),
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? Icon(
+                        Icons.check,
+                        size: 16,
+                        color: const Color(0xFF76220B),
+                      )
+                    : null,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      frame.name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      frame.description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 14,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
+              title: Text(
+                frame.name,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? const Color(0xFF76220B)
+                      : const Color(0xFFFFFBEE),
                 ),
               ),
-            ],
+              subtitle: Text(
+                frame.description,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontSize: 16,
+                  color: isSelected
+                      ? const Color(0xFF76220B).withOpacity(0.8)
+                      : const Color(0xFFFFFBEE).withOpacity(0.8),
+                ),
+              ),
+              onTap: () {
+                setState(() {
+                  _selectedFrame = frame.id;
+                });
+              },
+            ),
           ),
         );
       }).toList(),
@@ -208,301 +579,5 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
 
     // Use the frame factory to create the preview widget
     return FrameFactory.createFrameWidget(frameDefinition);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final photoStateAsync = ref.watch(photoProvider);
-
-    return ScreenContainer(
-      child: photoStateAsync.when(
-        data: (photoState) {
-          if (photoState.photos.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.photo_library_outlined,
-                    size: 100,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.4),
-                  ),
-                  const SizedBox(height: 30),
-                  Text(
-                    'No photos available',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.headlineLarge?.copyWith(fontSize: 36),
-                  ),
-                  const SizedBox(height: 40),
-                  Container(
-                    width: 300,
-                    height: 80,
-                    child: ElevatedButton(
-                      onPressed: () => context.go('/classic/capture'),
-                      child: Text(
-                        'Take Photos',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          // List<PhotoModel> sortedPhotos type
-          final List<PhotoModel> sortedPhotos = List.from(photoState.photos)
-            ..sort((a, b) => a.index.compareTo(b.index));
-
-          return Column(
-            children: [
-              // Header
-              ScreenHeader(
-                title: 'Organize & Frame',
-                subtitle: 'Arrange your photos and choose a frame',
-                backRoute: '/classic/filter',
-              ),
-
-              const SizedBox(height: 40),
-
-              // Main content area
-              Expanded(
-                child: Row(
-                  children: [
-                    // Left panel - Photo organization
-                    Expanded(
-                      flex: 2,
-                      child: PhotoOrganizationPanel(
-                        sortedPhotos: sortedPhotos,
-                        onReorder: (oldIndex, newIndex) async {
-                          if (oldIndex < newIndex) {
-                            newIndex -= 1;
-                          }
-
-                          final items = List<PhotoModel>.from(sortedPhotos);
-                          final item = items.removeAt(oldIndex);
-                          items.insert(newIndex, item);
-
-                          await ref
-                              .read(photoProvider.notifier)
-                              .reorderPhotos(items);
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(width: 24),
-
-                    // Middle panel - Frame selection
-                    Expanded(
-                      flex: 2,
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Frame selection header
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.crop_free_rounded,
-                                  size: 32,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                const SizedBox(width: 16),
-                                Text(
-                                  'Select Frame',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium
-                                      ?.copyWith(
-                                        fontSize: 28,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                ),
-                              ],
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            // Dynamic frame selector
-                            Expanded(
-                              child: SingleChildScrollView(
-                                child: _buildFrameSelector(photoState),
-                              ),
-                            ),
-
-                            const SizedBox(height: 24),
-
-                            // Proceed button
-                            Container(
-                              width: double.infinity,
-                              height: 80,
-                              child: ElevatedButton(
-                                onPressed: _isGeneratingPdf
-                                    ? null
-                                    : _proceedToPrint,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.primary,
-                                  foregroundColor: Theme.of(
-                                    context,
-                                  ).colorScheme.onPrimary,
-                                  elevation: 4,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                                child: _isGeneratingPdf
-                                    ? Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: 32,
-                                            height: 32,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 3,
-                                              color: Theme.of(
-                                                context,
-                                              ).colorScheme.onPrimary,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 20),
-                                          Text(
-                                            'Generating...',
-                                            style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.print_rounded, size: 32),
-                                          const SizedBox(width: 16),
-                                          Text(
-                                            'Proceed to Print',
-                                            style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 24),
-
-                    // Right panel - Frame preview
-                    Expanded(
-                      flex: 3,
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Frame Preview header
-                            Text(
-                              'Preview',
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            Expanded(
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.outline,
-                                    width: 2,
-                                  ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(18),
-                                  child: _buildFramePreview(photoState),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.error,
-                size: 80,
-                color: Theme.of(context).colorScheme.error,
-              ),
-              const SizedBox(height: 24),
-              Text('Error: $error'),
-              const SizedBox(height: 32),
-              Container(
-                width: 300,
-                height: 80,
-                child: ElevatedButton(
-                  onPressed: () => context.go('/classic/print'),
-                  child: Text(
-                    'Skip to Print',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

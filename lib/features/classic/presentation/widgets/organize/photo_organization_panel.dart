@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
+import 'package:photocafe_windows/core/colors/colors.dart';
 
 class PhotoOrganizationPanel extends StatelessWidget {
   final List<PhotoModel> sortedPhotos;
@@ -17,29 +18,19 @@ class PhotoOrganizationPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
+        color: const Color(0xFF76220B),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.drag_indicator_rounded,
-                size: 32,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-              const SizedBox(width: 16),
-              Text(
-                'Drag to Reorder Photos',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
+          Text(
+            'Drag to Reorder Photos',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              fontSize: 32,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFFFFFBEE),
+            ),
           ),
           const SizedBox(height: 24),
 
@@ -54,8 +45,8 @@ class PhotoOrganizationPanel extends StatelessWidget {
                   key: ValueKey(photo.index),
                   margin: const EdgeInsets.only(bottom: 20),
                   child: Card(
-                    elevation: 6,
-                    shadowColor: Colors.black.withOpacity(0.2),
+                    elevation: 0,
+                    color: const Color(0xFF5A1908),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -70,10 +61,6 @@ class PhotoOrganizationPanel extends StatelessWidget {
                             height: 100,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.outline,
-                                width: 2,
-                              ),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.1),
@@ -83,7 +70,7 @@ class PhotoOrganizationPanel extends StatelessWidget {
                               ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(16),
                               child: Image.file(
                                 File(photo.imagePath),
                                 fit: BoxFit.cover,
@@ -105,6 +92,7 @@ class PhotoOrganizationPanel extends StatelessWidget {
                                       ?.copyWith(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 24,
+                                        color: const Color(0xFFFFFBEE),
                                       ),
                                 ),
                                 const SizedBox(height: 8),
@@ -114,9 +102,9 @@ class PhotoOrganizationPanel extends StatelessWidget {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.primary.withOpacity(0.1),
+                                    color: const Color(
+                                      0xFFFFFBEE,
+                                    ).withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Text(
@@ -127,9 +115,7 @@ class PhotoOrganizationPanel extends StatelessWidget {
                                         ?.copyWith(
                                           fontSize: 18,
                                           fontWeight: FontWeight.w600,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.primary,
+                                          color: const Color(0xFFFFFBEE),
                                         ),
                                   ),
                                 ),

@@ -645,6 +645,139 @@ class FrameConstants {
     topOffset: 14,
     frameAssetPath: 'assets/frames/frame9.png',
   );
+
+  static const fourFrameTen = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 10,
+        top: 1,
+        width: 130,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 10,
+        top: 115,
+        width: 130,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 10,
+        top: 233,
+        width: 130,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 10,
+        top: 346,
+        width: 130,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 164,
+        top: 1,
+        width: 130,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 164,
+        top: 115,
+        width: 130,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 164,
+        top: 233,
+        width: 130,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 164,
+        top: 346,
+        width: 130,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame11.png',
+  );
+
+  static const fourFrameEleven = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 3.5,
+        top: 5.5,
+        width: 154,
+        height: 104,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 3.5,
+        top: 104,
+        width: 154,
+        height: 104,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 3.5,
+        top: 209,
+        width: 154,
+        height: 104,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 3.5,
+        top: 315,
+        width: 154,
+        height: 104,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 150,
+        top: 5.5,
+        width: 154,
+        height: 104,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 150,
+        top: 104,
+        width: 154,
+        height: 104,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 150,
+        top: 209,
+        width: 154,
+        height: 104,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 150,
+        top: 315,
+        width: 154,
+        height: 104,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame10.png',
+  );
+
   // Frame Definitions
 
   // 4 by 4
@@ -727,6 +860,24 @@ class FrameConstants {
     description: 'A frame with a classic design',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameNine},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameTen = FrameDefinition(
+    id: '4by4_frame_ten',
+    name: 'CPUR Frame',
+    description: 'A frame in collaboration with CPUR',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameTen},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameEleven = FrameDefinition(
+    id: '4by4_frame_eleven',
+    name: 'CPU Prelim Frame',
+    description: 'A frame to give you good luck for your prelims!',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameEleven},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -1024,6 +1175,8 @@ class FrameConstants {
     fourByFourFrameSeven,
     fourByFourFrameEight,
     fourByFourFrameNine,
+    fourByFourFrameTen,
+    fourByFourFrameEleven,
     twoByTwoFrameOne,
     twoByTwoFrameTwo,
     twoByTwoFrameThree,
