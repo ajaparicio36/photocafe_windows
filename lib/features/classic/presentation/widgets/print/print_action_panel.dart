@@ -357,353 +357,365 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
         color: const Color(0xFF76220B),
         borderRadius: BorderRadius.circular(24),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Choose Action',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-              fontSize: 32,
-              color: const Color(0xFFFFFBEE),
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 32),
-
-          // Print button
-          Container(
-            width: double.infinity,
-            height: 120,
-            margin: const EdgeInsets.only(bottom: 24),
-            child: ElevatedButton(
-              onPressed: (widget.isPrinting || _isProcessingSoftCopies)
-                  ? null
-                  : () => widget.onPrint(_copies),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.isPrinting
-                    ? const Color(0xFFFFFBEE).withOpacity(0.5)
-                    : const Color(0xFFFFFBEE),
-                foregroundColor: widget.isPrinting
-                    ? const Color(0xFF76220B).withOpacity(0.5)
-                    : const Color(0xFF76220B),
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                ),
+      child: Material(
+        color: Colors.transparent,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Choose Action',
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontSize: 32,
+                color: const Color(0xFFFFFBEE),
+                fontWeight: FontWeight.bold,
               ),
-              child: widget.isPrinting
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 4,
-                            color: const Color(0xFF76220B).withOpacity(0.5),
-                          ),
-                        ),
-                        const SizedBox(width: 24),
-                        Text(
-                          'Printing...',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.print_rounded, size: 48),
-                        const SizedBox(width: 20),
-                        Text(
-                          'Print Photos',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
             ),
-          ),
+            const SizedBox(height: 32),
 
-          // Number of copies
-          Container(
-            margin: const EdgeInsets.only(bottom: 24),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: const Color(0xFF5A1908),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Number of Copies',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 20,
-                    color: const Color(0xFFFFFBEE),
+            // Print button
+            Container(
+              width: double.infinity,
+              height: 120,
+              margin: const EdgeInsets.only(bottom: 24),
+              child: ElevatedButton(
+                onPressed: (widget.isPrinting || _isProcessingSoftCopies)
+                    ? null
+                    : () => widget.onPrint(_copies),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.isPrinting
+                      ? const Color(0xFFFFFBEE).withOpacity(0.5)
+                      : const Color(0xFFFFFBEE),
+                  foregroundColor: widget.isPrinting
+                      ? const Color(0xFF76220B).withOpacity(0.5)
+                      : const Color(0xFF76220B),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(24),
                   ),
                 ),
-                const SizedBox(width: 16),
-                Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color:
-                            (widget.isPrinting ||
-                                _isProcessingSoftCopies ||
-                                _copies <= 1)
-                            ? const Color(0xFF5A1908)
-                            : const Color(0xFFFFFBEE),
-                        borderRadius: BorderRadius.circular(16),
+                child: widget.isPrinting
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 40,
+                            height: 40,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 4,
+                              color: const Color(0xFF76220B).withOpacity(0.5),
+                            ),
+                          ),
+                          const SizedBox(width: 24),
+                          Text(
+                            'Printing...',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.print_rounded, size: 48),
+                          const SizedBox(width: 20),
+                          Text(
+                            'Print Photos',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
                       ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.remove_circle_outline_rounded,
+              ),
+            ),
+
+            // Number of copies
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: const Color(0xFF5A1908),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Number of Copies',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                      color: const Color(0xFFFFFBEE),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Row(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
                           color:
                               (widget.isPrinting ||
                                   _isProcessingSoftCopies ||
                                   _copies <= 1)
-                              ? const Color(0xFFFFFBEE).withOpacity(0.5)
-                              : const Color(0xFF76220B),
+                              ? const Color(0xFF5A1908)
+                              : const Color(0xFFFFFBEE),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        onPressed:
-                            (widget.isPrinting ||
-                                _isProcessingSoftCopies ||
-                                _copies <= 1)
-                            ? null
-                            : () => setState(() => _copies--),
-                        iconSize: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '$_copies',
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFFFFFBEE),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.remove_circle_outline_rounded,
+                            color:
+                                (widget.isPrinting ||
+                                    _isProcessingSoftCopies ||
+                                    _copies <= 1)
+                                ? const Color(0xFFFFFBEE).withOpacity(0.5)
+                                : const Color(0xFF76220B),
                           ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: (widget.isPrinting || _isProcessingSoftCopies)
-                            ? const Color(0xFF5A1908)
-                            : const Color(0xFFFFFBEE),
-                        borderRadius: BorderRadius.circular(16),
+                          onPressed:
+                              (widget.isPrinting ||
+                                  _isProcessingSoftCopies ||
+                                  _copies <= 1)
+                              ? null
+                              : () => setState(() => _copies--),
+                          iconSize: 32,
+                        ),
                       ),
-                      child: IconButton(
-                        icon: Icon(
-                          Icons.add_circle_outline_rounded,
+                      const SizedBox(width: 8),
+                      Text(
+                        '$_copies',
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFFFFBEE),
+                            ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        decoration: BoxDecoration(
                           color: (widget.isPrinting || _isProcessingSoftCopies)
-                              ? const Color(0xFFFFFBEE).withOpacity(0.5)
-                              : const Color(0xFF76220B),
+                              ? const Color(0xFF5A1908)
+                              : const Color(0xFFFFFBEE),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        onPressed:
-                            (widget.isPrinting || _isProcessingSoftCopies)
-                            ? null
-                            : () => setState(() => _copies++),
-                        iconSize: 32,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Split strips toggle
-          Container(
-            margin: const EdgeInsets.only(bottom: 24),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              color: const Color(0xFF5A1908),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Split into Strips',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                          color: const Color(0xFFFFFBEE),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Prints two identical strips (requires cutter)',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontSize: 16,
-                          color: const Color(0xFFFFFBEE).withOpacity(0.7),
+                        child: IconButton(
+                          icon: Icon(
+                            Icons.add_circle_outline_rounded,
+                            color:
+                                (widget.isPrinting || _isProcessingSoftCopies)
+                                ? const Color(0xFFFFFBEE).withOpacity(0.5)
+                                : const Color(0xFF76220B),
+                          ),
+                          onPressed:
+                              (widget.isPrinting || _isProcessingSoftCopies)
+                              ? null
+                              : () => setState(() => _copies++),
+                          iconSize: 32,
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 16),
-                Switch(
-                  value: widget.splitStrips,
-                  onChanged: (widget.isPrinting || _isProcessingSoftCopies)
-                      ? null
-                      : widget.onSplitStripsChanged,
-                  activeColor: const Color(0xFFFFFBEE),
-                  activeTrackColor: const Color(0xFFFFFBEE).withOpacity(0.5),
-                  inactiveThumbColor: const Color(0xFFFFFBEE).withOpacity(0.7),
-                  inactiveTrackColor: const Color(0xFFFFFBEE).withOpacity(0.3),
-                ),
-              ],
-            ),
-          ),
-
-          // Soft copies button with progress
-          Container(
-            width: double.infinity,
-            constraints: BoxConstraints(
-              minHeight: 100,
-              maxHeight: _isProcessingSoftCopies ? 160 : 100,
-            ),
-            margin: const EdgeInsets.only(bottom: 24),
-            child: OutlinedButton(
-              onPressed: (widget.isPrinting || _isProcessingSoftCopies)
-                  ? null
-                  : _handleSoftCopies,
-              style: OutlinedButton.styleFrom(
-                backgroundColor: const Color(0xFF5A1908),
-                side: BorderSide.none,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
+                ],
               ),
-              child: _isProcessingSoftCopies
-                  ? Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: 32,
-                                height: 32,
-                                child: CircularProgressIndicator(
-                                  value: _processingProgress,
-                                  strokeWidth: 4,
-                                  color: const Color(0xFFFFFBEE),
-                                ),
+            ),
+
+            // Split strips toggle
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: const Color(0xFF5A1908),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Split into Strips',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: const Color(0xFFFFFBEE),
                               ),
-                              const SizedBox(width: 16),
-                              Text(
-                                'Processing...',
-                                style: TextStyle(
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFFFFFBEE),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Flexible(
-                            child: Text(
-                              _processingStatus,
-                              style: TextStyle(
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Prints two identical strips (requires cutter)',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
                                 fontSize: 16,
                                 color: const Color(0xFFFFFBEE).withOpacity(0.7),
                               ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Switch(
+                    value: widget.splitStrips,
+                    onChanged: (widget.isPrinting || _isProcessingSoftCopies)
+                        ? null
+                        : widget.onSplitStripsChanged,
+                    activeColor: const Color(0xFFFFFBEE),
+                    activeTrackColor: const Color(0xFFFFFBEE).withOpacity(0.5),
+                    inactiveThumbColor: const Color(
+                      0xFFFFFBEE,
+                    ).withOpacity(0.7),
+                    inactiveTrackColor: const Color(
+                      0xFFFFFBEE,
+                    ).withOpacity(0.3),
+                  ),
+                ],
+              ),
+            ),
+
+            // Soft copies button with progress
+            Container(
+              width: double.infinity,
+              constraints: BoxConstraints(
+                minHeight: 100,
+                maxHeight: _isProcessingSoftCopies ? 160 : 100,
+              ),
+              margin: const EdgeInsets.only(bottom: 24),
+              child: OutlinedButton(
+                onPressed: (widget.isPrinting || _isProcessingSoftCopies)
+                    ? null
+                    : _handleSoftCopies,
+                style: OutlinedButton.styleFrom(
+                  backgroundColor: const Color(0xFF5A1908),
+                  side: BorderSide.none,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: _isProcessingSoftCopies
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: 32,
+                                  height: 32,
+                                  child: CircularProgressIndicator(
+                                    value: _processingProgress,
+                                    strokeWidth: 4,
+                                    color: const Color(0xFFFFFBEE),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Text(
+                                  'Processing...',
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFFFFFBEE),
+                                  ),
+                                ),
+                              ],
                             ),
+                            const SizedBox(height: 12),
+                            Flexible(
+                              child: Text(
+                                _processingStatus,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: const Color(
+                                    0xFFFFFBEE,
+                                  ).withOpacity(0.7),
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '${(_processingProgress * 100).toInt()}%',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFFFFBEE),
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.download_rounded,
+                            size: 40,
+                            color: const Color(0xFFFFFBEE),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(width: 16),
                           Text(
-                            '${(_processingProgress * 100).toInt()}%',
+                            'Get Soft Copies',
                             style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w600,
                               color: const Color(0xFFFFFBEE),
                             ),
                           ),
                         ],
                       ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.download_rounded,
-                          size: 40,
-                          color: const Color(0xFFFFFBEE),
-                        ),
-                        const SizedBox(width: 16),
-                        Text(
-                          'Get Soft Copies',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFFFFFBEE),
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-
-          const Spacer(),
-
-          // Start over button
-          Container(
-            width: double.infinity,
-            height: 100,
-            child: TextButton(
-              onPressed: (widget.isPrinting || _isProcessingSoftCopies)
-                  ? null
-                  : () {
-                      ref.read(photoProvider.notifier).clearAllPhotos();
-                      context.go('/');
-                    },
-              style: TextButton.styleFrom(
-                backgroundColor: const Color(0xFF5A1908),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.refresh_rounded,
-                    size: 36,
-                    color: const Color(0xFFFFFBEE).withOpacity(0.7),
+            ),
+
+            const Spacer(),
+
+            // Start over button
+            Container(
+              width: double.infinity,
+              height: 100,
+              child: TextButton(
+                onPressed: (widget.isPrinting || _isProcessingSoftCopies)
+                    ? null
+                    : () {
+                        ref.read(photoProvider.notifier).clearAllPhotos();
+                        context.go('/');
+                      },
+                style: TextButton.styleFrom(
+                  backgroundColor: const Color(0xFF5A1908),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  const SizedBox(width: 16),
-                  Text(
-                    'Start Over',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.refresh_rounded,
+                      size: 36,
                       color: const Color(0xFFFFFBEE).withOpacity(0.7),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 16),
+                    Text(
+                      'Start Over',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFFFFFBEE).withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

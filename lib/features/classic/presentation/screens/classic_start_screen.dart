@@ -157,9 +157,10 @@ class ClassicStartScreen extends ConsumerWidget {
                         Text(
                           'Setting up photo session...',
                           style: TextStyle(
+                            fontFamily: 'LeagueSpartan',
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFFFFFBEE),
+                            color: const Color(0xFF76220B),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -167,8 +168,9 @@ class ClassicStartScreen extends ConsumerWidget {
                         Text(
                           'Preparing ${layoutMode == 2 ? "Photo Box" : "Photo Strip"} layout',
                           style: TextStyle(
+                            fontFamily: 'LeagueSpartan',
                             fontSize: 14,
-                            color: const Color(0xFFFFFBEE).withOpacity(0.8),
+                            color: const Color(0xFF76220B).withOpacity(0.8),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -265,6 +267,7 @@ class ClassicStartScreen extends ConsumerWidget {
                           Text(
                             'Setup Failed',
                             style: TextStyle(
+                              fontFamily: 'LeagueSpartan',
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
@@ -275,6 +278,7 @@ class ClassicStartScreen extends ConsumerWidget {
                           Text(
                             'Error: $e',
                             style: TextStyle(
+                              fontFamily: 'LeagueSpartan',
                               fontSize: 14,
                               color: Colors.white.withOpacity(0.9),
                             ),
@@ -298,6 +302,7 @@ class ClassicStartScreen extends ConsumerWidget {
                               child: Text(
                                 'Try Again',
                                 style: TextStyle(
+                                  fontFamily: 'LeagueSpartan',
                                   fontSize: 16,
                                   fontWeight: FontWeight.w600,
                                 ),

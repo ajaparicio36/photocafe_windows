@@ -2,8 +2,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/widgets/frames/flipbook_frame_factory.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/constants/frame_constants.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
@@ -66,61 +64,76 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
 
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
-          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: isSelected
-                ? Theme.of(context).colorScheme.primary.withOpacity(0.1)
-                : Colors.transparent,
+                ? const Color(0xFFFFFBEE)
+                : const Color(0xFF5A1908),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.outline,
-              width: isSelected ? 2 : 1,
-            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
           ),
-          child: Row(
-            children: [
-              Radio<String>(
-                value: frame.id,
-                groupValue: _selectedFrame,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      _selectedFrame = value;
-                    });
-                  }
-                },
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(16),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(20),
+              leading: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: isSelected
+                      ? const Color(0xFFFFFBEE)
+                      : Colors.transparent,
+                  border: Border.all(
+                    color: isSelected
+                        ? const Color(0xFF76220B)
+                        : const Color(0xFFFFFBEE),
+                    width: 2,
+                  ),
+                ),
+                child: isSelected
+                    ? Icon(
+                        Icons.check,
+                        size: 16,
+                        color: const Color(0xFF76220B),
+                      )
+                    : null,
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      frame.name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: isSelected
-                            ? Theme.of(context).colorScheme.primary
-                            : null,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      frame.description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontSize: 14,
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
+              title: Text(
+                frame.name,
+                style: TextStyle(
+                  fontFamily: 'LeagueSpartan',
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? const Color(0xFF76220B)
+                      : const Color(0xFFFFFBEE),
                 ),
               ),
-            ],
+              subtitle: Text(
+                frame.description,
+                style: TextStyle(
+                  fontFamily: 'LeagueSpartan',
+                  fontSize: 16,
+                  color: isSelected
+                      ? const Color(0xFF76220B).withOpacity(0.8)
+                      : const Color(0xFFFFFBEE).withOpacity(0.8),
+                ),
+              ),
+              onTap: () {
+                setState(() {
+                  _selectedFrame = frame.id;
+                });
+              },
+            ),
           ),
         );
       }).toList(),
@@ -145,196 +158,328 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
   Widget build(BuildContext context) {
     final videoState = ref.watch(videoProvider);
 
-    return ScreenContainer(
-      child: Column(
-        children: [
-          ScreenHeader(
-            title: 'Apply a Frame',
-            subtitle: videoState.hasValue && videoState.value!.frames.isNotEmpty
-                ? 'Choose a frame for your ${videoState.value!.frames.length}-frame flipbook (${(videoState.value!.frames.length / 2).ceil()} pages)'
-                : 'Choose a frame for your flipbook pages',
-            backRoute: '/flipbook/filter',
-          ),
-          const SizedBox(height: 40),
-          Expanded(
-            child: Row(
-              children: [
-                // Left Panel: Frame Selection
-                Expanded(
-                  flex: 2,
-                  child: Container(
-                    padding: const EdgeInsets.all(32),
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(color: const Color(0xFF76220B)),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            children: [
+              // Header with back button
+              Row(
+                children: [
+                  // Back button
+                  Container(
+                    width: 60,
+                    height: 60,
                     decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outline,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.crop_free_rounded,
-                              size: 32,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            const SizedBox(width: 16),
-                            Text(
-                              'Select Frame',
-                              style: Theme.of(context).textTheme.headlineMedium
-                                  ?.copyWith(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Dynamic frame selector
-                        Expanded(
-                          child: SingleChildScrollView(
-                            child: _buildFrameSelector(),
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 80,
-                          child: ElevatedButton.icon(
-                            onPressed: _isGeneratingPdf
-                                ? null
-                                : _proceedToPrint,
-                            icon: _isGeneratingPdf
-                                ? const SizedBox.shrink()
-                                : const Icon(Icons.print_rounded, size: 32),
-                            label: _isGeneratingPdf
-                                ? const CircularProgressIndicator()
-                                : const Text(
-                                    'Proceed to Print',
-                                    style: TextStyle(
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Theme.of(
-                                context,
-                              ).colorScheme.primary,
-                              foregroundColor: Theme.of(
-                                context,
-                              ).colorScheme.onPrimary,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                          ),
+                      color: const Color(0xFFFFFBEE),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
-                  ),
-                ),
-                const SizedBox(width: 32),
-                // Right Panel: Preview
-                Expanded(
-                  flex: 3,
-                  child: Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(24),
-                      border: Border.all(
-                        color: Theme.of(context).colorScheme.outline,
+                    child: IconButton(
+                      onPressed: () => context.go('/flipbook/filter'),
+                      icon: const Icon(
+                        Icons.arrow_back_rounded,
+                        color: Color(0xFF76220B),
+                        size: 28,
                       ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Preview',
-                          style: Theme.of(context).textTheme.headlineMedium
-                              ?.copyWith(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                              ),
+                  ),
+
+                  const Spacer(),
+
+                  // Title section
+                  Column(
+                    children: [
+                      Text(
+                        'Apply Frame',
+                        style: TextStyle(
+                          fontFamily: 'LeagueSpartan',
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFFFFFBEE),
                         ),
-                        const SizedBox(height: 24),
-                        Expanded(
-                          child: Container(
-                            key: ValueKey('preview_wrapper_$_selectedFrame'),
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.outline,
-                                width: 2,
+                      ),
+                      Text(
+                        videoState.hasValue &&
+                                videoState.value!.frames.isNotEmpty
+                            ? 'Choose a frame for your ${videoState.value!.frames.length}-frame flipbook'
+                            : 'Choose a frame for your flipbook pages',
+                        style: TextStyle(
+                          fontFamily: 'LeagueSpartan',
+                          fontSize: 18,
+                          color: const Color(0xFFFFFBEE).withOpacity(0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const Spacer(),
+
+                  // Placeholder for symmetry
+                  const SizedBox(width: 60),
+                ],
+              ),
+
+              const SizedBox(height: 40),
+
+              // Main content area
+              Expanded(
+                child: Row(
+                  children: [
+                    // Left Panel: Frame Selection
+                    Expanded(
+                      flex: 2,
+                      child: Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF76220B),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Select Frame',
+                              style: TextStyle(
+                                fontFamily: 'LeagueSpartan',
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFFFFBEE),
                               ),
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.1),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
                             ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(18),
-                              child: videoState.when(
-                                data: (state) => state.frames.isNotEmpty
-                                    ? _buildFramePreview()
-                                    : const Center(
+                            const SizedBox(height: 24),
+
+                            // Dynamic frame selector
+                            Expanded(
+                              child: SingleChildScrollView(
+                                child: _buildFrameSelector(),
+                              ),
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Print button
+                            Container(
+                              width: double.infinity,
+                              height: 80,
+                              child: ElevatedButton(
+                                onPressed: _isGeneratingPdf
+                                    ? null
+                                    : _proceedToPrint,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: _isGeneratingPdf
+                                      ? const Color(0xFFFFFBEE).withOpacity(0.5)
+                                      : const Color(0xFFFFFBEE),
+                                  foregroundColor: _isGeneratingPdf
+                                      ? const Color(0xFF76220B).withOpacity(0.5)
+                                      : const Color(0xFF76220B),
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  shadowColor: Colors.transparent,
+                                ),
+                                child: _isGeneratingPdf
+                                    ? Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          SizedBox(
+                                            width: 32,
+                                            height: 32,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 3,
+                                              color: const Color(
+                                                0xFF76220B,
+                                              ).withOpacity(0.5),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 20),
+                                          Text(
+                                            'Generating PDF...',
+                                            style: TextStyle(
+                                              fontFamily: 'LeagueSpartan',
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      )
+                                    : Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.print_rounded, size: 32),
+                                          const SizedBox(width: 16),
+                                          Text(
+                                            'Proceed to Print',
+                                            style: TextStyle(
+                                              fontFamily: 'LeagueSpartan',
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 32),
+
+                    // Right Panel: Preview
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF76220B),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Preview',
+                              style: TextStyle(
+                                fontFamily: 'LeagueSpartan',
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFFFFBEE),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            Expanded(
+                              child: Container(
+                                key: ValueKey(
+                                  'preview_wrapper_$_selectedFrame',
+                                ),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: const Color(0xFFFFFBEE),
+                                    width: 4,
+                                  ),
+                                  borderRadius: BorderRadius.circular(20),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.1),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: videoState.when(
+                                    data: (state) => state.frames.isNotEmpty
+                                        ? _buildFramePreview()
+                                        : Container(
+                                            color: Colors.black,
+                                            child: Center(
+                                              child: Column(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  Icon(
+                                                    Icons
+                                                        .photo_library_outlined,
+                                                    size: 48,
+                                                    color: const Color(
+                                                      0xFFFFFBEE,
+                                                    ).withOpacity(0.4),
+                                                  ),
+                                                  const SizedBox(height: 16),
+                                                  Text(
+                                                    'No frames to preview',
+                                                    style: TextStyle(
+                                                      fontFamily:
+                                                          'LeagueSpartan',
+                                                      color: const Color(
+                                                        0xFFFFFBEE,
+                                                      ).withOpacity(0.6),
+                                                      fontSize: 18,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                    loading: () => Container(
+                                      color: Colors.black,
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            CircularProgressIndicator(
+                                              color: const Color(0xFFFFFBEE),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              'Loading frames...',
+                                              style: TextStyle(
+                                                fontFamily: 'LeagueSpartan',
+                                                color: const Color(0xFFFFFBEE),
+                                                fontSize: 18,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    error: (e, s) => Container(
+                                      color: Colors.black,
+                                      child: Center(
                                         child: Column(
                                           mainAxisAlignment:
                                               MainAxisAlignment.center,
                                           children: [
                                             Icon(
-                                              Icons.photo_library_outlined,
+                                              Icons.error,
                                               size: 48,
+                                              color: Colors.red.shade400,
                                             ),
-                                            SizedBox(height: 16),
-                                            Text('No frames to preview.'),
+                                            const SizedBox(height: 16),
+                                            Text(
+                                              'Error: $e',
+                                              style: TextStyle(
+                                                fontFamily: 'LeagueSpartan',
+                                                color: const Color(0xFFFFFBEE),
+                                                fontSize: 16,
+                                              ),
+                                              textAlign: TextAlign.center,
+                                            ),
                                           ],
                                         ),
                                       ),
-                                loading: () => const Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      CircularProgressIndicator(),
-                                      SizedBox(height: 16),
-                                      Text('Loading frames...'),
-                                    ],
-                                  ),
-                                ),
-                                error: (e, s) => Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.error,
-                                        size: 48,
-                                        color: Colors.red,
-                                      ),
-                                      const SizedBox(height: 16),
-                                      Text('Error: $e'),
-                                    ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
