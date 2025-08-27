@@ -86,6 +86,12 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/icons/choose_experience_button.png
+    - assets/icons/classic_button.png
+    - assets/icons/clickclick_logo.png
+    - assets/icons/flipbook_button.png
+    - assets/icons/photobox_button.png
+    - assets/icons/strip_button.png
     - assets/frames/frame1.png
     - assets/frames/frame2.png
     - assets/frames/frame3.png
@@ -95,6 +101,8 @@ flutter:
     - assets/frames/frame7.png
     - assets/frames/frame8.png
     - assets/frames/frame9.png
+    - assets/frames/frame10.png
+    - assets/frames/frame11.png
     - assets/frames/2by2_frame1.png
     - assets/frames/2by2_frame2.png
     - assets/frames/2by2_frame3.png
@@ -138,6 +146,10 @@ flutter:
   #       - asset: fonts/TrajanPro.ttf
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
+  fonts:
+    - family: LeagueSpartan
+      fonts:
+        - asset: assets/fonts/LeagueSpartan-VariableFont_wght.ttf
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
