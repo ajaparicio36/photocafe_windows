@@ -21,7 +21,7 @@ class ClassicPrintScreen extends ConsumerStatefulWidget {
 
 class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
   bool _isPrinting = false;
-  bool _splitStrips = false;
+  bool _splitStrips = true;
   Uint8List? _actualPdfBytes;
 
   @override

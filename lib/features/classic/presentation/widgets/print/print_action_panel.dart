@@ -177,7 +177,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                   child: Icon(
                     Icons.qr_code_2_rounded,
                     size: 60,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: Colors.black,
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -302,6 +302,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                         child: Text(
                           'Close',
                           style: TextStyle(
+                            color: Colors.black,
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
