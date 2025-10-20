@@ -112,6 +112,19 @@ flutter:
     - assets/frames/2by2_frame4.png
     - assets/frames/2by2_frame5.png
     - assets/frames/2by2_frame6.png
+    - assets/frames/2by2_frame7.png
+    - assets/frames/2by2_frame8.png
+    - assets/frames/2by2_frame9.png
+    - assets/frames/2by2_frame10.png
+    - assets/frames/2by2_frame11.png
+    - assets/frames/2by2_frame12.png
+    - assets/frames/2by2_frame13.png
+    - assets/frames/2by2_frame14.png
+    - assets/frames/hori_one.png
+    - assets/frames/hori_two.png
+    - assets/frames/hori_three.png
+    - assets/frames/hori_four.png
+    - assets/frames/hori_five.png
     - assets/frames/test.jpg
     - assets/flipbook/frame1.png
     - assets/flipbook/frame2.png
@@ -153,6 +166,16 @@ flutter:
     - family: LeagueSpartan
       fonts:
         - asset: assets/fonts/LeagueSpartan-VariableFont_wght.ttf
+    - family: SpaceMono
+      fonts:
+        - asset: assets/fonts/SpaceMono-Regular.ttf
+        - asset: assets/fonts/SpaceMono-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/SpaceMono-Italic.ttf
+          style: italic
+        - asset: assets/fonts/SpaceMono-BoldItalic.ttf
+          weight: 700
+          style: italic
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
