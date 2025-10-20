@@ -14,7 +14,12 @@ class ClassicStartScreen extends ConsumerWidget {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        color: const Color(0xFF76220B), // Warm brown background
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/design/start/start_bg.png'),
+            fit: BoxFit.fill,
+          ),
+        ),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.all(40),
@@ -27,7 +32,7 @@ class ClassicStartScreen extends ConsumerWidget {
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFBEE),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(30),
                       boxShadow: [
                         BoxShadow(
@@ -41,62 +46,57 @@ class ClassicStartScreen extends ConsumerWidget {
                       onPressed: () => context.go('/'),
                       icon: const Icon(
                         Icons.arrow_back_rounded,
-                        color: Color(0xFF76220B),
+                        color: Color(0xFF740000),
                         size: 28,
                       ),
                     ),
                   ),
                 ),
 
+                const Spacer(),
+
+                // Photo options - horizontally aligned buttons
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      // Portrait Strips button (left)
+                      _buildPhotoOption(
+                        context,
+                        ref,
+                        assetPath: 'assets/design/start/start_strips.png',
+                        layoutMode: 4,
+                        isLandscape: false,
+                      ),
+
+                      const SizedBox(width: 40),
+
+                      // Photo Box button (middle)
+                      _buildPhotoOption(
+                        context,
+                        ref,
+                        assetPath: 'assets/design/start/start_box.png',
+                        layoutMode: 2,
+                        isLandscape: false,
+                      ),
+
+                      const SizedBox(width: 40),
+
+                      // Landscape Strips button (right)
+                      _buildPhotoOption(
+                        context,
+                        ref,
+                        assetPath: 'assets/design/start/start_landscape.png',
+                        layoutMode: 4,
+                        isLandscape: true,
+                      ),
+                    ],
+                  ),
+                ),
+
                 const SizedBox(height: 60),
-
-                // Logo
-                Container(
-                  height: 120,
-                  child: Image.asset(
-                    'assets/icons/clickclick_logo.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-
-                const SizedBox(height: 80),
-
-                // Classic Mode Header Button
-                GestureDetector(
-                  child: Container(
-                    height: 120,
-                    child: Image.asset(
-                      'assets/icons/classic_mode_button.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 100),
-
-                // Photo options
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Photo Box option
-                    _buildPhotoOption(
-                      context,
-                      ref,
-                      assetPath: 'assets/icons/photobox_button.png',
-                      layoutMode: 2,
-                    ),
-
-                    const SizedBox(width: 60),
-
-                    // Photo Strip option
-                    _buildPhotoOption(
-                      context,
-                      ref,
-                      assetPath: 'assets/icons/strip_button.png',
-                      layoutMode: 4,
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
@@ -110,6 +110,7 @@ class ClassicStartScreen extends ConsumerWidget {
     WidgetRef ref, {
     required String assetPath,
     required int layoutMode,
+    required bool isLandscape,
   }) {
     return Expanded(
       child: GestureDetector(
@@ -126,7 +127,7 @@ class ClassicStartScreen extends ConsumerWidget {
                     width: 300,
                     padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFFBEE),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
@@ -143,12 +144,12 @@ class ClassicStartScreen extends ConsumerWidget {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFBEE),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(40),
                           ),
                           child: const Center(
                             child: CircularProgressIndicator(
-                              color: Color(0xFF76220B),
+                              color: Color(0xFF740000),
                               strokeWidth: 4,
                             ),
                           ),
@@ -160,17 +161,21 @@ class ClassicStartScreen extends ConsumerWidget {
                             fontFamily: 'LeagueSpartan',
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF76220B),
+                            color: const Color(0xFF740000),
                           ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Preparing ${layoutMode == 2 ? "Photo Box" : "Photo Strip"} layout',
+                          'Preparing ${layoutMode == 2
+                              ? "Photo Box"
+                              : isLandscape
+                              ? "Landscape Strip"
+                              : "Portrait Strip"} layout',
                           style: TextStyle(
                             fontFamily: 'LeagueSpartan',
                             fontSize: 14,
-                            color: const Color(0xFF76220B).withOpacity(0.8),
+                            color: const Color(0xFF740000).withOpacity(0.8),
                           ),
                           textAlign: TextAlign.center,
                         ),
@@ -192,6 +197,10 @@ class ClassicStartScreen extends ConsumerWidget {
             await printerNotifier.setLayoutMode(layoutMode);
             print('Layout mode set to: $layoutMode');
 
+            // Set landscape orientation if applicable
+            await printerNotifier.setLandscapeOrientation(isLandscape);
+            print('Landscape orientation set to: $isLandscape');
+
             // Always set capture count to 4 (layout only affects arrangement)
             await photoNotifier.setCaptureCount(4);
             print('Capture count set to: 4 (always capture 4 photos)');
@@ -201,7 +210,7 @@ class ClassicStartScreen extends ConsumerWidget {
             final printerState = ref.read(printerProvider).value;
 
             print(
-              'Setup verified - Capture count: ${photoState?.captureCount}, Layout mode: ${printerState?.layoutMode}',
+              'Setup verified - Capture count: ${photoState?.captureCount}, Layout mode: ${printerState?.layoutMode}, Landscape: ${printerState?.isLandscape}',
             );
 
             if (photoState?.captureCount != 4) {
@@ -318,12 +327,7 @@ class ClassicStartScreen extends ConsumerWidget {
             }
           }
         },
-        child: Container(
-          color: AppColors.lightCard,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          height: 400,
-          child: Image.asset(assetPath, fit: BoxFit.contain),
-        ),
+        child: Image.asset(assetPath, fit: BoxFit.contain),
       ),
     );
   }

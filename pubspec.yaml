@@ -87,6 +87,13 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/design/home/home_bg.png
+    - assets/design/home/home_classic.png
+    - assets/design/home/home_flipbook.png
+    - assets/design/start/start_bg.png
+    - assets/design/start/start_box.png
+    - assets/design/start/start_landscape.png
+    - assets/design/start/start_strips.png
     - assets/icons/choose_experience_button.png
     - assets/icons/classic_button.png
     - assets/icons/clickclick_logo.png

@@ -27,6 +27,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     final videoCameraName = prefs.getString('videoCameraName');
     final layoutMode = prefs.getInt('layoutMode') ?? 4; // Default to 4x4
     final isFullscreen = prefs.getBool('isFullscreen') ?? false;
+    final isLandscape = prefs.getBool('isLandscape') ?? false;
 
     return PrinterState(
       cutEnabledPrinter: availablePrinters.contains(cutEnabledPrinter)
@@ -42,6 +43,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
       videoCameraName: videoCameraName,
       layoutMode: layoutMode,
       isFullscreen: isFullscreen,
+      isLandscape: isLandscape,
     );
   }
 
@@ -155,6 +157,18 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
         }
 
         return state.value!.copyWith(isFullscreen: isFullscreen, error: null);
+      } catch (e) {
+        return state.value!.copyWith(error: e.toString());
+      }
+    });
+  }
+
+  Future<void> setLandscapeOrientation(bool isLandscape) async {
+    state = await AsyncValue.guard(() async {
+      try {
+        final prefs = await _prefs;
+        await prefs.setBool('isLandscape', isLandscape);
+        return state.value!.copyWith(isLandscape: isLandscape, error: null);
       } catch (e) {
         return state.value!.copyWith(error: e.toString());
       }

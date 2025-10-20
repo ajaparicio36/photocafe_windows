@@ -15,6 +15,7 @@ _PrinterState _$PrinterStateFromJson(Map<String, dynamic> json) =>
       videoCameraName: json['videoCameraName'] as String?,
       layoutMode: (json['layoutMode'] as num?)?.toInt() ?? 2,
       isFullscreen: json['isFullscreen'] as bool? ?? false,
+      isLandscape: json['isLandscape'] as bool? ?? false,
       error: json['error'] as String?,
     );
 
@@ -27,5 +28,6 @@ Map<String, dynamic> _$PrinterStateToJson(_PrinterState instance) =>
       'videoCameraName': instance.videoCameraName,
       'layoutMode': instance.layoutMode,
       'isFullscreen': instance.isFullscreen,
+      'isLandscape': instance.isLandscape,
       'error': instance.error,
     };
