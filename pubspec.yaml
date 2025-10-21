@@ -87,6 +87,11 @@ flutter:
   uses-material-design: true
   assets:
     - .env
+    - assets/design/background.png
+    - assets/design/flipbook-filters/filters_doll.png
+    - assets/design/flipbook-filters/filters-preview.png
+    - assets/design/flipbook-filters/filters_title.png
+    - assets/design/flipbook-filters/filters_preview.png
     - assets/design/home/home_bg.png
     - assets/design/home/home_classic.png
     - assets/design/home/home_flipbook.png
@@ -94,6 +99,8 @@ flutter:
     - assets/design/start/start_box.png
     - assets/design/start/start_landscape.png
     - assets/design/start/start_strips.png
+    - assets/design/frames/frames_preview.png
+    - assets/design/frames/frames_title.png
     - assets/icons/choose_experience_button.png
     - assets/icons/classic_button.png
     - assets/icons/clickclick_logo.png

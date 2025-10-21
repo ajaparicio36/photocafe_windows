@@ -115,7 +115,12 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: BoxDecoration(color: const Color(0xFF76220B)),
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/design/background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(40),
@@ -128,30 +133,32 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                         width: 120,
                         height: 120,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFFBEE).withOpacity(0.2),
+                          color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(60),
                         ),
                         child: Icon(
                           Icons.error_rounded,
                           size: 60,
-                          color: const Color(0xFFFFFBEE),
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(height: 30),
                       Text(
                         'No PDF Available',
-                        style: Theme.of(context).textTheme.headlineLarge
-                            ?.copyWith(
-                              fontSize: 36,
-                              color: const Color(0xFFFFFBEE),
-                            ),
+                        style: TextStyle(
+                          fontFamily: 'SpaceMono',
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         'Please go back and generate the PDF first.',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        style: TextStyle(
+                          fontFamily: 'SpaceMono',
                           fontSize: 20,
-                          color: const Color(0xFFFFFBEE).withOpacity(0.7),
+                          color: Colors.white.withOpacity(0.7),
                         ),
                       ),
                       const SizedBox(height: 40),
@@ -161,16 +168,17 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                         child: ElevatedButton(
                           onPressed: () => context.go('/classic/organize'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFFBEE),
-                            foregroundColor: const Color(0xFF76220B),
+                            backgroundColor: Colors.white,
+                            foregroundColor: Color(0xFF740000),
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                           ),
                           child: Text(
                             'Go Back',
                             style: TextStyle(
+                              fontFamily: 'SpaceMono',
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
@@ -190,7 +198,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                           width: 60,
                           height: 60,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFFFBEE),
+                            color: Colors.white,
                             borderRadius: BorderRadius.circular(30),
                             boxShadow: [
                               BoxShadow(
@@ -204,7 +212,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                             onPressed: () => context.go('/classic/organize'),
                             icon: const Icon(
                               Icons.arrow_back_rounded,
-                              color: Color(0xFF76220B),
+                              color: Color(0xFF740000),
                               size: 28,
                             ),
                           ),
@@ -216,18 +224,20 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                         Column(
                           children: [
                             Text(
-                              'Print Preview',
+                              'PRINT PREVIEW',
                               style: TextStyle(
+                                fontFamily: 'SpaceMono',
                                 fontSize: 36,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFFFFFBEE),
+                                color: Colors.white,
                               ),
                             ),
                             Text(
                               'Review your photo strip before printing',
                               style: TextStyle(
+                                fontFamily: 'SpaceMono',
                                 fontSize: 18,
-                                color: const Color(0xFFFFFBEE).withOpacity(0.8),
+                                color: Colors.white.withOpacity(0.8),
                               ),
                             ),
                           ],
@@ -270,22 +280,20 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                             child: Container(
                               padding: const EdgeInsets.all(32),
                               decoration: BoxDecoration(
-                                color: const Color(0xFF76220B),
+                                color: Color(0xFF740000).withOpacity(0.5),
                                 borderRadius: BorderRadius.circular(24),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Final Preview',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .headlineMedium
-                                        ?.copyWith(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFFFFFBEE),
-                                        ),
+                                    'FINAL PREVIEW',
+                                    style: TextStyle(
+                                      fontFamily: 'SpaceMono',
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                   const SizedBox(height: 24),
 
@@ -297,7 +305,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                                         boxShadow: [
                                           BoxShadow(
                                             color: Colors.black.withOpacity(
-                                              0.1,
+                                              0.2,
                                             ),
                                             blurRadius: 15,
                                             offset: const Offset(0, 5),
@@ -314,7 +322,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                                           allowSharing: false,
                                           useActions: false,
                                           scrollViewDecoration: BoxDecoration(
-                                            color: Colors.grey[50],
+                                            color: Colors.white,
                                           ),
                                         ),
                                       ),
@@ -327,32 +335,30 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(20),
                                     decoration: BoxDecoration(
-                                      color: const Color(
-                                        0xFFFFFBEE,
-                                      ).withOpacity(0.1),
+                                      color: Colors.white.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(
+                                        color: Colors.white,
+                                        width: 2,
+                                      ),
                                     ),
                                     child: Row(
                                       children: [
                                         Icon(
                                           Icons.info_outline_rounded,
                                           size: 28,
-                                          color: const Color(0xFFFFFBEE),
+                                          color: Colors.white,
                                         ),
                                         const SizedBox(width: 16),
                                         Expanded(
                                           child: Text(
                                             'This is how your photo strip will look when printed',
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .bodyLarge
-                                                ?.copyWith(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: const Color(
-                                                    0xFFFFFBEE,
-                                                  ),
-                                                ),
+                                            style: TextStyle(
+                                              fontFamily: 'SpaceMono',
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.white,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -379,7 +385,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         contentPadding: const EdgeInsets.all(32),
-        backgroundColor: const Color(0xFFFFFBEE),
+        backgroundColor: Colors.white,
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -387,31 +393,33 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
               width: 100,
               height: 100,
               decoration: BoxDecoration(
-                color: const Color(0xFF76220B).withOpacity(0.1),
+                color: Color(0xFF740000).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(50),
               ),
               child: Icon(
                 Icons.check_circle_rounded,
                 size: 60,
-                color: const Color(0xFF76220B),
+                color: Color(0xFF740000),
               ),
             ),
             const SizedBox(height: 24),
             Text(
               'Print Complete!',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              style: TextStyle(
+                fontFamily: 'SpaceMono',
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF76220B),
+                color: Color(0xFF740000),
               ),
             ),
             const SizedBox(height: 16),
             Text(
               'Your photos have been printed successfully.\nThank you for using Click Click Photobooth!',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              style: TextStyle(
+                fontFamily: 'SpaceMono',
                 fontSize: 18,
-                color: const Color(0xFF76220B).withOpacity(0.7),
+                color: Color(0xFF740000).withOpacity(0.7),
               ),
             ),
             const SizedBox(height: 32),
@@ -425,8 +433,8 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                   context.go('/');
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF76220B),
-                  foregroundColor: const Color(0xFFFFFBEE),
+                  backgroundColor: Color(0xFF740000),
+                  foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -434,7 +442,11 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                 ),
                 child: Text(
                   'Start Over',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontFamily: 'SpaceMono',
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ),

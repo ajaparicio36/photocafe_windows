@@ -116,7 +116,12 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: BoxDecoration(color: const Color(0xFF76220B)),
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/design/background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(40),
@@ -130,16 +135,17 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                       Icon(
                         Icons.photo_library_outlined,
                         size: 100,
-                        color: const Color(0xFFFFFBEE).withOpacity(0.4),
+                        color: Colors.white.withOpacity(0.4),
                       ),
                       const SizedBox(height: 30),
                       Text(
                         'No photos available',
-                        style: Theme.of(context).textTheme.headlineLarge
-                            ?.copyWith(
-                              fontSize: 36,
-                              color: const Color(0xFFFFFBEE),
-                            ),
+                        style: TextStyle(
+                          fontFamily: 'SpaceMono',
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       const SizedBox(height: 40),
                       Container(
@@ -148,12 +154,16 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                         child: ElevatedButton(
                           onPressed: () => context.go('/classic/capture'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFFFFBEE),
-                            foregroundColor: const Color(0xFF76220B),
+                            backgroundColor: Colors.white,
+                            foregroundColor: Color(0xFF740000),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                           ),
                           child: Text(
                             'Take Photos',
                             style: TextStyle(
+                              fontFamily: 'SpaceMono',
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
@@ -165,7 +175,6 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                 );
               }
 
-              // List<PhotoModel> sortedPhotos type
               final List<PhotoModel> sortedPhotos = List.from(photoState.photos)
                 ..sort((a, b) => a.index.compareTo(b.index));
 
@@ -179,7 +188,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                         width: 60,
                         height: 60,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFFFBEE),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(30),
                           boxShadow: [
                             BoxShadow(
@@ -193,7 +202,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                           onPressed: () => context.go('/classic/filter'),
                           icon: const Icon(
                             Icons.arrow_back_rounded,
-                            color: Color(0xFF76220B),
+                            color: Color(0xFF740000),
                             size: 28,
                           ),
                         ),
@@ -201,25 +210,11 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
 
                       const Spacer(),
 
-                      // Title section
-                      Column(
-                        children: [
-                          Text(
-                            'Organize & Frame',
-                            style: TextStyle(
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFFFFFBEE),
-                            ),
-                          ),
-                          Text(
-                            'Arrange your photos and choose a frame',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: const Color(0xFFFFFBEE).withOpacity(0.8),
-                            ),
-                          ),
-                        ],
+                      // Title image
+                      Image.asset(
+                        'assets/design/frames/frames_title.png',
+                        height: 80,
+                        fit: BoxFit.contain,
                       ),
 
                       const Spacer(),
@@ -263,24 +258,18 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                           flex: 2,
                           child: Container(
                             padding: const EdgeInsets.all(32),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF76220B),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // Frame selection header
                                 Text(
-                                  'Select Frame',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium
-                                      ?.copyWith(
-                                        fontSize: 32,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFFFFFBEE),
-                                      ),
+                                  'SELECT FRAME',
+                                  style: TextStyle(
+                                    fontFamily: 'SpaceMono',
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
                                 ),
 
                                 const SizedBox(height: 24),
@@ -304,15 +293,11 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                                         : _proceedToPrint,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: _isGeneratingPdf
-                                          ? const Color(
-                                              0xFFFFFBEE,
-                                            ).withOpacity(0.5)
-                                          : const Color(0xFFFFFBEE),
+                                          ? Colors.white.withOpacity(0.5)
+                                          : Colors.white,
                                       foregroundColor: _isGeneratingPdf
-                                          ? const Color(
-                                              0xFF76220B,
-                                            ).withOpacity(0.5)
-                                          : const Color(0xFF76220B),
+                                          ? Color(0xFF740000).withOpacity(0.5)
+                                          : Color(0xFF740000),
                                       elevation: 0,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(20),
@@ -330,8 +315,8 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                                                 child:
                                                     CircularProgressIndicator(
                                                       strokeWidth: 3,
-                                                      color: const Color(
-                                                        0xFF76220B,
+                                                      color: Color(
+                                                        0xFF740000,
                                                       ).withOpacity(0.5),
                                                     ),
                                               ),
@@ -339,6 +324,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                                               Text(
                                                 'Generating...',
                                                 style: TextStyle(
+                                                  fontFamily: 'SpaceMono',
                                                   fontSize: 24,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -357,6 +343,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                                               Text(
                                                 'Proceed to Print',
                                                 style: TextStyle(
+                                                  fontFamily: 'SpaceMono',
                                                   fontSize: 24,
                                                   fontWeight: FontWeight.bold,
                                                 ),
@@ -375,49 +362,76 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                         // Right panel - Frame preview
                         Expanded(
                           flex: 3,
-                          child: Container(
-                            padding: const EdgeInsets.all(32),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF76220B),
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                // Frame Preview header
-                                Text(
-                                  'Preview',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium
-                                      ?.copyWith(
+                          child: Stack(
+                            children: [
+                              // Background image
+                              Positioned.fill(
+                                left: 100,
+                                right: 60,
+                                child: Image.asset(
+                                  'assets/design/frames/frames_preview.png',
+                                  fit: BoxFit.fill,
+                                ),
+                              ),
+                              // Content
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 70,
+                                  right: 30,
+                                  top: 70,
+                                  bottom: 130,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Frame Preview header
+                                    Text(
+                                      'PREVIEW',
+                                      style: TextStyle(
+                                        fontFamily: 'SpaceMono',
                                         fontSize: 32,
                                         fontWeight: FontWeight.bold,
-                                        color: const Color(0xFFFFFBEE),
+                                        color: Colors.white,
                                       ),
-                                ),
-                                const SizedBox(height: 24),
+                                    ),
+                                    const SizedBox(height: 140),
 
-                                Expanded(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(20),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.1),
-                                          blurRadius: 10,
-                                          offset: const Offset(0, 4),
+                                    Expanded(
+                                      child: Center(
+                                        child: AspectRatio(
+                                          aspectRatio: 4 / 6,
+                                          child: FractionallySizedBox(
+                                            widthFactor: 1.4,
+                                            heightFactor: 1.35,
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: Colors.black
+                                                        .withOpacity(0.2),
+                                                    blurRadius: 15,
+                                                    offset: const Offset(0, 8),
+                                                  ),
+                                                ],
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                child: _buildFramePreview(
+                                                  photoState,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                      ],
+                                      ),
                                     ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(20),
-                                      child: _buildFramePreview(photoState),
-                                    ),
-                                  ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -427,17 +441,20 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
               );
             },
             loading: () => const Center(
-              child: CircularProgressIndicator(color: Color(0xFFFFFBEE)),
+              child: CircularProgressIndicator(color: Colors.white),
             ),
             error: (error, stack) => Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error, size: 80, color: const Color(0xFFFFFBEE)),
+                  Icon(Icons.error, size: 80, color: Colors.white),
                   const SizedBox(height: 24),
                   Text(
                     'Error: $error',
-                    style: TextStyle(color: const Color(0xFFFFFBEE)),
+                    style: TextStyle(
+                      fontFamily: 'SpaceMono',
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(height: 32),
                   Container(
@@ -446,12 +463,13 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                     child: ElevatedButton(
                       onPressed: () => context.go('/classic/print'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFFFFFBEE),
-                        foregroundColor: const Color(0xFF76220B),
+                        backgroundColor: Colors.white,
+                        foregroundColor: Color(0xFF740000),
                       ),
                       child: Text(
                         'Skip to Print',
                         style: TextStyle(
+                          fontFamily: 'SpaceMono',
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
@@ -477,13 +495,14 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
       return Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFBEE).withOpacity(0.1),
+          color: Colors.white.withOpacity(0.1),
           borderRadius: BorderRadius.circular(12),
         ),
         child: Text(
           'No frames available for ${layoutMode == 2 ? "2x2" : "4x4"} layout',
           style: TextStyle(
-            color: const Color(0xFFFFFBEE),
+            fontFamily: 'SpaceMono',
+            color: Colors.white,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -498,9 +517,10 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: isSelected
-                ? const Color(0xFFFFFBEE)
-                : const Color(0xFF5A1908),
+                ? Colors.white
+                : Color(0xFF740000).withOpacity(0.5),
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white, width: 2),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
@@ -521,41 +541,33 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                 height: 24,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected
-                      ? const Color(0xFFFFFBEE)
-                      : Colors.transparent,
+                  color: isSelected ? Colors.white : Colors.transparent,
                   border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF76220B)
-                        : const Color(0xFFFFFBEE),
+                    color: isSelected ? Color(0xFF740000) : Colors.white,
                     width: 2,
                   ),
                 ),
                 child: isSelected
-                    ? Icon(
-                        Icons.check,
-                        size: 16,
-                        color: const Color(0xFF76220B),
-                      )
+                    ? Icon(Icons.check, size: 16, color: Color(0xFF740000))
                     : null,
               ),
               title: Text(
                 frame.name,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                style: TextStyle(
+                  fontFamily: 'SpaceMono',
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
-                  color: isSelected
-                      ? const Color(0xFF76220B)
-                      : const Color(0xFFFFFBEE),
+                  color: isSelected ? Color(0xFF740000) : Colors.white,
                 ),
               ),
               subtitle: Text(
                 frame.description,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                style: TextStyle(
+                  fontFamily: 'SpaceMono',
                   fontSize: 16,
                   color: isSelected
-                      ? const Color(0xFF76220B).withOpacity(0.8)
-                      : const Color(0xFFFFFBEE).withOpacity(0.8),
+                      ? Color(0xFF740000).withOpacity(0.8)
+                      : Colors.white.withOpacity(0.8),
                 ),
               ),
               onTap: () {

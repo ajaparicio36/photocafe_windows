@@ -355,7 +355,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: const Color(0xFF76220B),
+        color: Color(0xFF740000).withOpacity(0.5),
         borderRadius: BorderRadius.circular(24),
       ),
       child: Material(
@@ -366,8 +366,9 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
             Text(
               'Choose Action',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                fontFamily: 'SpaceMono',
                 fontSize: 32,
-                color: const Color(0xFFFFFBEE),
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -384,14 +385,14 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                     : () => widget.onPrint(_copies),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: widget.isPrinting
-                      ? const Color(0xFFFFFBEE).withOpacity(0.5)
-                      : const Color(0xFFFFFBEE),
+                      ? Colors.white.withOpacity(0.5)
+                      : Colors.white,
                   foregroundColor: widget.isPrinting
-                      ? const Color(0xFF76220B).withOpacity(0.5)
-                      : const Color(0xFF76220B),
+                      ? Color(0xFF740000).withOpacity(0.5)
+                      : Color(0xFF740000),
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(20),
                   ),
                 ),
                 child: widget.isPrinting
@@ -403,13 +404,14 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                             height: 40,
                             child: CircularProgressIndicator(
                               strokeWidth: 4,
-                              color: const Color(0xFF76220B).withOpacity(0.5),
+                              color: Color(0xFF740000).withOpacity(0.5),
                             ),
                           ),
                           const SizedBox(width: 24),
                           Text(
                             'Printing...',
                             style: TextStyle(
+                              fontFamily: 'SpaceMono',
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
                             ),
@@ -424,6 +426,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                           Text(
                             'Print Photos',
                             style: TextStyle(
+                              fontFamily: 'SpaceMono',
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
                             ),
@@ -439,7 +442,8 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: const Color(0xFF5A1908),
+                color: Color(0xFF740000).withOpacity(0.7),
+                border: Border.all(color: Colors.white, width: 2),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -447,9 +451,10 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                   Text(
                     'Number of Copies',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      fontFamily: 'SpaceMono',
                       fontWeight: FontWeight.bold,
                       fontSize: 20,
-                      color: const Color(0xFFFFFBEE),
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(width: 16),
@@ -461,8 +466,8 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                               (widget.isPrinting ||
                                   _isProcessingSoftCopies ||
                                   _copies <= 1)
-                              ? const Color(0xFF5A1908)
-                              : const Color(0xFFFFFBEE),
+                              ? Color(0xFF740000).withOpacity(0.5)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: IconButton(
@@ -472,8 +477,8 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                                 (widget.isPrinting ||
                                     _isProcessingSoftCopies ||
                                     _copies <= 1)
-                                ? const Color(0xFFFFFBEE).withOpacity(0.5)
-                                : const Color(0xFF76220B),
+                                ? Colors.white.withOpacity(0.5)
+                                : Color(0xFF740000),
                           ),
                           onPressed:
                               (widget.isPrinting ||
@@ -489,16 +494,17 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                         '$_copies',
                         style: Theme.of(context).textTheme.headlineSmall
                             ?.copyWith(
+                              fontFamily: 'SpaceMono',
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFFFFFBEE),
+                              color: Colors.white,
                             ),
                       ),
                       const SizedBox(width: 8),
                       Container(
                         decoration: BoxDecoration(
                           color: (widget.isPrinting || _isProcessingSoftCopies)
-                              ? const Color(0xFF5A1908)
-                              : const Color(0xFFFFFBEE),
+                              ? Color(0xFF740000).withOpacity(0.5)
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: IconButton(
@@ -506,8 +512,8 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                             Icons.add_circle_outline_rounded,
                             color:
                                 (widget.isPrinting || _isProcessingSoftCopies)
-                                ? const Color(0xFFFFFBEE).withOpacity(0.5)
-                                : const Color(0xFF76220B),
+                                ? Colors.white.withOpacity(0.5)
+                                : Color(0xFF740000),
                           ),
                           onPressed:
                               (widget.isPrinting || _isProcessingSoftCopies)
@@ -528,7 +534,8 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: const Color(0xFF5A1908),
+                color: Color(0xFF740000).withOpacity(0.7),
+                border: Border.all(color: Colors.white, width: 2),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -541,9 +548,10 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                           'Split into Strips',
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
+                                fontFamily: 'SpaceMono',
                                 fontWeight: FontWeight.bold,
                                 fontSize: 20,
-                                color: const Color(0xFFFFFBEE),
+                                color: Colors.white,
                               ),
                         ),
                         const SizedBox(height: 4),
@@ -551,8 +559,9 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                           'Prints two identical strips (requires cutter)',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
+                                fontFamily: 'SpaceMono',
                                 fontSize: 16,
-                                color: const Color(0xFFFFFBEE).withOpacity(0.7),
+                                color: Colors.white.withOpacity(0.7),
                               ),
                         ),
                       ],
@@ -564,14 +573,10 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                     onChanged: (widget.isPrinting || _isProcessingSoftCopies)
                         ? null
                         : widget.onSplitStripsChanged,
-                    activeColor: const Color(0xFFFFFBEE),
-                    activeTrackColor: const Color(0xFFFFFBEE).withOpacity(0.5),
-                    inactiveThumbColor: const Color(
-                      0xFFFFFBEE,
-                    ).withOpacity(0.7),
-                    inactiveTrackColor: const Color(
-                      0xFFFFFBEE,
-                    ).withOpacity(0.3),
+                    activeColor: Colors.white,
+                    activeTrackColor: Colors.white.withOpacity(0.5),
+                    inactiveThumbColor: Colors.white.withOpacity(0.7),
+                    inactiveTrackColor: Colors.white.withOpacity(0.3),
                   ),
                 ],
               ),
@@ -590,8 +595,8 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                     ? null
                     : _handleSoftCopies,
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: const Color(0xFF5A1908),
-                  side: BorderSide.none,
+                  backgroundColor: Color(0xFF740000).withOpacity(0.7),
+                  side: BorderSide(color: Colors.white, width: 2),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
@@ -612,16 +617,17 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                                   child: CircularProgressIndicator(
                                     value: _processingProgress,
                                     strokeWidth: 4,
-                                    color: const Color(0xFFFFFBEE),
+                                    color: Colors.white,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
                                 Text(
                                   'Processing...',
                                   style: TextStyle(
+                                    fontFamily: 'SpaceMono',
                                     fontSize: 22,
                                     fontWeight: FontWeight.w600,
-                                    color: const Color(0xFFFFFBEE),
+                                    color: Colors.white,
                                   ),
                                 ),
                               ],
@@ -631,10 +637,9 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                               child: Text(
                                 _processingStatus,
                                 style: TextStyle(
+                                  fontFamily: 'SpaceMono',
                                   fontSize: 16,
-                                  color: const Color(
-                                    0xFFFFFBEE,
-                                  ).withOpacity(0.7),
+                                  color: Colors.white.withOpacity(0.7),
                                 ),
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
@@ -645,9 +650,10 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                             Text(
                               '${(_processingProgress * 100).toInt()}%',
                               style: TextStyle(
+                                fontFamily: 'SpaceMono',
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFFFFFBEE),
+                                color: Colors.white,
                               ),
                             ),
                           ],
@@ -659,15 +665,16 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                           Icon(
                             Icons.download_rounded,
                             size: 40,
-                            color: const Color(0xFFFFFBEE),
+                            color: Colors.white,
                           ),
                           const SizedBox(width: 16),
                           Text(
                             'Get Soft Copies',
                             style: TextStyle(
+                              fontFamily: 'SpaceMono',
                               fontSize: 24,
                               fontWeight: FontWeight.w600,
-                              color: const Color(0xFFFFFBEE),
+                              color: Colors.white,
                             ),
                           ),
                         ],
@@ -689,10 +696,11 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                         context.go('/');
                       },
                 style: TextButton.styleFrom(
-                  backgroundColor: const Color(0xFF5A1908),
+                  backgroundColor: Color(0xFF740000).withOpacity(0.7),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
+                  side: BorderSide(color: Colors.white, width: 2),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -700,15 +708,16 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                     Icon(
                       Icons.refresh_rounded,
                       size: 36,
-                      color: const Color(0xFFFFFBEE).withOpacity(0.7),
+                      color: Colors.white.withOpacity(0.7),
                     ),
                     const SizedBox(width: 16),
                     Text(
                       'Start Over',
                       style: TextStyle(
+                        fontFamily: 'SpaceMono',
                         fontSize: 22,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFFFFFBEE).withOpacity(0.7),
+                        color: Colors.white.withOpacity(0.7),
                       ),
                     ),
                   ],

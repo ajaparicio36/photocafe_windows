@@ -17,19 +17,16 @@ class PhotoOrganizationPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: const Color(0xFF76220B),
-        borderRadius: BorderRadius.circular(24),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Drag to Reorder Photos',
-            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            'DRAG TO REORDER PHOTOS',
+            style: TextStyle(
+              fontFamily: 'SpaceMono',
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: const Color(0xFFFFFBEE),
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 24),
@@ -46,9 +43,10 @@ class PhotoOrganizationPanel extends StatelessWidget {
                   margin: const EdgeInsets.only(bottom: 20),
                   child: Card(
                     elevation: 0,
-                    color: const Color(0xFF5A1908),
+                    color: Color(0xFF740000).withOpacity(0.5),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20),
+                      side: BorderSide(color: Colors.white, width: 2),
                     ),
                     child: Container(
                       height: 140,
@@ -61,6 +59,7 @@ class PhotoOrganizationPanel extends StatelessWidget {
                             height: 100,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.1),
@@ -70,7 +69,7 @@ class PhotoOrganizationPanel extends StatelessWidget {
                               ],
                             ),
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(14),
                               child: Image.file(
                                 File(photo.imagePath),
                                 fit: BoxFit.cover,
@@ -88,12 +87,12 @@ class PhotoOrganizationPanel extends StatelessWidget {
                               children: [
                                 Text(
                                   'Photo ${index + 1}',
-                                  style: Theme.of(context).textTheme.bodyLarge
-                                      ?.copyWith(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 24,
-                                        color: const Color(0xFFFFFBEE),
-                                      ),
+                                  style: TextStyle(
+                                    fontFamily: 'SpaceMono',
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 24,
+                                    color: Colors.white,
+                                  ),
                                 ),
                                 const SizedBox(height: 8),
                                 Container(
@@ -102,21 +101,21 @@ class PhotoOrganizationPanel extends StatelessWidget {
                                     vertical: 6,
                                   ),
                                   decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFFFFFBEE,
-                                    ).withOpacity(0.1),
+                                    color: Colors.white.withOpacity(0.2),
                                     borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.white,
+                                      width: 1,
+                                    ),
                                   ),
                                   child: Text(
                                     'Position: ${photo.index + 1}',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.copyWith(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFFFFFBEE),
-                                        ),
+                                    style: TextStyle(
+                                      fontFamily: 'SpaceMono',
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ],
