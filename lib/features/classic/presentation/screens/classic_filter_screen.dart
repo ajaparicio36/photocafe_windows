@@ -711,7 +711,7 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
                                 // Preview background image
                                 Positioned.fill(
                                   child: Image.asset(
-                                    'assets/design/flipbook-filters/filters-preview.png',
+                                    'assets/design/flipbook-filters/classic-preview.png',
                                     fit: BoxFit
                                         .contain, // Changed from cover to contain
                                   ),

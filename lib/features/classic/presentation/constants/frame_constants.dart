@@ -1,4 +1,4 @@
-enum FrameLayoutType { twoPhotos, fourPhotos }
+enum FrameLayoutType { twoPhotos, fourPhotos, fourLandscapePhotos }
 
 class FramePhotoPosition {
   final double left;
@@ -1165,7 +1165,385 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/2by2_frame6.png',
   );
 
+  // Landscape Frame Layouts (for landscape mode - rotated 4x4)
+  static const landscapeFrameOne = FrameLayout(
+    type: FrameLayoutType.fourLandscapePhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 13,
+        top: 12,
+        width: 132,
+        height: 95,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 13,
+        top: 111.5,
+        width: 132,
+        height: 95,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 13,
+        top: 212,
+        width: 132,
+        height: 95,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 13,
+        top: 312,
+        width: 132,
+        height: 95,
+        rotationDegrees: -90,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 160,
+        top: 12,
+        width: 132,
+        height: 95,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 160,
+        top: 111.5,
+        width: 132,
+        height: 95,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 160,
+        top: 212,
+        width: 132,
+        height: 95,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 160,
+        top: 316,
+        width: 132,
+        height: 95,
+        rotationDegrees: -90,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/hori_one.png',
+  );
+
+  static const landscapeFrameTwo = FrameLayout(
+    type: FrameLayoutType.fourLandscapePhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 6.5,
+        top: 43,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 141,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 242,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 340,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158,
+        top: 43,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 141,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 242,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 340,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/hori_two.png',
+  );
+
+  static const landscapeFrameThree = FrameLayout(
+    type: FrameLayoutType.fourLandscapePhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 6.5,
+        top: 43,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 141,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 242,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 340,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158,
+        top: 43,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 141,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 242,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 340,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/hori_three.png',
+  );
+
+  static const landscapeFrameFour = FrameLayout(
+    type: FrameLayoutType.fourLandscapePhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 6.5,
+        top: 43,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 141,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 242,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 340,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158,
+        top: 43,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 141,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 242,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 340,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/hori_four.png',
+  );
+
+  static const landscapeFrameFive = FrameLayout(
+    type: FrameLayoutType.fourLandscapePhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 6.5,
+        top: 43,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 141,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 242,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 340,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158,
+        top: 43,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 141,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 242,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 340,
+        width: 140,
+        height: 100,
+        rotationDegrees: -90,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/hori_five.png',
+  );
+
+  // Landscape Frame Definitions
+  static const FrameDefinition landscapeFrameOneDefinition = FrameDefinition(
+    id: 'landscape_frame_one',
+    name: 'Landscape Frame One',
+    description: 'A landscape-oriented 4-photo layout',
+    supportedLayouts: [FrameLayoutType.fourLandscapePhotos],
+    layouts: {FrameLayoutType.fourLandscapePhotos: landscapeFrameOne},
+    previewWidgetName: 'LandscapeFramePreview',
+  );
+
+  static const FrameDefinition landscapeFrameTwoDefinition = FrameDefinition(
+    id: 'landscape_frame_two',
+    name: 'Landscape Frame Two',
+    description: 'A landscape-oriented 4-photo layout',
+    supportedLayouts: [FrameLayoutType.fourLandscapePhotos],
+    layouts: {FrameLayoutType.fourLandscapePhotos: landscapeFrameTwo},
+    previewWidgetName: 'LandscapeFramePreview',
+  );
+
+  static const FrameDefinition landscapeFrameThreeDefinition = FrameDefinition(
+    id: 'landscape_frame_three',
+    name: 'Landscape Frame Three',
+    description: 'A landscape-oriented 4-photo layout',
+    supportedLayouts: [FrameLayoutType.fourLandscapePhotos],
+    layouts: {FrameLayoutType.fourLandscapePhotos: landscapeFrameThree},
+    previewWidgetName: 'LandscapeFramePreview',
+  );
+
+  static const FrameDefinition landscapeFrameFourDefinition = FrameDefinition(
+    id: 'landscape_frame_four',
+    name: 'Landscape Frame Four',
+    description: 'A landscape-oriented 4-photo layout',
+    supportedLayouts: [FrameLayoutType.fourLandscapePhotos],
+    layouts: {FrameLayoutType.fourLandscapePhotos: landscapeFrameFour},
+    previewWidgetName: 'LandscapeFramePreview',
+  );
+
+  static const FrameDefinition landscapeFrameFiveDefinition = FrameDefinition(
+    id: 'landscape_frame_five',
+    name: 'Landscape Frame Five',
+    description: 'A landscape-oriented 4-photo layout',
+    supportedLayouts: [FrameLayoutType.fourLandscapePhotos],
+    layouts: {FrameLayoutType.fourLandscapePhotos: landscapeFrameFive},
+    previewWidgetName: 'LandscapeFramePreview',
+  );
+
   static List<FrameDefinition> get availableFrames => [
+    // ...existing frames...
     fourByFourFrame,
     fourByFourFrameTwo,
     fourByFourFrameThree,
@@ -1183,5 +1561,11 @@ class FrameConstants {
     twoByTwoFrameFour,
     twoByTwoFrameFive,
     twoByTwoFrameSix,
+    // Add landscape frames
+    landscapeFrameOneDefinition,
+    landscapeFrameTwoDefinition,
+    landscapeFrameThreeDefinition,
+    landscapeFrameFourDefinition,
+    landscapeFrameFiveDefinition,
   ];
 }

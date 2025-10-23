@@ -31,9 +31,14 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
     final printerState = ref.read(printerProvider).value;
     if (printerState == null) return [];
 
-    final currentLayout = printerState.layoutMode == 2
-        ? FrameLayoutType.twoPhotos
-        : FrameLayoutType.fourPhotos;
+    final FrameLayoutType currentLayout;
+    if (printerState.isLandscape) {
+      currentLayout = FrameLayoutType.fourLandscapePhotos;
+    } else if (printerState.layoutMode == 2) {
+      currentLayout = FrameLayoutType.twoPhotos;
+    } else {
+      currentLayout = FrameLayoutType.fourPhotos;
+    }
 
     return FrameConstants.availableFrames
         .where((frame) => frame.supportedLayouts.contains(currentLayout))
@@ -51,7 +56,11 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final printerState = ref.read(printerProvider).value;
-      if (printerState?.layoutMode == 2) {
+      if (printerState?.isLandscape == true) {
+        setState(() {
+          _selectedFrame = 'landscape_frame_one';
+        });
+      } else if (printerState?.layoutMode == 2) {
         setState(() {
           _selectedFrame = '2by2_frame_one';
         });
@@ -84,6 +93,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
       frameDefinition,
       photoState.photos,
       printerState.layoutMode, // Use layout mode instead of capture count
+      printerState.isLandscape, // Pass isLandscape flag
     );
   }
 
@@ -583,13 +593,22 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
   }
 
   Widget _buildFramePreview(PhotoState photoState) {
-    // Get the selected frame definition
+    final printerState = ref.read(printerProvider).value;
     final frameDefinition = FrameConstants.availableFrames.firstWhere(
       (frame) => frame.id == _selectedFrame,
       orElse: () => FrameConstants.availableFrames.first,
     );
 
-    // Use the frame factory to create the preview widget
-    return FrameFactory.createFrameWidget(frameDefinition);
+    final frameWidget = FrameFactory.createFrameWidget(frameDefinition);
+
+    // Rotate preview for landscape frames (similar to flipbook)
+    if (printerState?.isLandscape == true) {
+      return RotatedBox(
+        quarterTurns: 3, // 270 degrees clockwise = -90 degrees counterclockwise
+        child: frameWidget,
+      );
+    }
+
+    return frameWidget;
   }
 }

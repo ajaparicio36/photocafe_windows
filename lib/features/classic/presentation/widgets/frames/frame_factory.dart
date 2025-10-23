@@ -6,6 +6,7 @@ import 'package:photocafe_windows/features/classic/presentation/widgets/frames/b
 import 'package:photocafe_windows/features/classic/presentation/widgets/frames/classic_frame_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/frames/two_by_two_frame_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/frames/four_by_four_frame_widget.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/frames/landscape_frame_widget.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 
 class FrameFactory {
@@ -17,6 +18,8 @@ class FrameFactory {
         return TwoByTwoFrameWidget(frameDefinition: frameDefinition);
       case 'FourByFourFramePreview':
         return FourByFourFrameWidget(frameDefinition: frameDefinition);
+      case 'LandscapeFramePreview':
+        return LandscapeFrameWidget(frameDefinition: frameDefinition);
       default:
         return Container(
           decoration: BoxDecoration(
@@ -45,15 +48,23 @@ class FrameFactory {
     FrameDefinition frameDefinition,
     List<PhotoModel> photos,
     int layoutMode, // Changed from captureCount to layoutMode
+    bool isLandscape, // Add isLandscape parameter
   ) async {
-    final layoutType = layoutMode == 2
-        ? FrameLayoutType.twoPhotos
-        : FrameLayoutType.fourPhotos;
+    final FrameLayoutType layoutType;
+
+    if (layoutMode == 2) {
+      layoutType = FrameLayoutType.twoPhotos;
+    } else if (layoutMode == 4 && isLandscape) {
+      layoutType = FrameLayoutType.fourLandscapePhotos;
+    } else {
+      layoutType = FrameLayoutType.fourPhotos;
+    }
+
     final layout = frameDefinition.layouts[layoutType];
 
     if (layout == null) {
       throw Exception(
-        'Layout not supported for frame: ${frameDefinition.name}',
+        'Layout not supported for frame: ${frameDefinition.name}. Requested layout: $layoutType',
       );
     }
 
@@ -69,6 +80,8 @@ class FrameFactory {
         return TwoByTwoFrameWidget(frameDefinition: frameDefinition);
       case 'FourByFourFramePreview':
         return FourByFourFrameWidget(frameDefinition: frameDefinition);
+      case 'LandscapeFramePreview':
+        return LandscapeFrameWidget(frameDefinition: frameDefinition);
       default:
         return ClassicFrameWidget(frameDefinition: frameDefinition);
     }

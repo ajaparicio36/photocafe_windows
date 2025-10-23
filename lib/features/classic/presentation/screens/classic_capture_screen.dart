@@ -8,6 +8,7 @@ import 'package:photocafe_windows/features/photos/domain/data/providers/photo_no
 import 'package:photocafe_windows/core/colors/colors.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/camera_preview_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/2by2_camera_preview_widget.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/capture/landscape_camera_preview_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/capture_overlay.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/core/services/sound_service.dart';
@@ -263,19 +264,26 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       // Capture photo using photo camera controller
       if (_photoCameraController != null &&
           _photoCameraController!.value.isInitialized) {
-        // Get the current layout mode to determine aspect ratio
+        // Get the current layout mode and landscape orientation
         final printerStateAsync = ref.read(printerProvider);
         final layoutMode = printerStateAsync.hasValue
             ? printerStateAsync.value?.layoutMode ?? 4
             : 4;
+        final isLandscape = printerStateAsync.hasValue
+            ? printerStateAsync.value?.isLandscape ?? false
+            : false;
 
         // Capture with preview aspect ratio to avoid post-processing
         final image = await _photoCameraController!.takePicture();
         final photoFile = File(image.path);
         final imageBytes = await photoFile.readAsBytes();
 
-        // Pass the layout mode to determine processing approach
-        await photoNotifier.addPhoto(imageBytes, layoutMode: layoutMode);
+        // Pass the layout mode and landscape flag to determine processing approach
+        await photoNotifier.addPhoto(
+          imageBytes,
+          layoutMode: layoutMode,
+          isLandscape: isLandscape,
+        );
 
         // Clean up temporary file
         if (await photoFile.exists()) {
@@ -385,10 +393,10 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                   return printerStateAsync.when(
                     data: (printerState) {
                       print(
-                        'Building camera preview for layout mode: ${printerState.layoutMode}',
+                        'Building camera preview for layout mode: ${printerState.layoutMode}, landscape: ${printerState.isLandscape}',
                       );
 
-                      // Show 2x2 preview for layout mode 2, regular preview for layout mode 4
+                      // Show 2x2 preview for layout mode 2
                       if (printerState.layoutMode == 2) {
                         print(
                           'Using TwoByTwoCameraPreviewWidget for 2x2 layout',
@@ -397,7 +405,20 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                           isCameraInitialized: _isCameraInitialized,
                           cameraController: _photoCameraController,
                         );
-                      } else {
+                      }
+                      // Show landscape preview for layout mode 4 with landscape orientation
+                      else if (printerState.layoutMode == 4 &&
+                          printerState.isLandscape) {
+                        print(
+                          'Using LandscapeCameraPreviewWidget for landscape layout',
+                        );
+                        return LandscapeCameraPreviewWidget(
+                          isCameraInitialized: _isCameraInitialized,
+                          cameraController: _photoCameraController,
+                        );
+                      }
+                      // Default to regular 4x4 preview
+                      else {
                         print('Using CameraPreviewWidget for 4x4 layout');
                         return CameraPreviewWidget(
                           isCameraInitialized: _isCameraInitialized,

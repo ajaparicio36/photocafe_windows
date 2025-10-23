@@ -325,15 +325,23 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
-  Future<void> addPhoto(Uint8List imageBytes, {int layoutMode = 4}) async {
+  Future<void> addPhoto(
+    Uint8List imageBytes, {
+    int layoutMode = 4,
+    bool isLandscape = false,
+  }) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
         throw Exception("State is not available to add a photo.");
       }
 
-      // Minimal processing based on layout mode - just ensure correct aspect ratio
-      final processedImageBytes = await _processImageMinimal(imageBytes, layoutMode);
+      // Minimal processing based on layout mode and landscape flag - just ensure correct aspect ratio
+      final processedImageBytes = await _processImageMinimal(
+        imageBytes,
+        layoutMode,
+        isLandscape: isLandscape,
+      );
 
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final imagePath = p.join(currentState.tempPath, fileName);
@@ -357,24 +365,33 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     });
   }
 
-  Future<Uint8List> _processImageMinimal(Uint8List imageBytes, int layoutMode) async {
+  Future<Uint8List> _processImageMinimal(
+    Uint8List imageBytes,
+    int layoutMode, {
+    bool isLandscape = false,
+  }) async {
     try {
       return await Isolate.run(() async {
         try {
           final originalImage = img.decodeImage(imageBytes);
           if (originalImage == null) return imageBytes;
 
-          // Determine target aspect ratio based on layout mode
+          // Determine target aspect ratio based on layout mode and landscape flag
           double targetAspectRatio;
           int targetWidth, targetHeight;
-          
+
           if (layoutMode == 2) {
             // 2x2 mode: Portrait 5:6 aspect ratio
             targetAspectRatio = 5 / 6;
             targetWidth = 500;
             targetHeight = 600;
+          } else if (layoutMode == 4 && isLandscape) {
+            // 4x4 landscape mode: Portrait 3:4 aspect ratio (photos will be rotated in frame)
+            targetAspectRatio = 3 / 4;
+            targetWidth = 450;
+            targetHeight = 600;
           } else {
-            // 4x4 mode: Landscape 4:3 aspect ratio  
+            // 4x4 normal mode: Landscape 4:3 aspect ratio
             targetAspectRatio = 4 / 3;
             targetWidth = 600;
             targetHeight = 450;
@@ -388,7 +405,8 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
             // Significant aspect ratio difference, crop to match
             if (currentAspectRatio > targetAspectRatio) {
               // Image is wider, crop horizontally
-              final newWidth = (originalImage.height * targetAspectRatio).round();
+              final newWidth = (originalImage.height * targetAspectRatio)
+                  .round();
               final cropX = (originalImage.width - newWidth) ~/ 2;
               processedImage = img.copyCrop(
                 originalImage,
@@ -399,7 +417,8 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
               );
             } else {
               // Image is taller, crop vertically
-              final newHeight = (originalImage.width / targetAspectRatio).round();
+              final newHeight = (originalImage.width / targetAspectRatio)
+                  .round();
               final cropY = (originalImage.height - newHeight) ~/ 2;
               processedImage = img.copyCrop(
                 originalImage,
@@ -415,7 +434,8 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
           }
 
           // Only resize if image is significantly larger than target
-          if (processedImage.width > targetWidth * 2 || processedImage.height > targetHeight * 2) {
+          if (processedImage.width > targetWidth * 2 ||
+              processedImage.height > targetHeight * 2) {
             processedImage = img.copyResize(
               processedImage,
               width: targetWidth,

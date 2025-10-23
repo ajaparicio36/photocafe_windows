@@ -305,15 +305,24 @@ abstract class BaseFrameWidget extends ConsumerWidget {
       data: (photoState) {
         return printerStateAsync.when(
           data: (printerState) {
-            final currentLayoutType = printerState.layoutMode == 2
-                ? FrameLayoutType.twoPhotos
-                : FrameLayoutType.fourPhotos;
+            final FrameLayoutType currentLayoutType;
+
+            if (printerState.layoutMode == 2) {
+              currentLayoutType = FrameLayoutType.twoPhotos;
+            } else if (printerState.layoutMode == 4 &&
+                printerState.isLandscape) {
+              currentLayoutType = FrameLayoutType.fourLandscapePhotos;
+            } else {
+              currentLayoutType = FrameLayoutType.fourPhotos;
+            }
 
             final layout = frameDefinition.layouts[currentLayoutType];
 
             if (layout == null) {
-              return const Center(
-                child: Text('Layout not supported for this frame'),
+              return Center(
+                child: Text(
+                  'Layout not supported for this frame. Requested: $currentLayoutType',
+                ),
               );
             }
 
