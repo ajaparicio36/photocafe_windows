@@ -7,7 +7,9 @@ part 'video_state.g.dart';
 @freezed
 sealed class VideoState with _$VideoState {
   const factory VideoState({
-    String? videoPath,
+    String? videoPath, // Currently active video
+    required List<String> videoTakes, // List of all video take paths
+    int? selectedTakeIndex, // Index of the selected take
     required List<FrameModel> frames,
     required String tempPath,
     String? error,

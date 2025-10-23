@@ -269,21 +269,27 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
                 ),
               );
             } else if (snapshot.hasData) {
-              return PdfPreview(
-                key: ValueKey('preview_${frameDefinition.id}'),
-                build: (format) => snapshot.data!,
-                allowSharing: false,
-                allowPrinting: false,
-                canChangeOrientation: false,
-                canChangePageFormat: false,
-                canDebug: false,
-                useActions: false,
-                maxPageWidth: 700,
-                pdfPreviewPageDecoration: const BoxDecoration(
-                  color: Colors.white,
+              return Container(
+                width: double.infinity,
+                height: double.infinity,
+                child: PdfPreview(
+                  key: ValueKey('preview_${frameDefinition.id}'),
+                  build: (format) => snapshot.data!,
+                  allowSharing: false,
+                  allowPrinting: false,
+                  canChangeOrientation: false,
+                  canChangePageFormat: false,
+                  canDebug: false,
+                  useActions: false,
+                  pdfPreviewPageDecoration: const BoxDecoration(
+                    color: Colors.white,
+                  ),
+                  previewPageMargin: const EdgeInsets.all(4),
+                  padding: EdgeInsets.zero,
+                  scrollViewDecoration: const BoxDecoration(
+                    color: Colors.transparent,
+                  ),
                 ),
-                previewPageMargin: const EdgeInsets.all(4),
-                padding: EdgeInsets.zero,
               );
             } else if (snapshot.hasError) {
               return Center(

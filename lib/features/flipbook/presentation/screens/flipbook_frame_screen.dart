@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/widgets/frames/flipbook_frame_factory.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/constants/frame_constants.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
@@ -15,8 +16,9 @@ class FlipbookFrameScreen extends ConsumerStatefulWidget {
 }
 
 class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
-  String _selectedFrame = 'standard_frame'; // Default to standard frame
+  String _selectedFrame = 'standard_frame';
   bool _isGeneratingPdf = false;
+  bool _isPrinting = false;
 
   Future<void> _proceedToPrint() async {
     setState(() {
@@ -29,19 +31,18 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
         throw Exception('No frames available to generate PDF.');
       }
 
-      // Get the selected frame definition
       final frameDefinition = FlipbookFrameConstants.availableFrames.firstWhere(
         (frame) => frame.id == _selectedFrame,
         orElse: () => FlipbookFrameConstants.availableFrames.first,
       );
 
-      // Use the frame factory to generate PDF
       final pdfBytes = await FlipbookFrameFactory.generatePdfForFrame(
         frameDefinition,
         videoState.frames,
       );
 
-      context.go('/flipbook/print', extra: pdfBytes);
+      // Print directly instead of navigating
+      await _printDocument(pdfBytes);
     } catch (e) {
       ScaffoldMessenger.of(
         context,
@@ -50,6 +51,32 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
       if (mounted) {
         setState(() {
           _isGeneratingPdf = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _printDocument(Uint8List pdfBytes) async {
+    setState(() {
+      _isPrinting = true;
+    });
+
+    try {
+      final printerNotifier = ref.read(printerProvider.notifier);
+      await printerNotifier.printPdfBytesForVideo(pdfBytes);
+
+      // Clear video and navigate back to home
+      if (mounted) {
+        context.go('/');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Print failed: $e')));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPrinting = false;
         });
       }
     }
@@ -65,10 +92,9 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
         return Container(
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
-            color: isSelected
-                ? const Color(0xFFFFFBEE)
-                : const Color(0xFF5A1908),
+            color: isSelected ? Colors.white : Colors.transparent,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white, width: 2),
             boxShadow: isSelected
                 ? [
                     BoxShadow(
@@ -89,43 +115,33 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
                 height: 24,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: isSelected
-                      ? const Color(0xFFFFFBEE)
-                      : Colors.transparent,
+                  color: isSelected ? Colors.white : Colors.transparent,
                   border: Border.all(
-                    color: isSelected
-                        ? const Color(0xFF76220B)
-                        : const Color(0xFFFFFBEE),
+                    color: isSelected ? Color(0xFF740000) : Colors.white,
                     width: 2,
                   ),
                 ),
                 child: isSelected
-                    ? Icon(
-                        Icons.check,
-                        size: 16,
-                        color: const Color(0xFF76220B),
-                      )
+                    ? Icon(Icons.check, size: 16, color: Color(0xFF740000))
                     : null,
               ),
               title: Text(
                 frame.name,
                 style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
+                  fontFamily: 'SpaceMono',
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
-                  color: isSelected
-                      ? const Color(0xFF76220B)
-                      : const Color(0xFFFFFBEE),
+                  color: isSelected ? Color(0xFF740000) : Colors.white,
                 ),
               ),
               subtitle: Text(
                 frame.description,
                 style: TextStyle(
-                  fontFamily: 'LeagueSpartan',
+                  fontFamily: 'SpaceMono',
                   fontSize: 16,
                   color: isSelected
-                      ? const Color(0xFF76220B).withOpacity(0.8)
-                      : const Color(0xFFFFFBEE).withOpacity(0.8),
+                      ? Color(0xFF740000).withOpacity(0.8)
+                      : Colors.white.withOpacity(0.8),
                 ),
               ),
               onTap: () {
@@ -141,15 +157,15 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
   }
 
   Widget _buildFramePreview() {
-    // Get the selected frame definition
     final frameDefinition = FlipbookFrameConstants.availableFrames.firstWhere(
       (frame) => frame.id == _selectedFrame,
       orElse: () => FlipbookFrameConstants.availableFrames.first,
     );
 
-    // Use the frame factory to create the preview widget with a key to force rebuilds
-    return Container(
-      key: ValueKey('preview_container_$_selectedFrame'),
+    // Rotate the preview 90° for landscape display using RotatedBox
+    // RotatedBox rotates in quarter turns: 1 = 90°, 2 = 180°, 3 = 270°
+    return RotatedBox(
+      quarterTurns: 3, // 270 degrees clockwise = -90 degrees counterclockwise
       child: FlipbookFrameFactory.createFrameWidget(frameDefinition),
     );
   }
@@ -161,323 +177,341 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: BoxDecoration(color: const Color(0xFF76220B)),
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/design/background.png'),
+          fit: BoxFit.fill,
+        ),
+      ),
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(40),
-          child: Column(
-            children: [
-              // Header with back button
-              Row(
-                children: [
-                  // Back button
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFBEE),
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      onPressed: () => context.go('/flipbook/filter'),
-                      icon: const Icon(
-                        Icons.arrow_back_rounded,
-                        color: Color(0xFF76220B),
-                        size: 28,
-                      ),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // Title section
-                  Column(
+          child: videoState.when(
+            data: (state) {
+              if (state.frames.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      Icon(
+                        Icons.video_library_outlined,
+                        size: 100,
+                        color: Colors.white.withOpacity(0.4),
+                      ),
+                      const SizedBox(height: 30),
                       Text(
-                        'Apply Frame',
+                        'No frames available',
                         style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
+                          fontFamily: 'SpaceMono',
                           fontSize: 36,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFFFFFBEE),
+                          color: Colors.white,
                         ),
                       ),
-                      Text(
-                        videoState.hasValue &&
-                                videoState.value!.frames.isNotEmpty
-                            ? 'Choose a frame for your ${videoState.value!.frames.length}-frame flipbook'
-                            : 'Choose a frame for your flipbook pages',
-                        style: TextStyle(
-                          fontFamily: 'LeagueSpartan',
-                          fontSize: 18,
-                          color: const Color(0xFFFFFBEE).withOpacity(0.8),
+                      const SizedBox(height: 40),
+                      Container(
+                        width: 300,
+                        height: 80,
+                        child: ElevatedButton(
+                          onPressed: () => context.go('/flipbook/home'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Color(0xFF740000),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                          ),
+                          child: Text(
+                            'Record Video',
+                            style: TextStyle(
+                              fontFamily: 'SpaceMono',
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
+                );
+              }
 
-                  const Spacer(),
-
-                  // Placeholder for symmetry
-                  const SizedBox(width: 60),
-                ],
-              ),
-
-              const SizedBox(height: 40),
-
-              // Main content area
-              Expanded(
-                child: Row(
-                  children: [
-                    // Left Panel: Frame Selection
-                    Expanded(
-                      flex: 2,
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
+              return Column(
+                children: [
+                  // Header
+                  Row(
+                    children: [
+                      // Back button
+                      Container(
+                        width: 60,
+                        height: 60,
                         decoration: BoxDecoration(
-                          color: const Color(0xFF76220B),
-                          borderRadius: BorderRadius.circular(24),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Select Frame',
-                              style: TextStyle(
-                                fontFamily: 'LeagueSpartan',
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFFFFFBEE),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Dynamic frame selector
-                            Expanded(
-                              child: SingleChildScrollView(
-                                child: _buildFrameSelector(),
-                              ),
-                            ),
-
-                            const SizedBox(height: 32),
-
-                            // Print button
-                            Container(
-                              width: double.infinity,
-                              height: 80,
-                              child: ElevatedButton(
-                                onPressed: _isGeneratingPdf
-                                    ? null
-                                    : _proceedToPrint,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: _isGeneratingPdf
-                                      ? const Color(0xFFFFFBEE).withOpacity(0.5)
-                                      : const Color(0xFFFFFBEE),
-                                  foregroundColor: _isGeneratingPdf
-                                      ? const Color(0xFF76220B).withOpacity(0.5)
-                                      : const Color(0xFF76220B),
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  shadowColor: Colors.transparent,
-                                ),
-                                child: _isGeneratingPdf
-                                    ? Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          SizedBox(
-                                            width: 32,
-                                            height: 32,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 3,
-                                              color: const Color(
-                                                0xFF76220B,
-                                              ).withOpacity(0.5),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 20),
-                                          Text(
-                                            'Generating PDF...',
-                                            style: TextStyle(
-                                              fontFamily: 'LeagueSpartan',
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      )
-                                    : Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(Icons.print_rounded, size: 32),
-                                          const SizedBox(width: 16),
-                                          Text(
-                                            'Proceed to Print',
-                                            style: TextStyle(
-                                              fontFamily: 'LeagueSpartan',
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                              ),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(30),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.2),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(width: 32),
-
-                    // Right Panel: Preview
-                    Expanded(
-                      flex: 3,
-                      child: Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF76220B),
-                          borderRadius: BorderRadius.circular(24),
+                        child: IconButton(
+                          onPressed: () => context.go('/flipbook/filter'),
+                          icon: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Color(0xFF740000),
+                            size: 28,
+                          ),
                         ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Preview',
-                              style: TextStyle(
-                                fontFamily: 'LeagueSpartan',
-                                fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFFFFFBEE),
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Expanded(
-                              child: Container(
-                                key: ValueKey(
-                                  'preview_wrapper_$_selectedFrame',
-                                ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: const Color(0xFFFFFBEE),
-                                    width: 4,
+                      ),
+                      const Spacer(),
+                      // Title
+                      Image.asset(
+                        'assets/design/frames/frames_title.png',
+                        height: 80,
+                        fit: BoxFit.contain,
+                      ),
+                      const Spacer(),
+                      SizedBox(width: 60),
+                    ],
+                  ),
+                  const SizedBox(height: 40),
+                  // Main content
+                  Expanded(
+                    child: Row(
+                      children: [
+                        // Left panel - Frame selection
+                        Expanded(
+                          flex: 2,
+                          child: Container(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'SELECT FRAME',
+                                  style: TextStyle(
+                                    fontFamily: 'SpaceMono',
+                                    fontSize: 32,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
                                   ),
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.1),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
+                                ),
+                                const SizedBox(height: 24),
+                                Expanded(
+                                  child: SingleChildScrollView(
+                                    child: _buildFrameSelector(),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                // Proceed button
+                                Container(
+                                  width: double.infinity,
+                                  height: 80,
+                                  child: ElevatedButton(
+                                    onPressed: _isGeneratingPdf || _isPrinting
+                                        ? null
+                                        : _proceedToPrint,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor:
+                                          _isGeneratingPdf || _isPrinting
+                                          ? Colors.white.withOpacity(0.5)
+                                          : Colors.white,
+                                      foregroundColor:
+                                          _isGeneratingPdf || _isPrinting
+                                          ? Color(0xFF740000).withOpacity(0.5)
+                                          : Color(0xFF740000),
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                    ),
+                                    child: _isGeneratingPdf
+                                        ? Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              SizedBox(
+                                                width: 32,
+                                                height: 32,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 3,
+                                                      color: Color(
+                                                        0xFF740000,
+                                                      ).withOpacity(0.5),
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 20),
+                                              Text(
+                                                'Generating...',
+                                                style: TextStyle(
+                                                  fontFamily: 'SpaceMono',
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : _isPrinting
+                                        ? Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              SizedBox(
+                                                width: 32,
+                                                height: 32,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                      strokeWidth: 3,
+                                                      color: Color(
+                                                        0xFF740000,
+                                                      ).withOpacity(0.5),
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 20),
+                                              Text(
+                                                'Printing...',
+                                                style: TextStyle(
+                                                  fontFamily: 'SpaceMono',
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.print_rounded,
+                                                size: 32,
+                                              ),
+                                              const SizedBox(width: 16),
+                                              Text(
+                                                'Proceed to Print',
+                                                style: TextStyle(
+                                                  fontFamily: 'SpaceMono',
+                                                  fontSize: 24,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 32),
+                        // Right panel - Preview
+                        Expanded(
+                          flex: 3,
+                          child: Stack(
+                            children: [
+                              // Background
+                              Positioned.fill(
+                                left: 100,
+                                right: 60,
+                                bottom: 300,
+                                child: Image.asset(
+                                  'assets/design/flipbook-filters/filters_preview.png',
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                              // Content
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: 70,
+                                  right: 30,
+                                  top: 70,
+                                  bottom: 320,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'PREVIEW',
+                                      style: TextStyle(
+                                        fontFamily: 'SpaceMono',
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 50),
+                                    Expanded(
+                                      child: LayoutBuilder(
+                                        builder: (context, constraints) {
+                                          // RotatedBox properly swaps width/height during rotation
+                                          // So we want the final result to be 6:4 (landscape)
+                                          final maxWidth = constraints.maxWidth;
+                                          final maxHeight =
+                                              constraints.maxHeight;
+
+                                          double width, height;
+                                          const targetAspectRatio =
+                                              6 / 4; // Landscape ratio
+
+                                          if (maxWidth / maxHeight >
+                                              targetAspectRatio) {
+                                            // Height constrained
+                                            height = maxHeight;
+                                            width = height * targetAspectRatio;
+                                          } else {
+                                            // Width constrained
+                                            width = maxWidth;
+                                            height = width / targetAspectRatio;
+                                          }
+
+                                          return Center(
+                                            child: SizedBox(
+                                              width: width,
+                                              height: height,
+                                              child: ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(20),
+                                                child: _buildFramePreview(),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
                                     ),
                                   ],
                                 ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(16),
-                                  child: videoState.when(
-                                    data: (state) => state.frames.isNotEmpty
-                                        ? _buildFramePreview()
-                                        : Container(
-                                            color: Colors.black,
-                                            child: Center(
-                                              child: Column(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment.center,
-                                                children: [
-                                                  Icon(
-                                                    Icons
-                                                        .photo_library_outlined,
-                                                    size: 48,
-                                                    color: const Color(
-                                                      0xFFFFFBEE,
-                                                    ).withOpacity(0.4),
-                                                  ),
-                                                  const SizedBox(height: 16),
-                                                  Text(
-                                                    'No frames to preview',
-                                                    style: TextStyle(
-                                                      fontFamily:
-                                                          'LeagueSpartan',
-                                                      color: const Color(
-                                                        0xFFFFFBEE,
-                                                      ).withOpacity(0.6),
-                                                      fontSize: 18,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
-                                    loading: () => Container(
-                                      color: Colors.black,
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            CircularProgressIndicator(
-                                              color: const Color(0xFFFFFBEE),
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Text(
-                                              'Loading frames...',
-                                              style: TextStyle(
-                                                fontFamily: 'LeagueSpartan',
-                                                color: const Color(0xFFFFFBEE),
-                                                fontSize: 18,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                    error: (e, s) => Container(
-                                      color: Colors.black,
-                                      child: Center(
-                                        child: Column(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            Icon(
-                                              Icons.error,
-                                              size: 48,
-                                              color: Colors.red.shade400,
-                                            ),
-                                            const SizedBox(height: 16),
-                                            Text(
-                                              'Error: $e',
-                                              style: TextStyle(
-                                                fontFamily: 'LeagueSpartan',
-                                                color: const Color(0xFFFFFBEE),
-                                                fontSize: 16,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
+              );
+            },
+            loading: () => const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            ),
+            error: (error, stack) => Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error, size: 80, color: Colors.white),
+                  const SizedBox(height: 24),
+                  Text(
+                    'Error: $error',
+                    style: TextStyle(
+                      fontFamily: 'SpaceMono',
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

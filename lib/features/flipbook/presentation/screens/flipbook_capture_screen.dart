@@ -27,6 +27,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   Timer? _countdownTimer;
   bool _isRecording = false;
   bool _isCountingDown = false;
+  bool _isProcessingVideo = false; // Add flag to track video processing
 
   @override
   void initState() {
@@ -113,8 +114,13 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       _isCountingDown = true;
     });
 
-    final videoNotifier = ref.read(videoProvider.notifier);
-    await videoNotifier.clearVideo();
+    // REMOVED: Don't clear all videos when starting a new take!
+    // Only clear on the very first take
+    final videoState = ref.read(videoProvider).value;
+    if (videoState?.videoTakes.isEmpty ?? true) {
+      final videoNotifier = ref.read(videoProvider.notifier);
+      await videoNotifier.clearVideo();
+    }
 
     // Start pre-recording countdown
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -185,7 +191,6 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     if (!_isRecording || _photoCameraController == null) return;
 
     try {
-      // Check if camera is actually recording before trying to stop
       if (!_photoCameraController!.value.isRecordingVideo) {
         print('Photo camera is not recording, cannot stop');
         setState(() {
@@ -198,24 +203,30 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       print('Stopping video recording with photo camera...');
       final videoXFile = await _photoCameraController!.stopVideoRecording();
 
-      // Pass the video file to the video notifier
-      final videoNotifier = ref.read(videoProvider.notifier);
-      await videoNotifier.saveVideoFromPhotoCamera(videoXFile);
-
       setState(() {
         _isRecording = false;
         _countdown = 0;
+        _isProcessingVideo = true; // Set processing flag
       });
 
       _countdownTimer?.cancel();
       _countdownTimer = null;
 
+      // Save as a take instead of single video
+      final videoNotifier = ref.read(videoProvider.notifier);
+      await videoNotifier.saveVideoTake(videoXFile);
+
       // Set up video preview
       await _setupVideoPreview();
+
+      setState(() {
+        _isProcessingVideo = false; // Clear processing flag
+      });
     } catch (e) {
       print('Error stopping video recording with photo camera: $e');
       setState(() {
         _isRecording = false;
+        _isProcessingVideo = false;
       });
       ScaffoldMessenger.of(
         context,
@@ -276,10 +287,34 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   }
 
   Widget _buildVideoPreview() {
+    final videoState = ref.watch(videoProvider).value;
+    final currentTakeNumber = videoState?.videoTakes.length ?? 0;
+    final allTakesComplete = currentTakeNumber >= 4;
+
     return Column(
       children: [
+        // Take counter
+        Padding(
+          padding: const EdgeInsets.only(top: 40, bottom: 20),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withOpacity(0.3)),
+            ),
+            child: Text(
+              'Take $currentTakeNumber of 4',
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
         Expanded(
-          flex: 4, // Increased from 3 to give more space
+          flex: 4,
           child: Center(
             child: AspectRatio(
               aspectRatio: 16 / 10,
@@ -299,58 +334,45 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         ),
         Expanded(
           flex: 1,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 40.0,
-              vertical: 10.0, // Reduced from 20.0
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                SizedBox(
-                  width: 180, // Reduced from 200
-                  height: 50, // Reduced from 60
-                  child: OutlinedButton.icon(
-                    onPressed: _retakeVideo,
-                    icon: const Icon(Icons.replay, size: 20), // Reduced from 24
-                    label: const Text(
-                      'Retake',
-                      style: TextStyle(fontSize: 16),
-                    ), // Reduced from 18
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white, width: 2),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 40.0,
+                vertical: 10.0,
+              ),
+              child: SizedBox(
+                width: 300,
+                height: 80,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    if (allTakesComplete) {
+                      // Go to takes selection screen
+                      context.go('/flipbook/takes');
+                    } else {
+                      // Reset for next take
+                      _prepareForNextTake();
+                    }
+                  },
+                  icon: Icon(
+                    allTakesComplete ? Icons.check_circle : Icons.navigate_next,
+                    size: 32,
+                  ),
+                  label: Text(
+                    allTakesComplete ? 'Proceed' : 'Next Take',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white,
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(32),
                     ),
                   ),
                 ),
-                SizedBox(
-                  width: 180, // Reduced from 200
-                  height: 50, // Reduced from 60
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      context.go('/flipbook/filter');
-                    },
-                    icon: const Icon(
-                      Icons.check_circle,
-                      size: 20,
-                    ), // Reduced from 24
-                    label: const Text(
-                      'Proceed',
-                      style: TextStyle(fontSize: 16), // Reduced from 18
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -358,13 +380,11 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     );
   }
 
-  Future<void> _retakeVideo() async {
+  Future<void> _prepareForNextTake() async {
     await _videoPlayerController?.dispose();
     _videoPlayerController = null;
-    final videoNotifier = ref.read(videoProvider.notifier);
-    await videoNotifier.clearVideo();
 
-    // Reset countdown states
+    // Just reset UI state - keep all video takes intact
     setState(() {
       _isCountingDown = false;
       _isRecording = false;
@@ -396,8 +416,8 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       right: 0,
       child: Center(
         child: Container(
-          width: 200,
-          height: 200,
+          width: 180, // Reduced from 200
+          height: 180, // Reduced from 200
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: Colors.black.withOpacity(0.8),
@@ -409,24 +429,27 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
               Text(
                 overlayText,
                 style: const TextStyle(
-                  fontSize: 60,
+                  fontSize: 50, // Reduced from 60
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 6), // Reduced from 8
               Text(
                 subText,
-                style: const TextStyle(fontSize: 16, color: Colors.white),
+                style: const TextStyle(
+                  fontSize: 14, // Reduced from 16
+                  color: Colors.white,
+                ),
               ),
               if (_countdown == 0 && _isRecording) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: 10), // Reduced from 12
                 const SizedBox(
-                  width: 30,
-                  height: 30,
+                  width: 24, // Reduced from 30
+                  height: 24, // Reduced from 30
                   child: CircularProgressIndicator(
                     color: Colors.white,
-                    strokeWidth: 3,
+                    strokeWidth: 2.5, // Reduced from 3
                   ),
                 ),
               ],
@@ -441,17 +464,25 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   Widget build(BuildContext context) {
     final videoState = ref.watch(videoProvider);
     final hasVideo = videoState.value?.videoPath != null;
+    final currentTakeNumber = videoState.value?.videoTakes.length ?? 0;
+    final canRecordMore = currentTakeNumber < 4;
 
     final showVideoPreview =
         _videoPlayerController != null &&
         _videoPlayerController!.value.isInitialized &&
         !_isRecording &&
-        !_isCountingDown;
+        !_isCountingDown &&
+        !_isProcessingVideo; // Also check processing flag
 
+    // Show countdown overlay only during actual countdown/recording or processing
     final showCountdownOverlay =
         _isCountingDown ||
-        (_isRecording && _countdown >= 0) ||
-        (hasVideo && !showVideoPreview && _countdown == 0);
+        _isRecording ||
+        _isProcessingVideo; // Simplified condition
+
+    // Show start recording button when camera is ready and not showing video preview
+    final showStartButton =
+        !showCountdownOverlay && !showVideoPreview && canRecordMore;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -510,7 +541,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
           if (showCountdownOverlay) _buildRecordingOverlay(),
 
           // Start recording button
-          if (!showCountdownOverlay && !showVideoPreview && !hasVideo)
+          if (showStartButton)
             Positioned(
               bottom: 60,
               left: 0,
@@ -522,9 +553,11 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
                   child: ElevatedButton.icon(
                     onPressed: _startRecording,
                     icon: const Icon(Icons.videocam, size: 40),
-                    label: const Text(
-                      'Start Recording',
-                      style: TextStyle(fontSize: 24),
+                    label: Text(
+                      currentTakeNumber == 0
+                          ? 'Start Recording'
+                          : 'Record Take ${currentTakeNumber + 1}',
+                      style: const TextStyle(fontSize: 24),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
@@ -538,28 +571,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
               ),
             ),
 
-          // Back button
-          Positioned(
-            top: 60,
-            left: 40,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: IconButton(
-                onPressed: (_isCountingDown || _isRecording || _countdown > 0)
-                    ? null
-                    : () => context.go('/flipbook/start'),
-                icon: const Icon(
-                  Icons.arrow_back_rounded,
-                  color: Colors.white,
-                  size: 32,
-                ),
-                padding: const EdgeInsets.all(16),
-              ),
-            ),
-          ),
+          // Back button removed - users must complete all 4 takes
 
           // Loading indicator
           if (videoState.isLoading &&

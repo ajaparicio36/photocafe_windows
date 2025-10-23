@@ -122,6 +122,7 @@ printing functionality is working.
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             fontSize: 28,
             fontWeight: FontWeight.bold,
+            color: const Color(0xFF740000),
           ),
         ),
       ],
@@ -154,6 +155,7 @@ printing functionality is working.
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
+                    color: const Color(0xFF740000),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -161,9 +163,7 @@ printing functionality is working.
                   subtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontSize: 16,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
+                    color: const Color(0xFF740000),
                   ),
                 ),
               ],
@@ -182,14 +182,23 @@ printing functionality is working.
               value: _availablePrinters.contains(currentPrinter)
                   ? currentPrinter
                   : null,
-              hint: const Text('Select a printer'),
+              hint: const Text(
+                'Select a printer',
+                style: TextStyle(color: Colors.white),
+              ),
               isExpanded: true,
               underline: const SizedBox.shrink(),
+              style: const TextStyle(color: Colors.white),
+              dropdownColor: Theme.of(context).colorScheme.background,
               items: _availablePrinters
                   .map(
                     (printer) => DropdownMenuItem(
                       value: printer,
-                      child: Text(printer, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        printer,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
                   )
                   .toList(),
@@ -227,6 +236,7 @@ printing functionality is working.
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
+                    color: const Color(0xFF740000),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -234,9 +244,7 @@ printing functionality is working.
                   subtitle,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontSize: 16,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
+                    color: const Color(0xFF740000),
                   ),
                 ),
                 // Show warning only if same camera AND more than 2 cameras available
@@ -256,9 +264,7 @@ printing functionality is working.
                           child: Text(
                             'Warning: Same camera selected for photo and video',
                             style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.error,
-                                ),
+                                ?.copyWith(color: const Color(0xFF740000)),
                           ),
                         ),
                       ],
@@ -281,9 +287,7 @@ printing functionality is working.
                           child: Text(
                             'Same camera will be used for both photo and video (limited cameras available)',
                             style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
+                                ?.copyWith(color: const Color(0xFF740000)),
                           ),
                         ),
                       ],
@@ -305,14 +309,23 @@ printing functionality is working.
               value: _availableCameras.any((cam) => cam.name == currentCamera)
                   ? currentCamera
                   : null,
-              hint: const Text('Select a camera'),
+              hint: const Text(
+                'Select a camera',
+                style: TextStyle(color: Colors.white),
+              ),
               isExpanded: true,
               underline: const SizedBox.shrink(),
+              style: const TextStyle(color: Colors.white),
+              dropdownColor: Theme.of(context).colorScheme.background,
               items: _availableCameras
                   .map(
                     (camera) => DropdownMenuItem(
                       value: camera.name,
-                      child: Text(camera.name, overflow: TextOverflow.ellipsis),
+                      child: Text(
+                        camera.name,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
                   )
                   .toList(),
@@ -399,6 +412,7 @@ printing functionality is working.
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                     fontSize: 20,
+                    color: const Color(0xFF740000),
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -406,9 +420,7 @@ printing functionality is working.
                   'Enable fullscreen mode for kiosk-style operation. The application will occupy the entire screen.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontSize: 16,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
+                    color: const Color(0xFF740000),
                   ),
                 ),
               ],
@@ -452,7 +464,7 @@ printing functionality is working.
                 'Printer Test',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: const Color(0xFF740000),
                 ),
               ),
             ],
@@ -460,9 +472,9 @@ printing functionality is working.
           const SizedBox(height: 16),
           Text(
             'Test your printer connection by sending a simple test document.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF740000)),
           ),
           const SizedBox(height: 20),
           Wrap(
@@ -496,14 +508,14 @@ printing functionality is working.
               Icon(
                 Icons.crop_free_rounded,
                 size: 28,
-                color: Theme.of(context).colorScheme.secondary,
+                color: Theme.of(context).colorScheme.primary,
               ),
               const SizedBox(width: 16),
               Text(
                 'Frame Border Test',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.secondary,
+                  color: const Color(0xFF740000),
                 ),
               ),
             ],
@@ -511,9 +523,9 @@ printing functionality is working.
           const SizedBox(height: 16),
           Text(
             'Test frame border positioning by printing empty frames with alignment guides.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF740000)),
           ),
           const SizedBox(height: 20),
           Wrap(
@@ -528,14 +540,14 @@ printing functionality is working.
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Theme.of(context).colorScheme.onSecondary,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       )
                     : Icon(Icons.grid_view_rounded),
                 label: Text('Test Classic Frame (4x6)'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.secondary,
-                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
               ElevatedButton.icon(
@@ -548,14 +560,14 @@ printing functionality is working.
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Theme.of(context).colorScheme.onSecondary,
+                          color: Theme.of(context).colorScheme.onPrimary,
                         ),
                       )
                     : Icon(Icons.collections_rounded),
                 label: Text('Test Flipbook Frame (6x4)'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.secondary,
-                  foregroundColor: Theme.of(context).colorScheme.onSecondary,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                 ),
               ),
             ],
@@ -576,7 +588,7 @@ printing functionality is working.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Classic frame border test sent to printer'),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     } catch (e) {
@@ -604,7 +616,7 @@ printing functionality is working.
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Flipbook frame border test sent to printer'),
-          backgroundColor: Theme.of(context).colorScheme.secondary,
+          backgroundColor: Theme.of(context).colorScheme.primary,
         ),
       );
     } catch (e) {

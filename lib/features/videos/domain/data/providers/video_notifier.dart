@@ -23,10 +23,84 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
 
     return VideoState(
       videoPath: null,
+      videoTakes: [], // Initialize empty takes list
+      selectedTakeIndex: null,
       tempPath: videoTempDir.path,
       frames: [],
       isRecording: false,
     );
+  }
+
+  Future<void> saveVideoTake(XFile videoXFile) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception('Video state is not initialized');
+      }
+
+      final takeNumber = currentState.videoTakes.length + 1;
+      final videoFileName =
+          'flipbook_take_${takeNumber}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final videoFilePath = p.join(currentState.tempPath, videoFileName);
+
+      try {
+        final videoBytes = await videoXFile.readAsBytes();
+        final targetFile = File(videoFilePath);
+        await targetFile.writeAsBytes(videoBytes);
+
+        print('Take $takeNumber saved to: $videoFilePath');
+
+        final fileSize = await targetFile.length();
+        print('Take $takeNumber file size: $fileSize bytes');
+
+        if (fileSize < 1024) {
+          print('Video file too small, creating fallback...');
+          await _createFallbackVideo(videoFilePath);
+        }
+
+        // Add to takes list
+        final updatedTakes = List<String>.from(currentState.videoTakes)
+          ..add(videoFilePath);
+
+        return currentState.copyWith(
+          videoTakes: updatedTakes,
+          videoPath: videoFilePath, // Set as current active video
+          isRecording: false,
+        );
+      } catch (e) {
+        print('Error saving take: $e');
+        await _createFallbackVideo(videoFilePath);
+
+        final updatedTakes = List<String>.from(currentState.videoTakes)
+          ..add(videoFilePath);
+
+        return currentState.copyWith(
+          videoTakes: updatedTakes,
+          videoPath: videoFilePath,
+          isRecording: false,
+        );
+      }
+    });
+  }
+
+  Future<void> selectTake(int index) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception('Video state is not initialized');
+      }
+
+      if (index < 0 || index >= currentState.videoTakes.length) {
+        throw Exception('Invalid take index');
+      }
+
+      final selectedVideoPath = currentState.videoTakes[index];
+
+      return currentState.copyWith(
+        selectedTakeIndex: index,
+        videoPath: selectedVideoPath, // Set as active video
+      );
+    });
   }
 
   Future<void> saveVideoFromPhotoCamera(XFile videoXFile) async {
@@ -123,9 +197,9 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       final currentState = state.value;
       if (currentState == null) return state.value!;
 
-      // Delete video file if exists
-      if (currentState.videoPath != null) {
-        final videoFile = File(currentState.videoPath!);
+      // Delete all video takes
+      for (final takePath in currentState.videoTakes) {
+        final videoFile = File(takePath);
         if (await videoFile.exists()) {
           await videoFile.delete();
         }
@@ -154,6 +228,8 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
 
       return currentState.copyWith(
         videoPath: null,
+        videoTakes: [],
+        selectedTakeIndex: null,
         frames: [],
         isRecording: false,
       );
@@ -174,7 +250,6 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
 
       print('Splitting 7-second video into 50 frames for 50-page flipbook...');
 
-      // Create a unique frame directory for this video session
       final sessionId = DateTime.now().millisecondsSinceEpoch;
       final frameDir = Directory(
         p.join(currentState.tempPath, 'frames_$sessionId'),
@@ -193,16 +268,17 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       }
 
       try {
-        // Extract 50 frames from 7-second video (50/7 ≈ 7.14 fps)
+        // Extract exactly 50 frames from 7-second video
+        // Using -frames:v 25 will give us 25 frames, we need to adjust
         final framePattern = p.join(frameDir.path, 'frame_%03d.jpg');
 
         final ffmpegArgs = [
           '-i', currentState.videoPath!,
           '-vf',
           'fps=50/7,scale=${VideoFilterConstants.videoWidth}:${VideoFilterConstants.videoHeight}',
-          '-frames:v', '50', // Explicitly limit to 50 frames
-          '-q:v', '2', // High quality JPEG
-          '-y', // Overwrite existing files
+          '-frames:v', '50', // Extract exactly 50 frames
+          '-q:v', '2',
+          '-y',
           framePattern,
         ];
 
@@ -214,7 +290,6 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
           throw Exception('Frame extraction failed: ${process.stderr}');
         }
 
-        // Collect all generated frame files from the session directory
         final frameFiles = <File>[];
         await for (final entity in frameDir.list()) {
           if (entity is File &&
@@ -224,12 +299,10 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
           }
         }
 
-        // Sort frames by filename to maintain order
         frameFiles.sort((a, b) => a.path.compareTo(b.path));
 
         print('Found ${frameFiles.length} frames in session directory');
 
-        // Ensure we have exactly 50 frames
         if (frameFiles.length < 50) {
           print(
             'Warning: Only ${frameFiles.length} frames extracted, expected 50',
@@ -438,6 +511,123 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     if (currentState == null) return <FrameModel>[];
 
     return currentState.frames.where((frame) => frame.isSelected).toList();
+  }
+
+  Future<void> removeLastTake() async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception('Video state is not initialized');
+      }
+
+      if (currentState.videoTakes.isEmpty) {
+        print('No takes to remove');
+        return currentState;
+      }
+
+      // Get the last take path
+      final lastTakePath = currentState.videoTakes.last;
+
+      // Delete the file
+      final file = File(lastTakePath);
+      if (await file.exists()) {
+        await file.delete();
+        print('Deleted take file: $lastTakePath');
+      }
+
+      // Remove from takes list
+      final updatedTakes = List<String>.from(currentState.videoTakes)
+        ..removeLast();
+
+      // Update videoPath to the new last take, or null if no takes left
+      final newVideoPath = updatedTakes.isNotEmpty ? updatedTakes.last : null;
+
+      print('Removed last take. Remaining takes: ${updatedTakes.length}');
+
+      return currentState.copyWith(
+        videoTakes: updatedTakes,
+        videoPath: newVideoPath,
+        selectedTakeIndex: null, // Clear selection after removing a take
+      );
+    });
+  }
+
+  Future<String?> applyVideoFilterForPreview(String filterName) async {
+    final currentState = state.value;
+    if (currentState == null || currentState.videoPath == null) {
+      throw Exception('No video available for filter processing');
+    }
+
+    final videoFile = File(currentState.videoPath!);
+    if (!await videoFile.exists()) {
+      throw Exception('Video file not found at: ${currentState.videoPath}');
+    }
+
+    // Create output path for preview filtered video
+    final sessionId = DateTime.now().millisecondsSinceEpoch;
+    final outputFileName =
+        'preview_${filterName.replaceAll(' ', '_').toLowerCase()}_$sessionId.mp4';
+    final outputPath = p.join(currentState.tempPath, outputFileName);
+
+    try {
+      print('Applying preview filter "$filterName" to video...');
+      print('Input: ${currentState.videoPath}');
+      print('Output: $outputPath');
+
+      final filterArgs = VideoFilterConstants.getFilterArgs(filterName);
+
+      final ffmpegArgs = [
+        '-i', currentState.videoPath!,
+        '-y', // Overwrite output
+        '-v', 'info',
+      ];
+
+      // Add video filters if any
+      if (filterArgs.isNotEmpty) {
+        ffmpegArgs.addAll(['-vf', filterArgs.join(',')]);
+      }
+
+      // Add codec and format settings with explicit pixel format for compatibility
+      ffmpegArgs.addAll([
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast', // Faster for preview
+        '-crf', '23', // Better quality than 28 for preview playback
+        '-pix_fmt', 'yuv420p', // Explicit pixel format for better compatibility
+        '-profile:v',
+        'baseline', // Use baseline profile for better compatibility
+        '-level', '3.0', // Compatibility level
+        '-movflags', '+faststart',
+        '-c:a', 'copy', // Copy audio instead of re-encoding for speed
+        outputPath,
+      ]);
+
+      print('Running FFmpeg preview: ffmpeg ${ffmpegArgs.join(' ')}');
+      final process = await Process.run('ffmpeg', ffmpegArgs);
+
+      if (process.exitCode == 0) {
+        final outputFile = File(outputPath);
+        if (await outputFile.exists()) {
+          final fileSize = await outputFile.length();
+          print('Preview filter applied successfully, size: $fileSize bytes');
+
+          // Verify the output file is valid
+          if (fileSize < 1024) {
+            print('Warning: Preview file is too small, may be corrupted');
+            return null;
+          }
+
+          return outputPath;
+        }
+      } else {
+        print('Preview filter application failed: ${process.stderr}');
+        return null;
+      }
+    } catch (e) {
+      print('Error applying preview filter: $e');
+      return null;
+    }
+
+    return null;
   }
 }
 
