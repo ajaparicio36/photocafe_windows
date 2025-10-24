@@ -88,7 +88,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                 children: [
                   // Black background with bleed
                   pw.Positioned.fill(
-                    child: pw.Container(color: PdfColors.black),
+                    child: pw.Container(color: PdfColors.white),
                   ),
                   // Left column images (photos 1 and 2 for 2x2, all 4 for 4x4)
                   for (int i = 0; i < leftPositions.length; i++)

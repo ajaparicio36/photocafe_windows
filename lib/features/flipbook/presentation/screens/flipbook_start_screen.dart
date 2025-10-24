@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
 
 class FlipbookStartScreen extends ConsumerWidget {
   const FlipbookStartScreen({super.key});
@@ -165,6 +166,9 @@ class FlipbookStartScreen extends ConsumerWidget {
                             ),
                           ),
                         );
+
+                        // Clear any existing video state to start fresh
+                        await ref.read(videoProvider.notifier).clearVideo();
 
                         // Small delay for visual feedback
                         await Future.delayed(const Duration(milliseconds: 500));

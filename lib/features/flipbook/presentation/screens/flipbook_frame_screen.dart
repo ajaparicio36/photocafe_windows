@@ -65,8 +65,9 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
       final printerNotifier = ref.read(printerProvider.notifier);
       await printerNotifier.printPdfBytesForVideo(pdfBytes);
 
-      // Clear video and navigate back to home
+      // Clear video state before navigating back to home
       if (mounted) {
+        await ref.read(videoProvider.notifier).clearVideo();
         context.go('/');
       }
     } catch (e) {

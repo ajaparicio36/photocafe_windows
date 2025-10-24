@@ -22,7 +22,7 @@ class ClassicStartScreen extends ConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(40),
+            padding: const EdgeInsets.all(60),
             child: Column(
               children: [
                 // Back button
@@ -57,7 +57,7 @@ class ClassicStartScreen extends ConsumerWidget {
 
                 // Photo options - horizontally aligned buttons
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 100),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,

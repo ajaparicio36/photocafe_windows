@@ -23,7 +23,7 @@ class TakesGridWidget extends StatelessWidget {
           gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: 2,
             crossAxisSpacing: 240,
-            mainAxisSpacing: 40,
+            mainAxisSpacing: 10,
             childAspectRatio: 16 / 10,
           ),
           itemCount: videoTakes.length,

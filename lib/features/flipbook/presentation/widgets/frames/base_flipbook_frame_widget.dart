@@ -110,7 +110,7 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
     print('Generating PDF with ${sortedFrames.length} frames for flipbook');
 
     // Ensure we have exactly 100 frames for 50-page flipbook
-    final targetFrameCount = 100;
+    final targetFrameCount = 50;
     List<FrameModel> processedFrames;
 
     if (sortedFrames.length < targetFrameCount) {

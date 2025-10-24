@@ -19,7 +19,6 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
   bool _isProcessing = false;
   bool _isGeneratingPreview = false;
   VideoPlayerController? _videoPlayerController;
-  String? _previewVideoPath;
 
   @override
   void initState() {
@@ -100,7 +99,6 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
 
     await _videoPlayerController?.dispose();
 
-    _previewVideoPath = videoPath;
     _videoPlayerController = VideoPlayerController.file(File(videoPath));
     await _videoPlayerController!.initialize();
     await _videoPlayerController!.setLooping(true);
@@ -118,19 +116,20 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
   }
 
   Future<void> _applySelectedFilter() async {
-    // If "No Filter" is selected, just navigate
-    if (_selectedFilter == VideoFilterConstants.noFilterName) {
-      context.go('/flipbook/frame');
-      return;
-    }
-
     setState(() {
       _isProcessing = true;
     });
 
     try {
       final videoNotifier = ref.read(videoProvider.notifier);
-      await videoNotifier.processVideoWithFilter(_selectedFilter);
+
+      // If "No Filter" is selected, just split frames without applying filter
+      if (_selectedFilter == VideoFilterConstants.noFilterName) {
+        await videoNotifier.splitVideoIntoFrames();
+      } else {
+        // Apply filter and split frames
+        await videoNotifier.processVideoWithFilter(_selectedFilter);
+      }
 
       if (mounted) {
         context.go('/flipbook/frame');
@@ -253,7 +252,42 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
                         width: 200,
                         height: 60,
                         child: ElevatedButton(
-                          onPressed: () => context.go('/flipbook/frame'),
+                          onPressed: _isProcessing || _isGeneratingPreview
+                              ? null
+                              : () async {
+                                  setState(() {
+                                    _isProcessing = true;
+                                  });
+
+                                  try {
+                                    final videoNotifier = ref.read(
+                                      videoProvider.notifier,
+                                    );
+                                    await videoNotifier.splitVideoIntoFrames();
+
+                                    if (mounted) {
+                                      context.go('/flipbook/frame');
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Error processing video: $e',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } finally {
+                                    if (mounted) {
+                                      setState(() {
+                                        _isProcessing = false;
+                                      });
+                                    }
+                                  }
+                                },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: Color(0xFF740000),
@@ -544,9 +578,9 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
                                 // Video preview content
                                 Padding(
                                   padding: const EdgeInsets.only(
-                                    left: 100,
-                                    right: 100,
-                                    top: 155,
+                                    left: 220,
+                                    right: 220,
+                                    top: 125,
                                     bottom: 325,
                                   ),
                                   child: _buildVideoPreview(),
@@ -664,20 +698,5 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
       borderRadius: BorderRadius.circular(12),
       child: VideoPlayer(_videoPlayerController!),
     );
-  }
-
-  String _getFilterDescription(String filterName) {
-    switch (filterName) {
-      case 'No Filter':
-        return 'Keep your video as it is';
-      case 'Vintage':
-        return 'Add a classic vintage look with warm tones';
-      case 'Black & White':
-        return 'Convert to elegant black and white';
-      case 'Sepia':
-        return 'Apply warm sepia tones';
-      default:
-        return 'Apply this filter to your video';
-    }
   }
 }

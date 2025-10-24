@@ -268,14 +268,14 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       }
 
       try {
-        // Extract exactly 50 frames from 7-second video
-        // Using -frames:v 25 will give us 25 frames, we need to adjust
+        // Extract exactly 50 frames evenly distributed from 7-second video
+        // 50 frames / 7 seconds ≈ 7.14 fps
         final framePattern = p.join(frameDir.path, 'frame_%03d.jpg');
 
         final ffmpegArgs = [
           '-i', currentState.videoPath!,
           '-vf',
-          'fps=50/7,scale=${VideoFilterConstants.videoWidth}:${VideoFilterConstants.videoHeight}',
+          'fps=7.142857,scale=${VideoFilterConstants.videoWidth}:${VideoFilterConstants.videoHeight}',
           '-frames:v', '50', // Extract exactly 50 frames
           '-q:v', '2',
           '-y',

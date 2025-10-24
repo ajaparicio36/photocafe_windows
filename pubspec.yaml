@@ -126,6 +126,13 @@ flutter:
     - assets/frames/frame9.png
     - assets/frames/frame10.png
     - assets/frames/frame11.png
+    - assets/frames/frame12.png
+    - assets/frames/frame13.png
+    - assets/frames/frame15.png
+    - assets/frames/frame16.png
+    - assets/frames/frame17.png
+    - assets/frames/frame18.png
+    - assets/frames/frame19.png
     - assets/frames/2by2_frame1.png
     - assets/frames/2by2_frame2.png
     - assets/frames/2by2_frame3.png
@@ -135,11 +142,6 @@ flutter:
     - assets/frames/2by2_frame7.png
     - assets/frames/2by2_frame8.png
     - assets/frames/2by2_frame9.png
-    - assets/frames/2by2_frame10.png
-    - assets/frames/2by2_frame11.png
-    - assets/frames/2by2_frame12.png
-    - assets/frames/2by2_frame13.png
-    - assets/frames/2by2_frame14.png
     - assets/frames/hori_one.png
     - assets/frames/hori_two.png
     - assets/frames/hori_three.png

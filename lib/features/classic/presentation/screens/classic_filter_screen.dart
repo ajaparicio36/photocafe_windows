@@ -719,8 +719,8 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
                                 // Preview content
                                 Padding(
                                   padding: const EdgeInsets.only(
-                                    left: 180,
-                                    right: 180,
+                                    left: 220,
+                                    right: 220,
                                     top: 180,
                                     bottom: 40,
                                   ),
