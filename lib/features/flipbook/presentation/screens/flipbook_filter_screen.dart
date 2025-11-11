@@ -578,10 +578,10 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
                                 // Video preview content
                                 Padding(
                                   padding: const EdgeInsets.only(
-                                    left: 220,
-                                    right: 220,
-                                    top: 125,
-                                    bottom: 325,
+                                    left: 170,
+                                    right: 170,
+                                    top: 180,
+                                    bottom: 340,
                                   ),
                                   child: _buildVideoPreview(),
                                 ),

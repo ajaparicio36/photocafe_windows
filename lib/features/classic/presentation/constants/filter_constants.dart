@@ -1,14 +1,26 @@
 import 'package:image/image.dart' as img;
 
+class FilterDefinition {
+  final String id;
+  final String name;
+  final String description;
+  final img.Image Function(img.Image) applyFilter;
+
+  const FilterDefinition({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.applyFilter,
+  });
+}
+
 class FilterConstants {
   static const String noFilterName = 'No Filter';
   static const String vintageFilterName = 'Vintage Sepia';
   static const String hdrFilterName = 'HDR Boost';
   static const String matteFilterName = 'Matte Fade';
   static const String lomoFilterName = 'Lomo Pop';
-  static const String pastelFilterName = 'Pastel Wash';
   static const String duotoneFilterName = 'Duotone Teal‑Orange';
-  static const String grittyFilterName = 'Gritty Contrast';
   static const String vscoA6FilterName = 'VSCO A6 Warm';
   static const String blackWhiteFilterName = 'Mono B1';
   static const String cinematicFilterName = 'Cinematic Teal‑Orange';
@@ -63,11 +75,6 @@ class FilterConstants {
     return img.adjustColor(image, saturation: 1.4, contrast: 1.3);
   }
 
-  // Pastel Wash: reduced contrast, pastel color shift
-  static img.Image applyPastelFilter(img.Image image) {
-    return img.adjustColor(image, saturation: 0.6, contrast: 0.9);
-  }
-
   // Duotone Teal-Orange: manual duotone effect
   static img.Image applyDuotoneFilter(img.Image image) {
     var filtered = img.grayscale(image);
@@ -87,11 +94,6 @@ class FilterConstants {
       }
     }
     return result;
-  }
-
-  // Gritty Contrast: strong contrast and slight desaturation
-  static img.Image applyGrittyFilter(img.Image image) {
-    return img.adjustColor(image, contrast: 1.4, saturation: 0.8);
   }
 
   // VSCO A6 Warm: warm tone with subtle brightness boost
@@ -142,11 +144,67 @@ class FilterConstants {
     hdrFilterName,
     matteFilterName,
     lomoFilterName,
-    pastelFilterName,
     duotoneFilterName,
-    grittyFilterName,
     vscoA6FilterName,
     blackWhiteFilterName,
     cinematicFilterName,
+  ];
+
+  // Filter Definitions with descriptions
+  static final List<FilterDefinition> filterDefinitions = [
+    FilterDefinition(
+      id: 'no_filter',
+      name: noFilterName,
+      description: 'Keep your photos as they are',
+      applyFilter: (img.Image image) => image,
+    ),
+    FilterDefinition(
+      id: 'vintage_sepia',
+      name: vintageFilterName,
+      description: 'Add a classic vintage look with warm tones',
+      applyFilter: applyVintageFilter,
+    ),
+    FilterDefinition(
+      id: 'hdr_boost',
+      name: hdrFilterName,
+      description: 'Enhance details and vibrancy in your photos',
+      applyFilter: applyHdrFilter,
+    ),
+    FilterDefinition(
+      id: 'matte_fade',
+      name: matteFilterName,
+      description: 'Lower contrast filter, make your photos cinematic',
+      applyFilter: applyMatteFilter,
+    ),
+    FilterDefinition(
+      id: 'lomo_pop',
+      name: lomoFilterName,
+      description: 'High contrast and saturated colors',
+      applyFilter: applyLomoFilter,
+    ),
+    FilterDefinition(
+      id: 'duotone',
+      name: duotoneFilterName,
+      description: 'Artistic duotone effect',
+      applyFilter: applyDuotoneFilter,
+    ),
+    FilterDefinition(
+      id: 'vsco_a6',
+      name: vscoA6FilterName,
+      description: 'Add a gentle warmth for an analog-inspired photo',
+      applyFilter: applyVscoA6Filter,
+    ),
+    FilterDefinition(
+      id: 'mono_b1',
+      name: blackWhiteFilterName,
+      description: 'Get your photos in black and white, a timeless touch',
+      applyFilter: applyMonoFilter,
+    ),
+    FilterDefinition(
+      id: 'cinematic',
+      name: cinematicFilterName,
+      description: 'Cinematic teal and orange look',
+      applyFilter: applyCinematicFilter,
+    ),
   ];
 }

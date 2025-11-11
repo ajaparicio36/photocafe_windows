@@ -32,7 +32,7 @@ class FlipbookTakesScreen extends ConsumerWidget {
                 Column(
                   children: [
                     // Takes Grid
-                    const SizedBox(height: 140),
+                    const SizedBox(height: 180),
                     Expanded(
                       child: TakesGridWidget(
                         videoTakes: state.videoTakes,
@@ -44,7 +44,7 @@ class FlipbookTakesScreen extends ConsumerWidget {
                     ),
 
                     // Bottom spacing for proceed button
-                    const SizedBox(height: 100),
+                    const SizedBox(height: 40),
                   ],
                 ),
 

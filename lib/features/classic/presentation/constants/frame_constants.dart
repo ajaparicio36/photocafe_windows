@@ -1247,7 +1247,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrame = FrameDefinition(
     id: '4by4_frame_one',
     name: 'Frame One',
-    description: 'A frame with pole borders',
+    description: 'A frame with beautiful pole borders',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: classicFourPhotoLayout},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1256,7 +1256,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameTwo = FrameDefinition(
     id: '4by4_frame_two',
     name: 'Frame Two',
-    description: 'A frame with different layout',
+    description: 'A cute black and white frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameTwo},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1265,7 +1265,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameThree = FrameDefinition(
     id: '4by4_frame_three',
     name: 'Frame Three',
-    description: 'A frame with another layout',
+    description: 'A classic black and white frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameThree},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1274,7 +1274,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameFour = FrameDefinition(
     id: '4by4_frame_four',
     name: 'Frame Four',
-    description: 'A frame with yet another layout',
+    description: 'A black dominant frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameFour},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1283,7 +1283,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameFive = FrameDefinition(
     id: '4by4_frame_five',
     name: 'Frame Five',
-    description: 'A frame with a unique layout',
+    description: 'A film strip style frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameFive},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1292,7 +1292,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameSix = FrameDefinition(
     id: '4by4_frame_six',
     name: 'Frame Six',
-    description: 'A frame with a different design',
+    description: 'A spotify themed frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameSix},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1301,7 +1301,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameSeven = FrameDefinition(
     id: '4by4_frame_seven',
     name: 'Frame Seven',
-    description: 'A frame with a unique style',
+    description: 'A pixel art theme frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameSeven},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1310,7 +1310,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameEight = FrameDefinition(
     id: '4by4_frame_eight',
     name: 'Frame Eight',
-    description: 'A frame with a modern look',
+    description: 'A frame with a cute photoframe design',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameEight},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1319,7 +1319,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameNine = FrameDefinition(
     id: '4by4_frame_nine',
     name: 'Frame Nine',
-    description: 'A frame with a classic design',
+    description: 'A camera screen frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameNine},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1346,7 +1346,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameTwelve = FrameDefinition(
     id: '4by4_frame_twelve',
     name: 'Frame Ten',
-    description: 'A four by four frame layout.',
+    description: 'A frame for classic monochrome',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameTwelve},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1355,7 +1355,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameThirteen = FrameDefinition(
     id: '4by4_frame_thirteen',
     name: 'Frame Eleven',
-    description: 'A four by four frame layout.',
+    description: 'A frame with plain retro feel',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameThirteen},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1364,7 +1364,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameFourteen = FrameDefinition(
     id: '4by4_frame_fourteen',
     name: 'Frame Twelve',
-    description: 'A four by four frame layout.',
+    description: 'A frame with JPB design',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameFourteen},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1373,7 +1373,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameFifteen = FrameDefinition(
     id: '4by4_frame_fifteen',
     name: 'Frame Thirteen',
-    description: 'A four by four frame layout.',
+    description: 'A frame for dual design, black and white',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameFifteen},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1382,7 +1382,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameSixteen = FrameDefinition(
     id: '4by4_frame_sixteen',
     name: 'Frame Fourteen',
-    description: 'A four by four frame layout.',
+    description: 'A frame with a plain navy blue design',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameSixteen},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1391,7 +1391,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameSeventeen = FrameDefinition(
     id: '4by4_frame_seventeen',
     name: 'Frame Fifteen',
-    description: 'A four by four frame layout.',
+    description: 'A frame for dual design, black and white',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameSeventeen},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1400,7 +1400,7 @@ class FrameConstants {
   static const FrameDefinition fourByFourFrameEighteen = FrameDefinition(
     id: '4by4_frame_eighteen',
     name: 'Frame Sixteen',
-    description: 'A four by four frame layout.',
+    description: 'A frame with a scrapbook design.',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameEighteen},
     previewWidgetName: 'FourByFourFramePreview',
@@ -1411,7 +1411,7 @@ class FrameConstants {
   static const FrameDefinition twoByTwoFrameOne = FrameDefinition(
     id: '2by2_frame_one',
     name: 'Frame One',
-    description: 'A portrait-oriented 2-photo layout.',
+    description: 'A classic red 2-by-2 frame.',
     supportedLayouts: [FrameLayoutType.twoPhotos],
     layouts: {FrameLayoutType.twoPhotos: twoFrameOne},
     previewWidgetName: 'TwoByTwoFramePreview',
@@ -1420,7 +1420,7 @@ class FrameConstants {
   static const FrameDefinition twoByTwoFrameTwo = FrameDefinition(
     id: '2by2_frame_two',
     name: 'Frame Two',
-    description: ' A portrait-oriented 2-photo layout.',
+    description: ' A blue 2-by-2 photo card frame.',
     supportedLayouts: [FrameLayoutType.twoPhotos],
     layouts: {FrameLayoutType.twoPhotos: twoFrameTwo},
     previewWidgetName: 'TwoByTwoFramePreview',
@@ -1429,7 +1429,7 @@ class FrameConstants {
   static const FrameDefinition twoByTwoFrameThree = FrameDefinition(
     id: '2by2_frame_three',
     name: 'Frame Three',
-    description: 'A portrait-oriented 2-photo layout.',
+    description: 'A cartoon art frame',
     supportedLayouts: [FrameLayoutType.twoPhotos],
     layouts: {FrameLayoutType.twoPhotos: twoFrameThree},
     previewWidgetName: 'TwoByTwoFramePreview',
@@ -1438,7 +1438,7 @@ class FrameConstants {
   static const FrameDefinition twoByTwoFrameFour = FrameDefinition(
     id: '2by2_frame_four',
     name: 'Frame Four',
-    description: 'A portrait-oriented 2-photo layout.',
+    description: 'A orange theme graffiti frame',
     supportedLayouts: [FrameLayoutType.twoPhotos],
     layouts: {FrameLayoutType.twoPhotos: twoFrameFour},
     previewWidgetName: 'TwoByTwoFramePreview',
@@ -1447,7 +1447,7 @@ class FrameConstants {
   static const FrameDefinition twoByTwoFrameFive = FrameDefinition(
     id: '2by2_frame_five',
     name: 'Frame Five',
-    description: 'A portrait-oriented 2-photo layout.',
+    description: 'A classic white polaroid frame',
     supportedLayouts: [FrameLayoutType.twoPhotos],
     layouts: {FrameLayoutType.twoPhotos: twoFrameFive},
     previewWidgetName: 'TwoByTwoFramePreview',
@@ -1456,7 +1456,7 @@ class FrameConstants {
   static const FrameDefinition twoByTwoFrameSix = FrameDefinition(
     id: '2by2_frame_six',
     name: 'Frame Six',
-    description: 'A portrait-oriented 2-photo layout.',
+    description: 'An emoji themed frame',
     supportedLayouts: [FrameLayoutType.twoPhotos],
     layouts: {FrameLayoutType.twoPhotos: twoFrameSix},
     previewWidgetName: 'TwoByTwoFramePreview',
@@ -1465,7 +1465,7 @@ class FrameConstants {
   static const FrameDefinition twoByTwoFrameSeven = FrameDefinition(
     id: '2by2_frame_seven',
     name: 'Frame Seven',
-    description: 'A portrait-oriented 2-photo layout.',
+    description: 'A frame with a JPB design.',
     supportedLayouts: [FrameLayoutType.twoPhotos],
     layouts: {FrameLayoutType.twoPhotos: twoFrameSeven},
     previewWidgetName: 'TwoByTwoFramePreview',

@@ -429,7 +429,7 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
                                   left: 70,
                                   right: 30,
                                   top: 70,
-                                  bottom: 320,
+                                  bottom: 350,
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,7 +443,7 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
                                         color: Colors.white,
                                       ),
                                     ),
-                                    const SizedBox(height: 50),
+                                    const SizedBox(height: 70),
                                     Expanded(
                                       child: LayoutBuilder(
                                         builder: (context, constraints) {

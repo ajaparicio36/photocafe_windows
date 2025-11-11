@@ -69,18 +69,8 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
               case FilterConstants.lomoFilterName:
                 filteredImage = FilterConstants.applyLomoFilter(originalImage);
                 break;
-              case FilterConstants.pastelFilterName:
-                filteredImage = FilterConstants.applyPastelFilter(
-                  originalImage,
-                );
-                break;
               case FilterConstants.duotoneFilterName:
                 filteredImage = FilterConstants.applyDuotoneFilter(
-                  originalImage,
-                );
-                break;
-              case FilterConstants.grittyFilterName:
-                filteredImage = FilterConstants.applyGrittyFilter(
                   originalImage,
                 );
                 break;
@@ -150,14 +140,8 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
         case FilterConstants.lomoFilterName:
           await photoNotifier.applyFilters(FilterConstants.applyLomoFilter);
           break;
-        case FilterConstants.pastelFilterName:
-          await photoNotifier.applyFilters(FilterConstants.applyPastelFilter);
-          break;
         case FilterConstants.duotoneFilterName:
           await photoNotifier.applyFilters(FilterConstants.applyDuotoneFilter);
-          break;
-        case FilterConstants.grittyFilterName:
-          await photoNotifier.applyFilters(FilterConstants.applyGrittyFilter);
           break;
         case FilterConstants.vscoA6FilterName:
           await photoNotifier.applyFilters(FilterConstants.applyVscoA6Filter);
@@ -491,116 +475,121 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
                                           child: ListView.separated(
                                             padding: EdgeInsets.zero,
                                             itemCount: FilterConstants
-                                                .availableFilters
+                                                .filterDefinitions
                                                 .length,
                                             separatorBuilder:
                                                 (context, index) =>
-                                                    const SizedBox(height: 24),
+                                                    const SizedBox(height: 16),
                                             itemBuilder: (context, index) {
-                                              final filterName = FilterConstants
-                                                  .availableFilters[index];
+                                              final filterDef = FilterConstants
+                                                  .filterDefinitions[index];
                                               final isSelected =
-                                                  _selectedFilter == filterName;
+                                                  _selectedFilter ==
+                                                  filterDef.name;
 
                                               return Container(
                                                 decoration: BoxDecoration(
                                                   color: isSelected
                                                       ? Colors.white
-                                                      : Colors.transparent,
+                                                      : Color(
+                                                          0xFF740000,
+                                                        ).withOpacity(0.5),
                                                   borderRadius:
-                                                      BorderRadius.circular(36),
+                                                      BorderRadius.circular(16),
                                                   border: Border.all(
-                                                    color: isSelected
-                                                        ? Colors.white
-                                                        : Colors.white,
+                                                    color: Colors.white,
                                                     width: 2,
                                                   ),
+                                                  boxShadow: isSelected
+                                                      ? [
+                                                          BoxShadow(
+                                                            color: Colors.black
+                                                                .withOpacity(
+                                                                  0.1,
+                                                                ),
+                                                            blurRadius: 8,
+                                                            offset:
+                                                                const Offset(
+                                                                  0,
+                                                                  2,
+                                                                ),
+                                                          ),
+                                                        ]
+                                                      : null,
                                                 ),
-                                                child: InkWell(
-                                                  onTap: () {
-                                                    setState(() {
-                                                      _selectedFilter =
-                                                          filterName;
-                                                    });
-                                                    _generateFilterPreview(
-                                                      filterName,
-                                                    );
-                                                  },
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical:
-                                                              48, // Increased from 12 to 20
-                                                          horizontal: 16,
+                                                child: Material(
+                                                  color: Colors.transparent,
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  child: ListTile(
+                                                    contentPadding:
+                                                        const EdgeInsets.all(
+                                                          20,
                                                         ),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        // Radio button
-                                                        Container(
-                                                          width: 24,
-                                                          height: 24,
-                                                          decoration: BoxDecoration(
-                                                            shape:
-                                                                BoxShape.circle,
-                                                            border: Border.all(
-                                                              color: isSelected
-                                                                  ? Color(
-                                                                      0xFF740000,
-                                                                    )
-                                                                  : Colors
-                                                                        .white,
-                                                              width: 2,
-                                                            ),
-                                                            color: Colors
-                                                                .transparent,
-                                                          ),
-                                                          child: isSelected
-                                                              ? Center(
-                                                                  child: Container(
-                                                                    width: 12,
-                                                                    height: 12,
-                                                                    decoration: BoxDecoration(
-                                                                      shape: BoxShape
-                                                                          .circle,
-                                                                      color: Color(
-                                                                        0xFF740000,
-                                                                      ),
-                                                                    ),
-                                                                  ),
+                                                    leading: Container(
+                                                      width: 24,
+                                                      height: 24,
+                                                      decoration: BoxDecoration(
+                                                        shape: BoxShape.circle,
+                                                        color: isSelected
+                                                            ? Colors.white
+                                                            : Colors
+                                                                  .transparent,
+                                                        border: Border.all(
+                                                          color: isSelected
+                                                              ? Color(
+                                                                  0xFF740000,
                                                                 )
-                                                              : null,
+                                                              : Colors.white,
+                                                          width: 2,
                                                         ),
-                                                        const SizedBox(
-                                                          width: 32,
-                                                        ),
-                                                        // Filter name
-                                                        Expanded(
-                                                          child: Text(
-                                                            filterName,
-                                                            style: TextStyle(
-                                                              fontFamily:
-                                                                  'SpaceMono',
-                                                              fontSize: 20,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .normal,
-                                                              color: isSelected
-                                                                  ? Color(
-                                                                      0xFF740000,
-                                                                    )
-                                                                  : Colors
-                                                                        .white,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
+                                                      ),
+                                                      child: isSelected
+                                                          ? Icon(
+                                                              Icons.check,
+                                                              size: 16,
+                                                              color: Color(
+                                                                0xFF740000,
+                                                              ),
+                                                            )
+                                                          : null,
                                                     ),
+                                                    title: Text(
+                                                      filterDef.name,
+                                                      style: TextStyle(
+                                                        fontFamily: 'SpaceMono',
+                                                        fontSize: 22,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: isSelected
+                                                            ? Color(0xFF740000)
+                                                            : Colors.white,
+                                                      ),
+                                                    ),
+                                                    subtitle: Text(
+                                                      filterDef.description,
+                                                      style: TextStyle(
+                                                        fontFamily: 'SpaceMono',
+                                                        fontSize: 16,
+                                                        color: isSelected
+                                                            ? Color(
+                                                                0xFF740000,
+                                                              ).withOpacity(0.8)
+                                                            : Colors.white
+                                                                  .withOpacity(
+                                                                    0.8,
+                                                                  ),
+                                                      ),
+                                                    ),
+                                                    onTap: () {
+                                                      setState(() {
+                                                        _selectedFilter =
+                                                            filterDef.name;
+                                                      });
+                                                      _generateFilterPreview(
+                                                        filterDef.name,
+                                                      );
+                                                    },
                                                   ),
                                                 ),
                                               );
