@@ -186,11 +186,11 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       });
     }
 
-    // Start video recording in photo notifier on first photo
-    if (_currentPhotoIndex == 0 && !_hasStartedSession) {
-      _startVideoRecordingInNotifier();
-      _hasStartedSession = true;
-    }
+    // Video recording disabled for portable version
+    // if (_currentPhotoIndex == 0 && !_hasStartedSession) {
+    //   _startVideoRecordingInNotifier();
+    //   _hasStartedSession = true;
+    // }
 
     _countdownTimer?.cancel();
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -217,38 +217,39 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     });
   }
 
-  Future<void> _startVideoRecordingInNotifier() async {
-    try {
-      print('Starting video recording in photo notifier...');
-      await photoNotifier.startVideoRecording();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.videocam, color: Colors.white),
-              const SizedBox(width: 12),
-              Text(
-                'Video recording started!',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-          backgroundColor: AppColors.success,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      print('Failed to start video recording in notifier: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Video recording failed: $e'),
-          backgroundColor: AppColors.lightCard,
-          duration: const Duration(seconds: 3),
-        ),
-      );
-    }
-  }
+  // Video recording disabled for portable version
+  // Future<void> _startVideoRecordingInNotifier() async {
+  //   try {
+  //     print('Starting video recording in photo notifier...');
+  //     await photoNotifier.startVideoRecording();
+  //
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Row(
+  //           children: [
+  //             Icon(Icons.videocam, color: Colors.white),
+  //             const SizedBox(width: 12),
+  //             Text(
+  //               'Video recording started!',
+  //               style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+  //             ),
+  //           ],
+  //         ),
+  //         backgroundColor: AppColors.success,
+  //         duration: const Duration(seconds: 2),
+  //       ),
+  //     );
+  //   } catch (e) {
+  //     print('Failed to start video recording in notifier: $e');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(
+  //         content: Text('Video recording failed: $e'),
+  //         backgroundColor: AppColors.lightCard,
+  //         duration: const Duration(seconds: 3),
+  //       ),
+  //     );
+  //   }
+  // }
 
   Future<void> _capturePhoto() async {
     if (_isCapturing || _isDisposed) return;
@@ -311,8 +312,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
       // Check if we've captured 4 photos
       if (_currentPhotoIndex >= 4) {
-        print('All 4 photos captured, stopping video recording');
-        await photoNotifier.stopVideoRecording();
+        print('All 4 photos captured');
+        // Video recording disabled for portable version
+        // await photoNotifier.stopVideoRecording();
 
         if (mounted) {
           await Future.delayed(const Duration(seconds: 1));

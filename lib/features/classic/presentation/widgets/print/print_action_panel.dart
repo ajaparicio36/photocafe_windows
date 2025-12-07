@@ -52,33 +52,37 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
       final mediaFiles = await photoNotifier.getAllMediaFiles();
       print('Media files collected: ${mediaFiles.length}');
 
-      // Step 2: Process video with VHS filter
+      // Video recording disabled for portable version
+      // Step 2: Skip video processing - video recording is disabled
       String? processedVideoPath;
-      final photoState = ref.read(photoProvider).value;
-
-      if (photoState?.videoPath != null) {
-        setState(() {
-          _processingStatus = 'Applying VHS filter to video...';
-        });
-
-        try {
-          processedVideoPath = await photoNotifier.processVideoWithVHSFilter(
-            onProgress: (progress) {
-              setState(() {
-                _processingProgress = 0.1 + (progress * 0.4); // 0.1 to 0.5
-              });
-            },
-          );
-          print('Video processing completed: $processedVideoPath');
-        } catch (e) {
-          print('Video processing failed: $e');
-          // Continue without video
-        }
-      } else {
-        setState(() {
-          _processingProgress = 0.5;
-        });
-      }
+      // final photoState = ref.read(photoProvider).value;
+      //
+      // if (photoState?.videoPath != null) {
+      //   setState(() {
+      //     _processingStatus = 'Applying VHS filter to video...';
+      //   });
+      //
+      //   try {
+      //     processedVideoPath = await photoNotifier.processVideoWithVHSFilter(
+      //       onProgress: (progress) {
+      //         setState(() {
+      //           _processingProgress = 0.1 + (progress * 0.4); // 0.1 to 0.5
+      //         });
+      //       },
+      //     );
+      //     print('Video processing completed: $processedVideoPath');
+      //   } catch (e) {
+      //     print('Video processing failed: $e');
+      //     // Continue without video
+      //   }
+      // } else {
+      //   setState(() {
+      //     _processingProgress = 0.5;
+      //   });
+      // }
+      setState(() {
+        _processingProgress = 0.5;
+      });
 
       // Step 3: Upload to server
       setState(() {

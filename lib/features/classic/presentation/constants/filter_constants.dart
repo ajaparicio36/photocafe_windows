@@ -16,14 +16,14 @@ class FilterDefinition {
 
 class FilterConstants {
   static const String noFilterName = 'No Filter';
-  // static const String vintageFilterName = 'Vintage Sepia';
+  static const String vintageFilterName = 'Vintage Sepia';
   static const String hdrFilterName = 'HDR Boost';
-  // static const String matteFilterName = 'Matte Fade';
-  // static const String lomoFilterName = 'Lomo Pop';
-  // static const String duotoneFilterName = 'Duotone Teal‑Orange';
-  // static const String vscoA6FilterName = 'VSCO A6 Warm';
+  static const String matteFilterName = 'Matte Fade';
+  static const String lomoFilterName = 'Lomo Pop';
+  static const String duotoneFilterName = 'Duotone Teal‑Orange';
+  static const String vscoA6FilterName = 'VSCO A6 Warm';
   static const String blackWhiteFilterName = 'Mono B1';
-  // static const String cinematicFilterName = 'Cinematic Teal‑Orange';
+  static const String cinematicFilterName = 'Cinematic Teal‑Orange';
 
   // Vintage Sepia: warm sepia tone
   static img.Image applyVintageFilter(img.Image image) {
