@@ -319,16 +319,10 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
           context.go('/classic/filter');
         }
       } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Photo ${_currentPhotoIndex} captured! (${4 - _currentPhotoIndex} remaining)',
-                style: const TextStyle(fontSize: 16),
-              ),
-              backgroundColor: AppColors.success,
-            ),
-          );
+        // Automatically start next countdown after a short delay
+        if (mounted && !_isDisposed) {
+          await Future.delayed(const Duration(seconds: 2));
+          _startCountdown();
         }
       }
     } catch (e) {

@@ -220,7 +220,8 @@ class CaptureOverlay extends ConsumerWidget {
               ),
               child: Column(
                 children: [
-                  if (!isCountingDown && !isCapturing)
+                  // Only show start button for first photo
+                  if (!isCountingDown && !isCapturing && currentPhotoIndex == 0)
                     Container(
                       width: _min(500, size.width * 0.8),
                       height: 120,
@@ -238,17 +239,10 @@ class CaptureOverlay extends ConsumerWidget {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(
-                              currentPhotoIndex == 0
-                                  ? Icons.camera_alt_rounded
-                                  : Icons.navigate_next_rounded,
-                              size: 48,
-                            ),
+                            Icon(Icons.camera_alt_rounded, size: 48),
                             const SizedBox(width: 20),
                             Text(
-                              currentPhotoIndex == 0
-                                  ? 'Start Capture'
-                                  : 'Next Photo',
+                              'Start Capture',
                               style: const TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,

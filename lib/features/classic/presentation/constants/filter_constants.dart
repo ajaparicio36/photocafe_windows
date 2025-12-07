@@ -16,14 +16,14 @@ class FilterDefinition {
 
 class FilterConstants {
   static const String noFilterName = 'No Filter';
-  static const String vintageFilterName = 'Vintage Sepia';
+  // static const String vintageFilterName = 'Vintage Sepia';
   static const String hdrFilterName = 'HDR Boost';
-  static const String matteFilterName = 'Matte Fade';
-  static const String lomoFilterName = 'Lomo Pop';
-  static const String duotoneFilterName = 'Duotone Teal‑Orange';
-  static const String vscoA6FilterName = 'VSCO A6 Warm';
+  // static const String matteFilterName = 'Matte Fade';
+  // static const String lomoFilterName = 'Lomo Pop';
+  // static const String duotoneFilterName = 'Duotone Teal‑Orange';
+  // static const String vscoA6FilterName = 'VSCO A6 Warm';
   static const String blackWhiteFilterName = 'Mono B1';
-  static const String cinematicFilterName = 'Cinematic Teal‑Orange';
+  // static const String cinematicFilterName = 'Cinematic Teal‑Orange';
 
   // Vintage Sepia: warm sepia tone
   static img.Image applyVintageFilter(img.Image image) {
@@ -139,15 +139,9 @@ class FilterConstants {
   }
 
   static List<String> get availableFilters => [
-    // noFilterName,
-    // vintageFilterName,
+    noFilterName,
     hdrFilterName,
-    // matteFilterName,
-    // lomoFilterName,
-    // duotoneFilterName,
-    // vscoA6FilterName,
     blackWhiteFilterName,
-    // cinematicFilterName,
   ];
 
   // Filter Definitions with descriptions
@@ -159,52 +153,16 @@ class FilterConstants {
       applyFilter: (img.Image image) => image,
     ),
     FilterDefinition(
-      id: 'vintage_sepia',
-      name: vintageFilterName,
-      description: 'Add a classic vintage look with warm tones',
-      applyFilter: applyVintageFilter,
-    ),
-    FilterDefinition(
       id: 'hdr_boost',
       name: hdrFilterName,
       description: 'Enhance details and vibrancy in your photos',
       applyFilter: applyHdrFilter,
     ),
     FilterDefinition(
-      id: 'matte_fade',
-      name: matteFilterName,
-      description: 'Lower contrast filter, make your photos cinematic',
-      applyFilter: applyMatteFilter,
-    ),
-    FilterDefinition(
-      id: 'lomo_pop',
-      name: lomoFilterName,
-      description: 'High contrast and saturated colors',
-      applyFilter: applyLomoFilter,
-    ),
-    FilterDefinition(
-      id: 'duotone',
-      name: duotoneFilterName,
-      description: 'Artistic duotone effect',
-      applyFilter: applyDuotoneFilter,
-    ),
-    FilterDefinition(
-      id: 'vsco_a6',
-      name: vscoA6FilterName,
-      description: 'Add a gentle warmth for an analog-inspired photo',
-      applyFilter: applyVscoA6Filter,
-    ),
-    FilterDefinition(
       id: 'mono_b1',
       name: blackWhiteFilterName,
       description: 'Get your photos in black and white, a timeless touch',
       applyFilter: applyMonoFilter,
-    ),
-    FilterDefinition(
-      id: 'cinematic',
-      name: cinematicFilterName,
-      description: 'Cinematic teal and orange look',
-      applyFilter: applyCinematicFilter,
     ),
   ];
 }

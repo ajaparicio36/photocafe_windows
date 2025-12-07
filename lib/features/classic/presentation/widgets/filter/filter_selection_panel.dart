@@ -187,8 +187,8 @@ class FilterSelectionPanel extends StatelessWidget {
     switch (filterName) {
       case 'No Filter':
         return 'Keep your photos as they are';
-      case FilterConstants.vintageFilterName:
-        return 'Add a classic vintage look with warm tones';
+      // case FilterConstants.vintageFilterName:
+      //   return 'Add a classic vintage look with warm tones';
       default:
         return 'Apply this filter to your photos';
     }
