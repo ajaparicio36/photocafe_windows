@@ -175,8 +175,8 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
 
     final pageFormat = PdfPageFormat(adjustedWidth, adjustedHeight);
 
-    // Generate 50 pages with 2 frames per page
-    final totalPages = 50;
+    // Generate pages with 2 frames per page
+    final totalPages = (frameImages.length / 2).ceil();
     for (int pageIndex = 0; pageIndex < totalPages; pageIndex++) {
       final frameIndex1 = pageIndex * 2;
       final frameIndex2 = pageIndex * 2 + 1;

@@ -1240,6 +1240,72 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/frame19.png',
   );
 
+  static const fourFrameNineteen = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 11,
+        top: 15,
+        width: 125,
+        height: 80,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 11,
+        top: 124,
+        width: 125,
+        height: 80,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 11,
+        top: 238,
+        width: 125,
+        height: 80,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 11,
+        top: 352,
+        width: 125,
+        height: 80,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 165,
+        top: 15,
+        width: 125,
+        height: 80,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 165,
+        top: 128,
+        width: 125,
+        height: 80,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 165,
+        top: 240,
+        width: 125,
+        height: 80,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 165,
+        top: 352,
+        width: 125,
+        height: 80,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame20.png',
+  );
+
   // Frame Definitions
 
   // 4 by 4
@@ -1403,6 +1469,15 @@ class FrameConstants {
     description: 'A frame with a scrapbook design.',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameEighteen},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameNineteen = FrameDefinition(
+    id: '4by4_frame_nineteen',
+    name: 'Click Click Frame',
+    description: 'The classic Click Click signature frame.',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameNineteen},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -2116,34 +2191,35 @@ class FrameConstants {
 
   static List<FrameDefinition> get availableFrames => [
     // ...existing frames...
-    fourByFourFrame,
-    fourByFourFrameTwo,
-    fourByFourFrameThree,
-    fourByFourFrameFour,
-    fourByFourFrameFive,
-    fourByFourFrameSix,
-    fourByFourFrameSeven,
-    fourByFourFrameEight,
-    fourByFourFrameNine,
+    // fourByFourFrame,
+    // fourByFourFrameTwo,
+    // fourByFourFrameThree,
+    // fourByFourFrameFour,
+    // fourByFourFrameFive,
+    // fourByFourFrameSix,
+    // fourByFourFrameSeven,
+    // fourByFourFrameEight,
+    // fourByFourFrameNine,
     fourByFourFrameTwelve,
-    fourByFourFrameThirteen,
-    fourByFourFrameFourteen,
-    fourByFourFrameFifteen,
-    fourByFourFrameSixteen,
-    fourByFourFrameSeventeen,
-    fourByFourFrameEighteen,
-    twoByTwoFrameOne,
-    twoByTwoFrameTwo,
-    twoByTwoFrameThree,
-    twoByTwoFrameFour,
-    twoByTwoFrameFive,
-    twoByTwoFrameSix,
-    twoByTwoFrameSeven,
-    // Add landscape frames
-    landscapeFrameOneDefinition,
-    landscapeFrameTwoDefinition,
-    landscapeFrameThreeDefinition,
-    landscapeFrameFourDefinition,
-    landscapeFrameFiveDefinition,
+    // fourByFourFrameThirteen,
+    // fourByFourFrameFourteen,
+    // fourByFourFrameFifteen,
+    // fourByFourFrameSixteen,
+    // fourByFourFrameSeventeen,
+    // fourByFourFrameEighteen,
+    fourByFourFrameNineteen,
+    // twoByTwoFrameOne,
+    // twoByTwoFrameTwo,
+    // twoByTwoFrameThree,
+    // twoByTwoFrameFour,
+    // twoByTwoFrameFive,
+    // twoByTwoFrameSix,
+    // twoByTwoFrameSeven,
+    // // Add landscape frames
+    // landscapeFrameOneDefinition,
+    // landscapeFrameTwoDefinition,
+    // landscapeFrameThreeDefinition,
+    // landscapeFrameFourDefinition,
+    // landscapeFrameFiveDefinition,
   ];
 }

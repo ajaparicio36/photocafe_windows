@@ -139,15 +139,15 @@ class FilterConstants {
   }
 
   static List<String> get availableFilters => [
-    noFilterName,
-    vintageFilterName,
+    // noFilterName,
+    // vintageFilterName,
     hdrFilterName,
-    matteFilterName,
-    lomoFilterName,
-    duotoneFilterName,
-    vscoA6FilterName,
+    // matteFilterName,
+    // lomoFilterName,
+    // duotoneFilterName,
+    // vscoA6FilterName,
     blackWhiteFilterName,
-    cinematicFilterName,
+    // cinematicFilterName,
   ];
 
   // Filter Definitions with descriptions
