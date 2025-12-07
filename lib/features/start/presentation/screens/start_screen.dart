@@ -29,42 +29,19 @@ class AppStartScreen extends ConsumerWidget {
             ),
           ),
 
-          // Button area positioned at bottom - horizontal layout
+          // Button area positioned at bottom - single classic mode button
           Positioned(
             left: 0,
             right: 0,
             bottom: 120,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 120),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Classic Mode Button
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => context.go('/classic/start'),
-                      child: Image.asset(
-                        'assets/design/home/home_classic.png',
-                        fit: BoxFit.contain,
-                        height: 360,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 60),
-
-                  // Flipbook Mode Button
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => context.go('/flipbook/start'),
-                      child: Image.asset(
-                        'assets/design/home/home_flipbook.png',
-                        fit: BoxFit.contain,
-                        height: 360,
-                      ),
-                    ),
-                  ),
-                ],
+            child: Center(
+              child: GestureDetector(
+                onTap: () => context.go('/classic/start'),
+                child: Image.asset(
+                  'assets/design/home/home_classic.png',
+                  fit: BoxFit.contain,
+                  height: 360,
+                ),
               ),
             ),
           ),
