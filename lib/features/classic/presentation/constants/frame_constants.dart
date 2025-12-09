@@ -1306,6 +1306,72 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/frame20.png',
   );
 
+  static const fourFrameTwenty = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 5,
+        top: 46,
+        width: 143,
+        height: 92,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 143,
+        width: 142,
+        height: 92,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 239,
+        width: 142,
+        height: 92,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 335,
+        width: 142,
+        height: 92,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158,
+        top: 46,
+        width: 142,
+        height: 92,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 143,
+        width: 142,
+        height: 92,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 239,
+        width: 142,
+        height: 92,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 335,
+        width: 142,
+        height: 92,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame21.png',
+  );
+
   // Frame Definitions
 
   // 4 by 4
@@ -1478,6 +1544,15 @@ class FrameConstants {
     description: 'Happy PICPA Week 2025! A frame in celebration of PICPA Week.',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameNineteen},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameTwenty = FrameDefinition(
+    id: '4by4_frame_twenty',
+    name: 'La Selva Frame',
+    description: 'The Panthers Grove',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameTwenty},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -2200,14 +2275,15 @@ class FrameConstants {
     // fourByFourFrameSeven,
     // fourByFourFrameEight,
     // fourByFourFrameNine,
-    fourByFourFrameTwelve,
+    // fourByFourFrameTwelve,
     // fourByFourFrameThirteen,
     // fourByFourFrameFourteen,
     // fourByFourFrameFifteen,
     // fourByFourFrameSixteen,
     // fourByFourFrameSeventeen,
     // fourByFourFrameEighteen,
-    fourByFourFrameNineteen,
+    // fourByFourFrameNineteen,
+    fourByFourFrameTwenty,
     // twoByTwoFrameOne,
     // twoByTwoFrameTwo,
     // twoByTwoFrameThree,
