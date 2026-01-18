@@ -66,14 +66,6 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
               case FilterConstants.matteFilterName:
                 filteredImage = FilterConstants.applyMatteFilter(originalImage);
                 break;
-              case FilterConstants.lomoFilterName:
-                filteredImage = FilterConstants.applyLomoFilter(originalImage);
-                break;
-              case FilterConstants.duotoneFilterName:
-                filteredImage = FilterConstants.applyDuotoneFilter(
-                  originalImage,
-                );
-                break;
               case FilterConstants.vscoA6FilterName:
                 filteredImage = FilterConstants.applyVscoA6Filter(
                   originalImage,
@@ -136,12 +128,6 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
           break;
         case FilterConstants.matteFilterName:
           await photoNotifier.applyFilters(FilterConstants.applyMatteFilter);
-          break;
-        case FilterConstants.lomoFilterName:
-          await photoNotifier.applyFilters(FilterConstants.applyLomoFilter);
-          break;
-        case FilterConstants.duotoneFilterName:
-          await photoNotifier.applyFilters(FilterConstants.applyDuotoneFilter);
           break;
         case FilterConstants.vscoA6FilterName:
           await photoNotifier.applyFilters(FilterConstants.applyVscoA6Filter);

@@ -738,47 +738,52 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         throw Exception("State is not available to apply filters.");
       }
 
-      final updatedPhotos = <PhotoModel>[];
-
-      for (final photo in currentState.photos) {
+      // Process all photos in parallel using Isolate.run for each
+      final futures = currentState.photos.map((photo) async {
         final file = File(photo.imagePath);
-        if (await file.exists()) {
-          // Read and decode the image
-          final imageBytes = await file.readAsBytes();
-          final originalImage = img.decodeImage(imageBytes);
+        if (!await file.exists()) {
+          return photo; // Keep original if file doesn't exist
+        }
 
-          if (originalImage != null) {
+        try {
+          // Read image bytes
+          final imageBytes = await file.readAsBytes();
+
+          // Process in isolate to avoid blocking UI
+          final filteredBytes = await Isolate.run(() {
+            final originalImage = img.decodeImage(imageBytes);
+            if (originalImage == null) return imageBytes;
+
             // Apply the filter
             final filteredImage = filterFunction(originalImage);
 
-            // Encode back to JPEG
-            final filteredBytes = img.encodeJpg(filteredImage);
+            // Encode back to JPEG with good quality
+            return img.encodeJpg(filteredImage, quality: 92);
+          });
 
-            // Create new file path for filtered image
-            final fileName =
-                'filtered_${DateTime.now().millisecondsSinceEpoch}_${photo.index}.jpg';
-            final filteredPath = p.join(currentState.tempPath, fileName);
-            final filteredFile = File(filteredPath);
+          // Generate unique filename
+          final fileName =
+              'filtered_${DateTime.now().millisecondsSinceEpoch}_${photo.index}.jpg';
+          final filteredPath = p.join(currentState.tempPath, fileName);
+          final filteredFile = File(filteredPath);
 
-            // Write filtered image
-            await filteredFile.writeAsBytes(filteredBytes);
+          // Write filtered image (use flush: false for speed)
+          await filteredFile.writeAsBytes(filteredBytes, flush: false);
 
-            // Delete old file
-            await file.delete();
+          // Delete old file
+          await file.delete();
 
-            // Update photo model with new path
-            updatedPhotos.add(photo.copyWith(imagePath: filteredPath));
-          } else {
-            // If image couldn't be decoded, keep original
-            updatedPhotos.add(photo);
-          }
-        } else {
-          // If file doesn't exist, keep original
-          updatedPhotos.add(photo);
+          return photo.copyWith(imagePath: filteredPath);
+        } catch (e) {
+          print('Error processing photo ${photo.index}: $e');
+          return photo; // Keep original on error
         }
-      }
+      });
 
-      return currentState.copyWith(photos: updatedPhotos);
+      // Wait for all photos to be processed in parallel
+      final updatedPhotos = await Future.wait(futures);
+
+      return currentState.copyWith(photos: updatedPhotos.toList());
     });
   }
 

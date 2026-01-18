@@ -19,8 +19,6 @@ class FilterConstants {
   static const String vintageFilterName = 'Vintage Sepia';
   static const String hdrFilterName = 'HDR Boost';
   static const String matteFilterName = 'Matte Fade';
-  static const String lomoFilterName = 'Lomo Pop';
-  static const String duotoneFilterName = 'Duotone Teal‑Orange';
   static const String vscoA6FilterName = 'VSCO A6 Warm';
   static const String blackWhiteFilterName = 'Mono B1';
   static const String cinematicFilterName = 'Cinematic Teal‑Orange';
@@ -39,20 +37,15 @@ class FilterConstants {
     for (var y = 0; y < result.height; y++) {
       for (var x = 0; x < result.width; x++) {
         var pixel = result.getPixel(x, y);
-        var r = pixel.r;
-        var g = pixel.g;
-        var b = pixel.b;
+        // Properly clamp input values first to handle any out-of-range pixels
+        final r = pixel.r.toInt().clamp(0, 255);
+        final g = pixel.g.toInt().clamp(0, 255);
+        final b = pixel.b.toInt().clamp(0, 255);
 
-        // Sepia transformation
-        var newR = ((r * 0.393) + (g * 0.769) + (b * 0.189))
-            .clamp(0, 255)
-            .round();
-        var newG = ((r * 0.349) + (g * 0.686) + (b * 0.168))
-            .clamp(0, 255)
-            .round();
-        var newB = ((r * 0.272) + (g * 0.534) + (b * 0.131))
-            .clamp(0, 255)
-            .round();
+        // Sepia transformation with proper double arithmetic
+        final newR = (r * 0.393 + g * 0.769 + b * 0.189).round().clamp(0, 255);
+        final newG = (r * 0.349 + g * 0.686 + b * 0.168).round().clamp(0, 255);
+        final newB = (r * 0.272 + g * 0.534 + b * 0.131).round().clamp(0, 255);
 
         result.setPixel(x, y, img.ColorRgb8(newR, newG, newB));
       }
@@ -70,40 +63,34 @@ class FilterConstants {
     return img.adjustColor(image, contrast: 0.85, brightness: 1.1);
   }
 
-  // Lomo Pop: high contrast, saturated
-  static img.Image applyLomoFilter(img.Image image) {
-    return img.adjustColor(image, saturation: 1.4, contrast: 1.3);
-  }
+  // VSCO A6 Warm: warm tone with subtle brightness boost
+  static img.Image applyVscoA6Filter(img.Image image) {
+    // Use gentler values to prevent bright areas from clipping to black
+    var filtered = img.adjustColor(
+      image,
+      brightness: 1.08,
+      contrast: 1.08,
+      saturation: 1.15,
+    );
 
-  // Duotone Teal-Orange: manual duotone effect
-  static img.Image applyDuotoneFilter(img.Image image) {
-    var filtered = img.grayscale(image);
+    // Apply subtle warm toning without risking overflow
     var result = img.Image.from(filtered);
-
     for (var y = 0; y < result.height; y++) {
       for (var x = 0; x < result.width; x++) {
         var pixel = result.getPixel(x, y);
-        var luminance = img.getLuminance(pixel) / 255.0;
+        final r = pixel.r.toInt().clamp(0, 255);
+        final g = pixel.g.toInt().clamp(0, 255);
+        final b = pixel.b.toInt().clamp(0, 255);
 
-        // Teal for shadows, orange for highlights
-        var r = (luminance * 255 + (1 - luminance) * 0).round();
-        var g = (luminance * 128 + (1 - luminance) * 128).round();
-        var b = (luminance * 0 + (1 - luminance) * 128).round();
+        // Subtle warm shift - add slight red/yellow, reduce blue slightly
+        final newR = (r + 5).clamp(0, 255);
+        final newG = (g + 2).clamp(0, 255);
+        final newB = (b - 8).clamp(0, 255);
 
-        result.setPixel(x, y, img.ColorRgb8(r, g, b));
+        result.setPixel(x, y, img.ColorRgb8(newR, newG, newB));
       }
     }
     return result;
-  }
-
-  // VSCO A6 Warm: warm tone with subtle brightness boost
-  static img.Image applyVscoA6Filter(img.Image image) {
-    return img.adjustColor(
-      image,
-      brightness: 1.1,
-      contrast: 1.1,
-      saturation: 1.2,
-    );
   }
 
   // Mono B1: black & white with rich contrast
@@ -114,25 +101,28 @@ class FilterConstants {
 
   // Cinematic Teal-Orange: manual teal-orange effect
   static img.Image applyCinematicFilter(img.Image image) {
-    var filtered = img.adjustColor(image, contrast: 1.2, saturation: 1.1);
+    // Use gentler contrast to prevent clipping
+    var filtered = img.adjustColor(image, contrast: 1.15, saturation: 1.08);
     var result = img.Image.from(filtered);
 
     for (var y = 0; y < result.height; y++) {
       for (var x = 0; x < result.width; x++) {
         var pixel = result.getPixel(x, y);
-        var r = pixel.r;
-        var g = pixel.g;
-        var b = pixel.b;
+        // Properly convert to int and clamp input values first
+        final r = pixel.r.toInt().clamp(0, 255);
+        final g = pixel.g.toInt().clamp(0, 255);
+        final b = pixel.b.toInt().clamp(0, 255);
 
         // Push highlights toward orange, shadows toward teal
-        var luminance = (r + g + b) / 3;
-        var factor = luminance / 255.0;
+        final luminance = (r + g + b) / 3.0;
+        final factor = (luminance / 255.0).clamp(0.0, 1.0);
 
-        r = (r + factor * 20).clamp(0, 255).round().toInt();
-        g = (g + factor * 10 - (1 - factor) * 10).clamp(0, 255).round().toInt();
-        b = (b - factor * 10 + (1 - factor) * 20).clamp(0, 255).round().toInt();
+        // Use gentler color shifts to prevent artifacts
+        final newR = (r + factor * 15).round().clamp(0, 255);
+        final newG = (g + factor * 8 - (1 - factor) * 8).round().clamp(0, 255);
+        final newB = (b - factor * 8 + (1 - factor) * 15).round().clamp(0, 255);
 
-        result.setPixel(x, y, img.ColorRgb8(r.toInt(), g.toInt(), b.toInt()));
+        result.setPixel(x, y, img.ColorRgb8(newR, newG, newB));
       }
     }
     return result;
@@ -143,8 +133,6 @@ class FilterConstants {
     vintageFilterName,
     hdrFilterName,
     matteFilterName,
-    lomoFilterName,
-    duotoneFilterName,
     vscoA6FilterName,
     blackWhiteFilterName,
     cinematicFilterName,
@@ -175,18 +163,6 @@ class FilterConstants {
       name: matteFilterName,
       description: 'Lower contrast filter, make your photos cinematic',
       applyFilter: applyMatteFilter,
-    ),
-    FilterDefinition(
-      id: 'lomo_pop',
-      name: lomoFilterName,
-      description: 'High contrast and saturated colors',
-      applyFilter: applyLomoFilter,
-    ),
-    FilterDefinition(
-      id: 'duotone',
-      name: duotoneFilterName,
-      description: 'Artistic duotone effect',
-      applyFilter: applyDuotoneFilter,
     ),
     FilterDefinition(
       id: 'vsco_a6',
