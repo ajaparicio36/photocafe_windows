@@ -327,8 +327,15 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                 style: const TextStyle(fontSize: 16),
               ),
               backgroundColor: AppColors.success,
+              duration: const Duration(seconds: 2),
             ),
           );
+
+          // Automatically start countdown for the next photo after a short delay
+          await Future.delayed(const Duration(seconds: 2));
+          if (mounted && !_isDisposed && _currentPhotoIndex < 4) {
+            _startCountdown();
+          }
         }
       }
     } catch (e) {
