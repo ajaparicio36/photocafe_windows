@@ -44,9 +44,9 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       final videoFilePath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        final videoBytes = await videoXFile.readAsBytes();
-        final targetFile = File(videoFilePath);
-        await targetFile.writeAsBytes(videoBytes);
+        // Use file copy instead of reading bytes - much faster for video files
+        final sourceFile = File(videoXFile.path);
+        final targetFile = await sourceFile.copy(videoFilePath);
 
         print('Take $takeNumber saved to: $videoFilePath');
 
@@ -115,10 +115,9 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       final videoFilePath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        // Read bytes from XFile and write to our designated path
-        final videoBytes = await videoXFile.readAsBytes();
-        final targetFile = File(videoFilePath);
-        await targetFile.writeAsBytes(videoBytes);
+        // Use file copy instead of reading bytes - much faster for video files
+        final sourceFile = File(videoXFile.path);
+        final targetFile = await sourceFile.copy(videoFilePath);
 
         print('Photo camera video saved to: $videoFilePath');
 
@@ -274,10 +273,12 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
 
         final ffmpegArgs = [
           '-i', currentState.videoPath!,
+          '-v', 'warning', // Reduce log verbosity for speed
+          '-threads', '0', // Use all available CPU threads
           '-vf',
           'fps=7.142857,scale=${VideoFilterConstants.videoWidth}:${VideoFilterConstants.videoHeight}',
           '-frames:v', '50', // Extract exactly 50 frames
-          '-q:v', '2',
+          '-q:v', '3', // Slightly lower quality for faster extraction (was 2)
           '-y',
           framePattern,
         ];
@@ -372,7 +373,8 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
         final ffmpegArgs = [
           '-i', currentState.videoPath!,
           '-y', // Overwrite output
-          '-v', 'info',
+          '-v', 'warning', // Reduce log verbosity for speed
+          '-threads', '0', // Use all available CPU threads
         ];
 
         // Add video filters if any
@@ -380,19 +382,16 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
           ffmpegArgs.addAll(['-vf', filterArgs.join(',')]);
         }
 
+        // Optimized encoding settings for faster processing
         ffmpegArgs.addAll([
-          '-c:v',
-          'libx264',
-          '-preset',
-          'fast',
-          '-crf',
-          '23',
-          '-movflags',
-          '+faststart',
-          '-c:a',
-          'aac',
-          '-b:a',
-          '128k',
+          '-threads', '0', // Use all available CPU threads
+          '-c:v', 'libx264',
+          '-preset', 'veryfast', // Faster preset (was 'fast')
+          '-tune', 'fastdecode',
+          '-crf', '25', // Slightly lower quality for faster encoding
+          '-movflags', '+faststart',
+          '-c:a', 'aac',
+          '-b:a', '96k', // Lower bitrate for faster encoding
           outputPath,
         ]);
 
@@ -579,7 +578,8 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       final ffmpegArgs = [
         '-i', currentState.videoPath!,
         '-y', // Overwrite output
-        '-v', 'info',
+        '-v', 'warning', // Reduce log verbosity for speed
+        '-threads', '0', // Use all available CPU threads
       ];
 
       // Add video filters if any
@@ -590,8 +590,9 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       // Add codec and format settings with explicit pixel format for compatibility
       ffmpegArgs.addAll([
         '-c:v', 'libx264',
-        '-preset', 'ultrafast', // Faster for preview
-        '-crf', '23', // Better quality than 28 for preview playback
+        '-preset', 'ultrafast', // Fastest for preview
+        '-tune', 'fastdecode', // Optimize for fast decoding
+        '-crf', '26', // Slightly lower quality for faster encoding
         '-pix_fmt', 'yuv420p', // Explicit pixel format for better compatibility
         '-profile:v',
         'baseline', // Use baseline profile for better compatibility

@@ -235,7 +235,8 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   }
 
   Future<void> _setupVideoPreview() async {
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Reduced delay - file copy is fast now, just need minimal wait for file system
+    await Future.delayed(const Duration(milliseconds: 100));
     final videoState = ref.read(videoProvider).value;
     if (videoState?.videoPath != null && mounted) {
       try {
