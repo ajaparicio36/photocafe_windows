@@ -16,6 +16,10 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   _videoCameraController; // Video camera for background recording
   Process? _ffmpegProcess;
 
+  // Background processing futures to avoid blocking UI
+  Future<void>? _pendingVhsProcessing;
+  String? _pendingRawVideoPath;
+
   @override
   Future<PhotoState> build() async {
     final tempPath = await getTemporaryDirectory();
@@ -129,11 +133,12 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       print('Stopping video recording in photo notifier...');
       final videoXFile = await _videoCameraController!.stopVideoRecording();
 
-      // Save the raw video file
-      await _saveRawVideoFromCapture(videoXFile);
+      // Save the raw video file using efficient file copy (non-blocking for large files)
+      await _saveRawVideoFromCaptureOptimized(videoXFile);
 
-      // Process the video with VHS filter (only the processed version will be uploaded)
-      await _processVideoWithVHSFilter();
+      // Start VHS processing in background - don't await here
+      // This allows the UI to proceed to the filter screen immediately
+      _startBackgroundVhsProcessing();
 
       state = await AsyncValue.guard(() async {
         final currentState = state.value;
@@ -143,7 +148,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         return currentState.copyWith(isRecording: false);
       });
 
-      print('Video recording stopped and processed in photo notifier');
+      print(
+        'Video recording stopped in photo notifier (VHS processing continues in background)',
+      );
     } catch (e) {
       print('Error stopping video recording in photo notifier: $e');
 
@@ -156,6 +163,84 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       });
 
       throw Exception('Failed to stop video recording: $e');
+    }
+  }
+
+  /// Optimized video save using file copy instead of reading all bytes into memory
+  Future<void> _saveRawVideoFromCaptureOptimized(XFile videoXFile) async {
+    final currentState = state.value;
+    if (currentState == null) {
+      throw Exception("State is not available to save raw video.");
+    }
+
+    final rawVideoFileName =
+        'raw_session_${DateTime.now().millisecondsSinceEpoch}.mp4';
+    final rawVideoPath = p.join(currentState.tempPath, rawVideoFileName);
+
+    try {
+      // Use file copy instead of reading bytes - much faster for large video files
+      final sourceFile = File(videoXFile.path);
+      final targetFile = await sourceFile.copy(rawVideoPath);
+
+      print('Raw video copied to: $rawVideoPath');
+
+      final fileSize = await targetFile.length();
+      print('Raw video file size: $fileSize bytes');
+
+      if (fileSize < 1024) {
+        print('Raw video file too small, creating fallback...');
+        await _createFallbackVideo(rawVideoPath);
+      }
+
+      // Store path for background processing
+      _pendingRawVideoPath = rawVideoPath;
+
+      // Update state with raw video path
+      state = await AsyncValue.guard(() async {
+        final currentState = state.value;
+        if (currentState == null) {
+          throw Exception("State is not available to update video path.");
+        }
+        return currentState.copyWith(videoPath: rawVideoPath);
+      });
+    } catch (e) {
+      print('Error saving raw video: $e');
+      await _createFallbackVideo(rawVideoPath);
+      _pendingRawVideoPath = rawVideoPath;
+
+      state = await AsyncValue.guard(() async {
+        final currentState = state.value;
+        if (currentState == null) {
+          throw Exception("State is not available to update video path.");
+        }
+        return currentState.copyWith(videoPath: rawVideoPath);
+      });
+    }
+  }
+
+  /// Start VHS processing in background without blocking
+  void _startBackgroundVhsProcessing() {
+    _pendingVhsProcessing = _processVideoWithVHSFilterAsync();
+    _pendingVhsProcessing!
+        .then((_) {
+          print('Background VHS processing completed');
+          _pendingVhsProcessing = null;
+        })
+        .catchError((e) {
+          print('Background VHS processing failed: $e');
+          _pendingVhsProcessing = null;
+        });
+  }
+
+  /// Check if VHS processing is still in progress
+  bool get isVhsProcessingInProgress => _pendingVhsProcessing != null;
+
+  /// Wait for any pending VHS processing to complete (call before upload)
+  Future<void> ensureVhsProcessingComplete() async {
+    if (_pendingVhsProcessing != null) {
+      print('Waiting for background VHS processing to complete...');
+      await _pendingVhsProcessing;
+      print('Background VHS processing finished');
     }
   }
 
@@ -207,6 +292,11 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   }
 
   Future<void> _processVideoWithVHSFilter() async {
+    await _processVideoWithVHSFilterAsync();
+  }
+
+  /// Async VHS processing that can run in background
+  Future<void> _processVideoWithVHSFilterAsync() async {
     final currentState = state.value;
     if (currentState == null || currentState.videoPath == null) {
       throw Exception("No raw video available for VHS processing");
@@ -225,15 +315,16 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     );
 
     try {
-      print('Processing raw video with VHS filter...');
+      print('Processing raw video with VHS filter (background)...');
       print('Input: ${currentState.videoPath}');
       print('Output: $processedVideoPath');
 
-      // Apply VHS filter
+      // Apply VHS filter with optimized settings for faster processing
       final ffmpegArgs = [
         '-i', currentState.videoPath!,
         '-y', // Overwrite output
-        '-v', 'info',
+        '-v', 'warning', // Reduce log verbosity for speed
+        '-threads', '0', // Use all available CPU threads
         '-vf',
         [
           'scale=640:480', // Standard definition for VHS effect
@@ -243,15 +334,18 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
           'unsharp=5:5:1.5:5:5:0.0', // Add slight blur
         ].join(','),
         '-c:v', 'libx264',
-        '-preset', 'fast',
-        '-crf', '23',
+        '-preset', 'veryfast', // Faster encoding preset (was 'fast')
+        '-tune', 'fastdecode', // Optimize for fast decoding
+        '-crf', '25', // Slightly lower quality for faster encoding (was 23)
         '-movflags', '+faststart',
         '-c:a', 'aac',
-        '-b:a', '128k',
+        '-b:a', '96k', // Lower audio bitrate for faster encoding (was 128k)
         processedVideoPath,
       ];
 
-      print('FFmpeg VHS processing: ffmpeg ${ffmpegArgs.join(' ')}');
+      print(
+        'FFmpeg VHS processing (optimized): ffmpeg ${ffmpegArgs.join(' ')}',
+      );
       final process = await Process.run('ffmpeg', ffmpegArgs);
 
       if (process.exitCode == 0) {
@@ -259,9 +353,6 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         if (await processedFile.exists()) {
           final fileSize = await processedFile.length();
           print('VHS processing completed successfully, size: $fileSize bytes');
-
-          // Keep both raw and processed videos (raw for backup, processed for upload)
-          // The soft copy service will use the processed version
           print('VHS filter applied successfully');
         } else {
           throw Exception('Processed video file was not created');
@@ -275,6 +366,12 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       // If VHS processing fails, we still have the raw video
       print('VHS processing failed, will use raw video as fallback');
     }
+  }
+
+  // Legacy method kept for compatibility
+  @Deprecated('Use _processVideoWithVHSFilterAsync instead')
+  Future<void> _processVideoWithVHSFilterLegacy() async {
+    await _processVideoWithVHSFilterAsync();
   }
 
   Future<void> _createFallbackVideo(String outputPath) async {
@@ -330,23 +427,28 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     int layoutMode = 4,
     bool isLandscape = false,
   }) async {
+    // Start image processing in parallel with state preparation
+    final processingFuture = _processImageMinimal(
+      imageBytes,
+      layoutMode,
+      isLandscape: isLandscape,
+    );
+
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
         throw Exception("State is not available to add a photo.");
       }
 
-      // Minimal processing based on layout mode and landscape flag - just ensure correct aspect ratio
-      final processedImageBytes = await _processImageMinimal(
-        imageBytes,
-        layoutMode,
-        isLandscape: isLandscape,
-      );
+      // Wait for processing to complete
+      final processedImageBytes = await processingFuture;
 
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final imagePath = p.join(currentState.tempPath, fileName);
       final imageFile = File(imagePath);
-      await imageFile.writeAsBytes(processedImageBytes);
+
+      // Use flush: false for faster writes (OS handles flushing)
+      await imageFile.writeAsBytes(processedImageBytes, flush: false);
 
       final newPhoto = PhotoModel(
         imagePath: imagePath,
@@ -705,6 +807,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
   // Get processed video specifically for soft copy upload
   Future<File?> getProcessedVideo() async {
+    // Wait for any background VHS processing to complete first
+    await ensureVhsProcessingComplete();
+
     final currentState = state.value;
     if (currentState == null) {
       return null;

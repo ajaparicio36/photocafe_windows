@@ -52,24 +52,42 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
       final mediaFiles = await photoNotifier.getAllMediaFiles();
       print('Media files collected: ${mediaFiles.length}');
 
-      // Step 2: Process video with VHS filter
+      // Step 2: Get processed video (waits for background VHS processing if still running)
       String? processedVideoPath;
       final photoState = ref.read(photoProvider).value;
 
       if (photoState?.videoPath != null) {
         setState(() {
-          _processingStatus = 'Applying VHS filter to video...';
+          _processingStatus = photoNotifier.isVhsProcessingInProgress
+              ? 'Waiting for video processing...'
+              : 'Getting processed video...';
         });
 
         try {
-          processedVideoPath = await photoNotifier.processVideoWithVHSFilter(
-            onProgress: (progress) {
-              setState(() {
-                _processingProgress = 0.1 + (progress * 0.4); // 0.1 to 0.5
-              });
-            },
-          );
-          print('Video processing completed: $processedVideoPath');
+          // This will wait for background processing to complete if still running
+          final processedVideo = await photoNotifier.getProcessedVideo();
+          processedVideoPath = processedVideo?.path;
+
+          if (processedVideoPath != null) {
+            print('Video processing completed: $processedVideoPath');
+            setState(() {
+              _processingProgress = 0.5;
+            });
+          } else {
+            // Fallback: process video on-demand if no processed video found
+            setState(() {
+              _processingStatus = 'Applying VHS filter to video...';
+            });
+
+            processedVideoPath = await photoNotifier.processVideoWithVHSFilter(
+              onProgress: (progress) {
+                setState(() {
+                  _processingProgress = 0.1 + (progress * 0.4); // 0.1 to 0.5
+                });
+              },
+            );
+            print('On-demand video processing completed: $processedVideoPath');
+          }
         } catch (e) {
           print('Video processing failed: $e');
           // Continue without video
