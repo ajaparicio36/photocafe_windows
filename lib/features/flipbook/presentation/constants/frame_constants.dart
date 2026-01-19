@@ -60,12 +60,7 @@ class FlipbookFrameConstants {
     frameAssetPath: 'assets/flipbook/frame1.png',
     framePositions: [
       // Frame position for A6 landscape
-      FlipbookFramePosition(
-        left: 215.0,
-        top: 20.0,
-        width: 220, // pageWidth - 40 (20px margins on each side)
-        height: 248, // pageHeight - 40 (20px margins on each side)
-      ),
+      FlipbookFramePosition(left: 215.0, top: 20.0, width: 220, height: 248),
     ],
   );
 

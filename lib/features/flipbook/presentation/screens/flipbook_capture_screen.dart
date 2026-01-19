@@ -318,7 +318,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
           flex: 4,
           child: Center(
             child: AspectRatio(
-              aspectRatio: 16 / 10,
+              aspectRatio: 16 / 9, // 16:9 aspect ratio for flipbook
               child: Container(
                 margin: const EdgeInsets.symmetric(horizontal: 40),
                 decoration: BoxDecoration(
@@ -495,7 +495,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
               color: Colors.black,
               child: Center(
                 child: AspectRatio(
-                  aspectRatio: 16 / 10, // Flipbook aspect ratio
+                  aspectRatio: 16 / 9, // 16:9 aspect ratio for flipbook
                   child: Container(
                     margin: const EdgeInsets.symmetric(horizontal: 40),
                     decoration: BoxDecoration(
@@ -511,10 +511,10 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
                           ? Transform.scale(
                               scale:
                                   _photoCameraController!.value.aspectRatio >
-                                      (16 / 10)
+                                      (16 / 9)
                                   ? _photoCameraController!.value.aspectRatio /
-                                        (16 / 10)
-                                  : (16 / 10) /
+                                        (16 / 9)
+                                  : (16 / 9) /
                                         _photoCameraController!
                                             .value
                                             .aspectRatio,

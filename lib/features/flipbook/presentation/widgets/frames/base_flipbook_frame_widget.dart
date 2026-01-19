@@ -53,7 +53,7 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
             // White background
             pw.Positioned.fill(child: pw.Container(color: PdfColors.white)),
 
-            // Frame content (behind frame background)
+            // Frame content (behind frame background) - uses BoxFit.cover to maintain aspect ratio
             pw.Positioned(
               left: scaledFramePosition.left,
               top: scaledFramePosition.top,

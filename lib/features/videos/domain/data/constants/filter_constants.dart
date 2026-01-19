@@ -1,8 +1,11 @@
 class VideoFilterConstants {
-  // A6 landscape video dimensions (16:10 aspect ratio optimized for A6)
-  // A6 landscape is 419.5 × 297.6 points, so we use proportional video size
-  static const int videoWidth = 1600;
-  static const int videoHeight = 1000;
+  // Video dimensions with 16:9 aspect ratio for proper frame extraction
+  // Using 16:9 to prevent image elongation in flipbook frames
+  static const int videoWidth = 1920;
+  static const int videoHeight = 1080;
+
+  // 16:9 aspect ratio constant
+  static const double aspectRatio = 16 / 9;
 
   // Filter names
   static const String noFilterName = 'No Filter';
