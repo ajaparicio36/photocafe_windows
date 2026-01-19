@@ -2197,6 +2197,8 @@ class FrameConstants {
     fourByFourFrameFourteen,
     fourByFourFrameFifteen,
     fourByFourFrameSixteen,
+    fourByFourFrameSeventeen,
+    fourByFourFrameEighteen,
     fourByFourFrameDinagyang,
     twoByTwoFrameOne,
     twoByTwoFrameTwo,
