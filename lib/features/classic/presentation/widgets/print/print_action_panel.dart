@@ -211,51 +211,10 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
       final mediaFiles = await photoNotifier.getAllMediaFiles();
       print('Media files collected: ${mediaFiles.length}');
 
-      // Step 2: Get processed video (waits for background VHS processing if still running)
-      String? processedVideoPath;
-      final photoState = ref.read(photoProvider).value;
-
-      if (photoState?.videoPath != null) {
-        setState(() {
-          _processingStatus = photoNotifier.isVhsProcessingInProgress
-              ? 'Waiting for video processing...'
-              : 'Getting processed video...';
-        });
-
-        try {
-          // This will wait for background processing to complete if still running
-          final processedVideo = await photoNotifier.getProcessedVideo();
-          processedVideoPath = processedVideo?.path;
-
-          if (processedVideoPath != null) {
-            print('Video processing completed: $processedVideoPath');
-            setState(() {
-              _processingProgress = 0.5;
-            });
-          } else {
-            // Fallback: process video on-demand if no processed video found
-            setState(() {
-              _processingStatus = 'Applying VHS filter to video...';
-            });
-
-            processedVideoPath = await photoNotifier.processVideoWithVHSFilter(
-              onProgress: (progress) {
-                setState(() {
-                  _processingProgress = 0.1 + (progress * 0.4); // 0.1 to 0.5
-                });
-              },
-            );
-            print('On-demand video processing completed: $processedVideoPath');
-          }
-        } catch (e) {
-          print('Video processing failed: $e');
-          // Continue without video
-        }
-      } else {
-        setState(() {
-          _processingProgress = 0.5;
-        });
-      }
+      // Video recording is disabled for portable version - skip video processing
+      setState(() {
+        _processingProgress = 0.5;
+      });
 
       // Step 3: Upload to server
       setState(() {
@@ -265,7 +224,7 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
       final softCopiesService = SoftCopiesService();
       final result = await softCopiesService.uploadMediaFiles(
         mediaFiles: mediaFiles,
-        processedVideoPath: processedVideoPath,
+        processedVideoPath: null, // No video for portable version
         pdfBytes: widget.pdfBytes,
         allowSocialMediaPosting: _allowSocialMediaPosting,
         onProgress: (progress) {

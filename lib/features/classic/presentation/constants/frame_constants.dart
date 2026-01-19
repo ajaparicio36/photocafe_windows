@@ -1306,6 +1306,138 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/frameDngyg.png',
   );
 
+  static const fourFrameDagyangPopup = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 5.5,
+        top: 50,
+        width: 142,
+        height: 98,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5.5,
+        top: 149,
+        width: 142,
+        height: 98,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5.5,
+        top: 249,
+        width: 142,
+        height: 98,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5.5,
+        top: 348,
+        width: 142,
+        height: 98,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158,
+        top: 50,
+        width: 142,
+        height: 98,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 149,
+        width: 142,
+        height: 98,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 249,
+        width: 142,
+        height: 98,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 348,
+        width: 142,
+        height: 98,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frameDagyangPopup.png',
+  );
+
+  static const fourFrameSouthside = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 11.5,
+        top: 15,
+        width: 123,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 11.5,
+        top: 125,
+        width: 123,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 11.5,
+        top: 233,
+        width: 123,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 11.5,
+        top: 341,
+        width: 123,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 165,
+        top: 15,
+        width: 123,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 165,
+        top: 125,
+        width: 123,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 165,
+        top: 233,
+        width: 123,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 165,
+        top: 341,
+        width: 123,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frameSouthside.png',
+  );
+
   // Frame Definitions
 
   // 4 by 4
@@ -1478,6 +1610,24 @@ class FrameConstants {
     description: 'A limited edition frame for Dinagyang Festival.',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameDinagyang},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameDagyangPopup = FrameDefinition(
+    id: '4by4_frame_dagyang_popup',
+    name: 'Dagyang Popup Frame',
+    description: 'A limited edition frame for Dinagyang Festival.',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameDagyangPopup},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameSouthside = FrameDefinition(
+    id: '4by4_frame_southside',
+    name: 'Frame Southside',
+    description: 'A frame from the Southside',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameSouthside},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -2190,14 +2340,14 @@ class FrameConstants {
   );
 
   static List<FrameDefinition> get availableFrames => [
-    fourByFourFrameThree,
     fourByFourFrameSix,
     fourByFourFrameTwelve,
     fourByFourFrameThirteen,
     fourByFourFrameFourteen,
     fourByFourFrameFifteen,
     fourByFourFrameSixteen,
-    fourByFourFrameDinagyang,
+    fourByFourFrameSouthside,
+    fourByFourFrameDagyangPopup,
     twoByTwoFrameOne,
     twoByTwoFrameTwo,
     twoByTwoFrameThree,
