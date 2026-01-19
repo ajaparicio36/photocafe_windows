@@ -1372,6 +1372,72 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/frameDagyangPopup.png',
   );
 
+  static const fourFrameChrome = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 1,
+        top: 0,
+        width: 150,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 110,
+        width: 150,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: -3,
+        top: 220,
+        width: 150,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 332,
+        width: 150,
+        height: 118,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 149,
+        top: 0,
+        width: 150,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 152,
+        top: 110,
+        width: 153,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 149,
+        top: 220,
+        width: 150,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 149,
+        top: 332,
+        width: 150,
+        height: 118,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frameChrome.png',
+  );
+
   static const fourFrameSouthside = FrameLayout(
     type: FrameLayoutType.fourPhotos,
     leftColumnPositions: [
@@ -1610,6 +1676,15 @@ class FrameConstants {
     description: 'A limited edition frame for Dinagyang Festival.',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameDinagyang},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameChrome = FrameDefinition(
+    id: '4by4_frame_chrome',
+    name: 'Frame Chrome',
+    description: 'A chrome styled frame',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameChrome},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -2346,8 +2421,8 @@ class FrameConstants {
     fourByFourFrameFourteen,
     fourByFourFrameFifteen,
     fourByFourFrameSixteen,
-    fourByFourFrameSouthside,
-    fourByFourFrameDagyangPopup,
+    fourByFourFrameSeventeen,
+    fourByFourFrameChrome,
     twoByTwoFrameOne,
     twoByTwoFrameTwo,
     twoByTwoFrameThree,
