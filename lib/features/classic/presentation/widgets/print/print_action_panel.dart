@@ -32,6 +32,165 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
   bool _isProcessingSoftCopies = false;
   double _processingProgress = 0.0;
   String _processingStatus = '';
+  bool _allowSocialMediaPosting = false;
+
+  void _showSocialMediaConsentDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxWidth: 700,
+              maxHeight: MediaQuery.of(context).size.height * 0.85,
+            ),
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Header
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF740000).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(40),
+                  ),
+                  child: Icon(
+                    Icons.policy_rounded,
+                    size: 48,
+                    color: const Color(0xFF740000),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Social Media Consent Agreement',
+                  style: TextStyle(
+                    fontFamily: 'SpaceMono',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF740000),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                // Agreement text
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Text(
+                        '''CONSENT FOR SOCIAL MEDIA USE
+
+By agreeing to this consent, I hereby grant PhotoCafe and its affiliates the right and permission to use, publish, and share my photographs and video content captured during this photo session on social media platforms, websites, and other promotional materials.
+
+I understand that:
+
+1. My photos and videos may be shared on platforms including but not limited to Instagram, Facebook, TikTok, Twitter/X, and the company website.
+
+2. The content may be used for promotional, marketing, and advertising purposes.
+
+3. I will not receive monetary compensation for the use of my images on social media.
+
+4. I may request removal of my content by contacting the establishment directly.
+
+5. Once content is shared on social media, complete removal from third-party shares or reposts cannot be guaranteed.
+
+6. A digital copy of this consent agreement will be stored with my session files as proof of my authorization.
+
+By clicking "I Agree", I confirm that I am of legal age to provide this consent (or have guardian approval) and agree to all terms stated above.''',
+                        style: TextStyle(
+                          fontFamily: 'SpaceMono',
+                          fontSize: 14,
+                          height: 1.6,
+                          color: Colors.black87,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Action buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 56,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            setState(() {
+                              _allowSocialMediaPosting = false;
+                            });
+                          },
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(
+                              color: const Color(0xFF740000),
+                              width: 2,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: Text(
+                            'I Disagree',
+                            style: TextStyle(
+                              fontFamily: 'SpaceMono',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF740000),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: SizedBox(
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(dialogContext).pop();
+                            setState(() {
+                              _allowSocialMediaPosting = true;
+                            });
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF740000),
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: Text(
+                            'I Agree',
+                            style: TextStyle(
+                              fontFamily: 'SpaceMono',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Future<void> _handleSoftCopies() async {
     setState(() {
@@ -108,6 +267,7 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
         mediaFiles: mediaFiles,
         processedVideoPath: processedVideoPath,
         pdfBytes: widget.pdfBytes,
+        allowSocialMediaPosting: _allowSocialMediaPosting,
         onProgress: (progress) {
           setState(() {
             _processingProgress = 0.5 + (progress * 0.5); // 0.5 to 1.0
@@ -591,6 +751,74 @@ class _PrintActionPanelState extends ConsumerState<PrintActionPanel> {
                     onChanged: (widget.isPrinting || _isProcessingSoftCopies)
                         ? null
                         : widget.onSplitStripsChanged,
+                    activeColor: Colors.white,
+                    activeTrackColor: Colors.white.withOpacity(0.5),
+                    inactiveThumbColor: Colors.white.withOpacity(0.7),
+                    inactiveTrackColor: Colors.white.withOpacity(0.3),
+                  ),
+                ],
+              ),
+            ),
+
+            // Social media consent toggle
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: _allowSocialMediaPosting
+                    ? const Color(0xFF2E7D32).withOpacity(0.7)
+                    : Color(0xFF740000).withOpacity(0.7),
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Allow Social Media Posting',
+                          style: Theme.of(context).textTheme.bodyLarge
+                              ?.copyWith(
+                                fontFamily: 'SpaceMono',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 20,
+                                color: Colors.white,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          _allowSocialMediaPosting
+                              ? 'Consent given for promotional use'
+                              : 'Allow photos to be used on social media',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                fontFamily: 'SpaceMono',
+                                fontSize: 16,
+                                color: Colors.white.withOpacity(0.7),
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Switch(
+                    value: _allowSocialMediaPosting,
+                    onChanged: (widget.isPrinting || _isProcessingSoftCopies)
+                        ? null
+                        : (value) {
+                            if (value) {
+                              // Show consent modal when trying to enable
+                              _showSocialMediaConsentDialog();
+                            } else {
+                              // Directly disable without confirmation
+                              setState(() {
+                                _allowSocialMediaPosting = false;
+                              });
+                            }
+                          },
                     activeColor: Colors.white,
                     activeTrackColor: Colors.white.withOpacity(0.5),
                     inactiveThumbColor: Colors.white.withOpacity(0.7),

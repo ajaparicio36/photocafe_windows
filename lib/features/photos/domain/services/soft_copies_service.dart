@@ -13,6 +13,7 @@ class SoftCopiesService {
     required List<File> mediaFiles,
     required String? processedVideoPath, // Only the VHS processed video
     Uint8List? pdfBytes,
+    bool allowSocialMediaPosting = false,
     required Function(double) onProgress,
   }) async {
     try {
@@ -24,10 +25,17 @@ class SoftCopiesService {
       // Add archive ID
       formData.fields.add(MapEntry('archiveId', archiveId));
 
+      // Add social media consent flag
+      formData.fields.add(
+        MapEntry('allowSocialMediaPosting', allowSocialMediaPosting.toString()),
+      );
+
       double currentProgress = 0.1;
-      final totalFiles = mediaFiles.length +
+      final totalFiles =
+          mediaFiles.length +
           (processedVideoPath != null ? 1 : 0) +
-          (pdfBytes != null ? 1 : 0);
+          (pdfBytes != null ? 1 : 0) +
+          (allowSocialMediaPosting ? 1 : 0); // +1 for consent document
       final progressPerFile = totalFiles > 0 ? 0.8 / totalFiles : 0.8;
 
       // Add photo files
@@ -76,6 +84,20 @@ class SoftCopiesService {
           filename: 'photostrip.pdf',
         );
         formData.files.add(MapEntry('files', multipartFile));
+        currentProgress += progressPerFile;
+        onProgress(currentProgress);
+      }
+
+      // Generate and add social media consent document if consent was given
+      if (allowSocialMediaPosting) {
+        print('Generating social media consent document...');
+        final consentDocument = _generateConsentDocument(archiveId);
+        final consentBytes = Uint8List.fromList(consentDocument.codeUnits);
+        final consentMultipartFile = MultipartFile.fromBytes(
+          consentBytes,
+          filename: 'social_media_consent_agreement.txt',
+        );
+        formData.files.add(MapEntry('files', consentMultipartFile));
         currentProgress += progressPerFile;
         onProgress(currentProgress);
       }
@@ -136,6 +158,118 @@ class SoftCopiesService {
     // Generate the archive URL that points to the Next.js page
     final baseUrl = dotenv.env['WEB_URL'] ?? _dio.options.baseUrl;
     return '$baseUrl/archive/$archiveId';
+  }
+
+  /// Generates a formal consent document for social media posting authorization
+  String _generateConsentDocument(String archiveId) {
+    final now = DateTime.now();
+    final months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    final formattedDate =
+        '${months[now.month - 1]} ${now.day.toString().padLeft(2, '0')}, ${now.year}';
+    final formattedTime =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+    final timestamp = now.toUtc().toIso8601String();
+
+    return '''
+================================================================================
+                    SOCIAL MEDIA CONSENT AUTHORIZATION
+                         OFFICIAL DOCUMENTATION
+================================================================================
+
+DOCUMENT TYPE: Digital Consent Agreement
+DOCUMENT ID: CONSENT-$archiveId
+GENERATED: $formattedDate at $formattedTime
+TIMESTAMP (UTC): $timestamp
+
+--------------------------------------------------------------------------------
+                              DECLARATION
+--------------------------------------------------------------------------------
+
+This document serves as formal proof and legal record that the individual(s) 
+participating in the photo session associated with Archive ID: $archiveId 
+has/have voluntarily provided consent for the use of their photographs and 
+video content for social media and promotional purposes.
+
+--------------------------------------------------------------------------------
+                         CONSENT ACKNOWLEDGMENT
+--------------------------------------------------------------------------------
+
+By accepting the digital consent agreement presented during the photo session,
+the consenting party has acknowledged and agreed to the following terms:
+
+1. GRANT OF PERMISSION
+   The consenting party hereby grants PhotoCafe and its affiliates the 
+   non-exclusive, royalty-free right to use, reproduce, modify, publish, 
+   and distribute the photographs and video content captured during this 
+   session.
+
+2. PERMITTED USES
+   The content may be used for:
+   • Social media platforms (Instagram, Facebook, TikTok, Twitter/X, etc.)
+   • Company websites and online portfolios
+   • Promotional and marketing materials
+   • Advertising campaigns
+   • Press and media publications
+
+3. NO COMPENSATION
+   The consenting party acknowledges that no monetary compensation will be 
+   provided for the use of their images in promotional materials.
+
+4. DURATION
+   This consent remains valid indefinitely unless revoked in writing by 
+   contacting the establishment directly.
+
+5. REVOCATION RIGHTS
+   The consenting party retains the right to request removal of their 
+   content by submitting a formal written request. However, removal from 
+   third-party shares, reposts, or cached versions cannot be guaranteed.
+
+6. AGE VERIFICATION
+   By providing consent, the individual confirms they are of legal age to 
+   enter into this agreement, or have obtained proper guardian authorization.
+
+--------------------------------------------------------------------------------
+                         DIGITAL VERIFICATION
+--------------------------------------------------------------------------------
+
+Session Archive ID:     $archiveId
+Consent Provided:       YES
+Consent Method:         Digital Agreement (In-App Confirmation)
+Agreement Version:      1.0
+Platform:               PhotoCafe Windows Application
+Consent Timestamp:      $timestamp
+
+--------------------------------------------------------------------------------
+                              AUTHENTICITY
+--------------------------------------------------------------------------------
+
+This document was automatically generated at the time of consent and is stored
+alongside the session media files as an official record of authorization.
+
+The digital nature of this consent, combined with the unique Archive ID and 
+timestamp, serves as verifiable proof that consent was obtained through the 
+official PhotoCafe application workflow.
+
+================================================================================
+                    END OF CONSENT DOCUMENTATION
+================================================================================
+
+Generated by PhotoCafe Soft Copies Service
+Archive Reference: $archiveId
+''';
   }
 
   Future<bool> verifyArchiveExists(String archiveId) async {

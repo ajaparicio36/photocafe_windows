@@ -9,22 +9,27 @@ import 'package:photocafe_windows/features/videos/domain/data/providers/video_no
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:window_manager/window_manager.dart';
 
+// 16:9 aspect ratio constant
+const double kAspectRatio = 16 / 9;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize window manager
   await windowManager.ensureInitialized();
 
-  // Configure window options
+  // Configure window options with 16:9 aspect ratio (1280x720 is a common 16:9 resolution)
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(1200, 800),
+    size: Size(1280, 720),
     center: true,
-    backgroundColor: Colors.transparent,
+    backgroundColor: Colors.black,
     skipTaskbar: false,
     titleBarStyle: TitleBarStyle.normal,
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {
+    // Set aspect ratio to maintain 16:9
+    await windowManager.setAspectRatio(kAspectRatio);
     await windowManager.show();
     await windowManager.focus();
   });
@@ -48,6 +53,20 @@ class App extends ConsumerWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return MaterialApp(
             theme: AppTheme.lightTheme,
+            builder: (context, child) {
+              return Container(
+                color: Colors.black,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: kAspectRatio,
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: child,
+                    ),
+                  ),
+                ),
+              );
+            },
             home: Scaffold(
               body: Container(
                 decoration: BoxDecoration(
@@ -55,8 +74,8 @@ class App extends ConsumerWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                      AppTheme.lightTheme.colorScheme.primary,
+                      AppTheme.lightTheme.colorScheme.primary.withOpacity(0.8),
                     ],
                   ),
                 ),
@@ -107,6 +126,20 @@ class App extends ConsumerWidget {
           print('Provider initialization error: ${snapshot.error}');
           return MaterialApp(
             theme: AppTheme.lightTheme,
+            builder: (context, child) {
+              return Container(
+                color: Colors.black,
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: kAspectRatio,
+                    child: Material(
+                      type: MaterialType.transparency,
+                      child: child,
+                    ),
+                  ),
+                ),
+              );
+            },
             home: Scaffold(
               body: Center(
                 child: Column(
@@ -127,6 +160,22 @@ class App extends ConsumerWidget {
         return MaterialApp.router(
           routerConfig: router,
           theme: AppTheme.lightTheme,
+          builder: (context, child) {
+            // Wrap the entire app in a 16:9 aspect ratio container with black bars
+            // Material widget prevents yellow underlines on Text widgets
+            return Container(
+              color: Colors.black,
+              child: Center(
+                child: AspectRatio(
+                  aspectRatio: kAspectRatio,
+                  child: Material(
+                    type: MaterialType.transparency,
+                    child: child,
+                  ),
+                ),
+              ),
+            );
+          },
         );
       },
     );
