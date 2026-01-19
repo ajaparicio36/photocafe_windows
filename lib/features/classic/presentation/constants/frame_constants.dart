@@ -2346,6 +2346,7 @@ class FrameConstants {
     fourByFourFrameFourteen,
     fourByFourFrameFifteen,
     fourByFourFrameSixteen,
+    fourByFourFrameSeventeen,
     fourByFourFrameSouthside,
     fourByFourFrameDagyangPopup,
     twoByTwoFrameOne,
