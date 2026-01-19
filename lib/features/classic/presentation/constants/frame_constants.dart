@@ -1240,6 +1240,72 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/frame19.png',
   );
 
+  static const fourFrameDinagyang = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 6.5,
+        top: 16,
+        width: 140,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 130,
+        width: 140,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 230,
+        width: 140,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 6.5,
+        top: 328,
+        width: 140,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158,
+        top: 16,
+        width: 140,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 130,
+        width: 140,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 230,
+        width: 140,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158,
+        top: 328,
+        width: 140,
+        height: 115,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frameDngyg.png',
+  );
+
   // Frame Definitions
 
   // 4 by 4
@@ -1403,6 +1469,15 @@ class FrameConstants {
     description: 'A frame with a scrapbook design.',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameEighteen},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameDinagyang = FrameDefinition(
+    id: '4by4_frame_dinagyang',
+    name: 'Frame Dinagyang',
+    description: 'A limited edition frame for Dinagyang Festival.',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameDinagyang},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -2115,23 +2190,14 @@ class FrameConstants {
   );
 
   static List<FrameDefinition> get availableFrames => [
-    // ...existing frames...
-    fourByFourFrame,
-    fourByFourFrameTwo,
     fourByFourFrameThree,
-    fourByFourFrameFour,
-    fourByFourFrameFive,
     fourByFourFrameSix,
-    fourByFourFrameSeven,
-    fourByFourFrameEight,
-    fourByFourFrameNine,
     fourByFourFrameTwelve,
     fourByFourFrameThirteen,
     fourByFourFrameFourteen,
     fourByFourFrameFifteen,
     fourByFourFrameSixteen,
-    fourByFourFrameSeventeen,
-    fourByFourFrameEighteen,
+    fourByFourFrameDinagyang,
     twoByTwoFrameOne,
     twoByTwoFrameTwo,
     twoByTwoFrameThree,
