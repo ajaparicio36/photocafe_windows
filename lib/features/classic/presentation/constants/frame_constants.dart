@@ -1489,7 +1489,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameSix = FrameDefinition(
     id: '4by4_frame_six',
-    name: 'Frame Six',
+    name: 'Frame One',
     description: 'A spotify themed frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameSix},
@@ -1543,7 +1543,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameTwelve = FrameDefinition(
     id: '4by4_frame_twelve',
-    name: 'Frame Ten',
+    name: 'Frame Two',
     description: 'A frame for classic monochrome',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameTwelve},
@@ -1552,7 +1552,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameThirteen = FrameDefinition(
     id: '4by4_frame_thirteen',
-    name: 'Frame Eleven',
+    name: 'Frame Three',
     description: 'A frame with plain retro feel',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameThirteen},
@@ -1561,7 +1561,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameFourteen = FrameDefinition(
     id: '4by4_frame_fourteen',
-    name: 'Frame Twelve',
+    name: 'Frame Four',
     description: 'A frame with JPB design',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameFourteen},
@@ -1570,7 +1570,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameFifteen = FrameDefinition(
     id: '4by4_frame_fifteen',
-    name: 'Frame Thirteen',
+    name: 'Frame Five',
     description: 'A frame for dual design, black and white',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameFifteen},
@@ -1579,7 +1579,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameSixteen = FrameDefinition(
     id: '4by4_frame_sixteen',
-    name: 'Frame Fourteen',
+    name: 'Frame Six',
     description: 'A frame with a plain navy blue design',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameSixteen},
@@ -1588,7 +1588,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameSeventeen = FrameDefinition(
     id: '4by4_frame_seventeen',
-    name: 'Frame Fifteen',
+    name: 'Frame Seven',
     description: 'A frame for dual design, black and white',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameSeventeen},
@@ -1597,7 +1597,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameEighteen = FrameDefinition(
     id: '4by4_frame_eighteen',
-    name: 'Frame Sixteen',
+    name: 'Frame Eight',
     description: 'A frame with a scrapbook design.',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameEighteen},
