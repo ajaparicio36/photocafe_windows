@@ -73,6 +73,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
 
     pdf.addPage(
       pw.Page(
+        orientation: pw.PageOrientation.landscape,
         pageFormat: PdfPageFormat(adjustedWidth, adjustedHeight),
         margin: const pw.EdgeInsets.all(0),
         build: (pw.Context context) {
