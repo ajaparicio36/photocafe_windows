@@ -778,12 +778,15 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   Future<void> applyFilters(
     img.Image Function(img.Image) filterFunction,
   ) async {
-    state = await AsyncValue.guard(() async {
-      final currentState = state.value;
-      if (currentState == null) {
-        throw Exception("State is not available to apply filters.");
-      }
+    final currentState = state.value;
+    if (currentState == null) {
+      throw Exception("State is not available to apply filters.");
+    }
 
+    // Don't use AsyncValue.guard here — it sets state to AsyncLoading which
+    // causes the UI to show a full-screen loading spinner instead of the
+    // filter screen's own loading overlay.
+    try {
       // Process all photos in parallel using Isolate.run for each
       final futures = currentState.photos.map((photo) async {
         final file = File(photo.imagePath);
@@ -817,7 +820,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
           await filteredFile.writeAsBytes(filteredBytes, flush: false);
 
           // Delete old file
-          await file.delete();
+          try {
+            await file.delete();
+          } catch (_) {}
 
           return photo.copyWith(imagePath: filteredPath);
         } catch (e) {
@@ -829,8 +834,15 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       // Wait for all photos to be processed in parallel
       final updatedPhotos = await Future.wait(futures);
 
-      return currentState.copyWith(photos: updatedPhotos.toList());
-    });
+      // Update state directly with data, keeping it as AsyncData
+      state = AsyncValue.data(
+        currentState.copyWith(photos: updatedPhotos.toList()),
+      );
+    } catch (e) {
+      print('Error applying filters: $e');
+      // Keep existing state on error rather than transitioning to error state
+      rethrow;
+    }
   }
 
   Future<List<File>> getAllMediaFiles() async {
