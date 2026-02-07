@@ -31,6 +31,7 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
   }
 
   /// Save a video take from a Canon EDSDK preview recording AVI file path.
+  /// Moves (not copies) the source file to avoid doubling disk usage.
   Future<void> saveVideoTake(String sourceVideoPath) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
@@ -44,18 +45,23 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       final videoFilePath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        // Copy Canon AVI to our temp directory
         final sourceFile = File(sourceVideoPath);
-        final targetFile = await sourceFile.copy(videoFilePath);
-
-        print('Take $takeNumber saved to: $videoFilePath');
-
-        final fileSize = await targetFile.length();
-        print('Take $takeNumber file size: $fileSize bytes');
+        final fileSize = await sourceFile.length();
+        print('Take $takeNumber source: $sourceVideoPath ($fileSize bytes)');
 
         if (fileSize < 1024) {
           print('Video file too small, creating fallback...');
           await _createFallbackVideo(videoFilePath);
+        } else {
+          // Move instead of copy to save disk space.
+          // rename() works if same volume; falls back to copy+delete.
+          try {
+            await sourceFile.rename(videoFilePath);
+          } catch (_) {
+            await sourceFile.copy(videoFilePath);
+            await sourceFile.delete();
+          }
+          print('Take $takeNumber stored at: $videoFilePath');
         }
 
         // Add to takes list
@@ -104,6 +110,7 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
   }
 
   /// Save a video from a Canon EDSDK preview recording AVI file path.
+  /// Moves (not copies) the source file to avoid doubling disk usage.
   Future<void> saveVideoFromCanon(String sourceVideoPath) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
@@ -116,18 +123,22 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       final videoFilePath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        // Copy Canon AVI to our temp directory
         final sourceFile = File(sourceVideoPath);
-        final targetFile = await sourceFile.copy(videoFilePath);
-
-        print('Canon video saved to: $videoFilePath');
-
-        final fileSize = await targetFile.length();
-        print('Video file size: $fileSize bytes');
+        final fileSize = await sourceFile.length();
+        print('Canon video source: $sourceVideoPath ($fileSize bytes)');
 
         if (fileSize < 1024) {
           print('Video file too small, creating fallback...');
           await _createFallbackVideo(videoFilePath);
+        } else {
+          // Move instead of copy to save disk space
+          try {
+            await sourceFile.rename(videoFilePath);
+          } catch (_) {
+            await sourceFile.copy(videoFilePath);
+            await sourceFile.delete();
+          }
+          print('Canon video stored at: $videoFilePath');
         }
 
         return currentState.copyWith(

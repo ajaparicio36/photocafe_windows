@@ -72,8 +72,8 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       final videoPath = await canonService.stopRecordingWithPreviewRetry();
 
       if (videoPath != null) {
-        // Save the returned AVI file path as the raw video
-        await _saveRawVideoFromCanon(videoPath);
+        // Reference the Canon AVI directly (no raw copy)
+        await _referenceCanonVideo(videoPath);
 
         // Start VHS processing in background - don't await here
         // This allows the UI to proceed to the filter screen immediately
@@ -108,54 +108,64 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
-  /// Save video from Canon preview recording AVI path.
-  Future<void> _saveRawVideoFromCanon(String canonVideoPath) async {
+  /// Reference the Canon preview recording AVI path directly for VHS
+  /// processing. No raw_session copy is made — the VHS processor reads
+  /// straight from the source AVI and produces the processed mp4.
+  Future<void> _referenceCanonVideo(String canonVideoPath) async {
     final currentState = state.value;
     if (currentState == null) {
       throw Exception("State is not available to save raw video.");
     }
 
-    final rawVideoFileName =
-        'raw_session_${DateTime.now().millisecondsSinceEpoch}.avi';
-    final rawVideoPath = p.join(currentState.tempPath, rawVideoFileName);
-
     try {
-      // Copy the Canon AVI to our temp directory
       final sourceFile = File(canonVideoPath);
-      final targetFile = await sourceFile.copy(rawVideoPath);
-
-      print('Canon AVI video copied to: $rawVideoPath');
-
-      final fileSize = await targetFile.length();
-      print('Canon video file size: $fileSize bytes');
+      final fileSize = await sourceFile.length();
+      print('Canon AVI video at: $canonVideoPath ($fileSize bytes)');
 
       if (fileSize < 1024) {
         print('Canon video file too small, creating fallback...');
-        await _createFallbackVideo(rawVideoPath);
+        final fallbackPath = p.join(
+          currentState.tempPath,
+          'fallback_${DateTime.now().millisecondsSinceEpoch}.avi',
+        );
+        await _createFallbackVideo(fallbackPath);
+        _pendingRawVideoPath = fallbackPath;
+
+        state = await AsyncValue.guard(() async {
+          final cs = state.value;
+          if (cs == null) {
+            throw Exception("State is not available to update video path.");
+          }
+          return cs.copyWith(videoPath: fallbackPath);
+        });
+        return;
       }
 
-      // Store path for background processing
-      _pendingRawVideoPath = rawVideoPath;
+      // Reference the Canon AVI directly — no copy
+      _pendingRawVideoPath = canonVideoPath;
 
-      // Update state with raw video path
       state = await AsyncValue.guard(() async {
-        final currentState = state.value;
-        if (currentState == null) {
+        final cs = state.value;
+        if (cs == null) {
           throw Exception("State is not available to update video path.");
         }
-        return currentState.copyWith(videoPath: rawVideoPath);
+        return cs.copyWith(videoPath: canonVideoPath);
       });
     } catch (e) {
-      print('Error saving Canon video: $e');
-      await _createFallbackVideo(rawVideoPath);
-      _pendingRawVideoPath = rawVideoPath;
+      print('Error referencing Canon video: $e');
+      final fallbackPath = p.join(
+        currentState.tempPath,
+        'fallback_${DateTime.now().millisecondsSinceEpoch}.avi',
+      );
+      await _createFallbackVideo(fallbackPath);
+      _pendingRawVideoPath = fallbackPath;
 
       state = await AsyncValue.guard(() async {
-        final currentState = state.value;
-        if (currentState == null) {
+        final cs = state.value;
+        if (cs == null) {
           throw Exception("State is not available to update video path.");
         }
-        return currentState.copyWith(videoPath: rawVideoPath);
+        return cs.copyWith(videoPath: fallbackPath);
       });
     }
   }
@@ -249,6 +259,19 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
           final fileSize = await processedFile.length();
           print('VHS processing completed successfully, size: $fileSize bytes');
           print('VHS filter applied successfully');
+
+          // Delete the source AVI to save disk space — only keep the processed mp4
+          try {
+            final sourceAvi = File(currentState.videoPath!);
+            if (await sourceAvi.exists()) {
+              await sourceAvi.delete();
+              print(
+                'Deleted source AVI to save space: ${currentState.videoPath}',
+              );
+            }
+          } catch (cleanupErr) {
+            print('Warning: Could not delete source AVI: $cleanupErr');
+          }
         } else {
           throw Exception('Processed video file was not created');
         }
@@ -365,7 +388,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   }
 
   /// Add a photo from a file path returned by Canon EDSDK's `takePicture()`
-  /// or contingency capture. Reads the file, processes it, and stores it.
+  /// or contingency capture. Copies the full-resolution camera file directly
+  /// to the session temp directory, preserving original quality for both
+  /// printing and soft-copy downloads.
   Future<void> addPhotoFromFile(
     String filePath, {
     int layoutMode = 4,
@@ -375,14 +400,44 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     if (!await file.exists()) {
       throw Exception('Photo file not found: $filePath');
     }
-    final imageBytes = await file.readAsBytes();
-    await addPhoto(
-      imageBytes,
-      layoutMode: layoutMode,
-      isLandscape: isLandscape,
-    );
 
-    // Clean up the Canon temp file after we've processed and stored it
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception("State is not available to add a photo.");
+      }
+
+      // Copy the full-resolution Canon file directly to our temp directory.
+      // This preserves the original camera quality (multi-megapixel JPEG)
+      // for both frame building (printing) and soft-copy uploads.
+      final sourceExtension = p.extension(filePath).toLowerCase();
+      final ext = sourceExtension.isNotEmpty ? sourceExtension : '.jpg';
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}$ext';
+      final imagePath = p.join(currentState.tempPath, fileName);
+
+      await file.copy(imagePath);
+
+      final copiedFile = File(imagePath);
+      final fileSize = await copiedFile.length();
+      print('Full-res Canon photo stored: $imagePath ($fileSize bytes)');
+
+      final newPhoto = PhotoModel(
+        imagePath: imagePath,
+        index: currentState.photos.isNotEmpty
+            ? (currentState.photos
+                      .map((p) => p.index)
+                      .reduce((a, b) => a > b ? a : b) +
+                  1)
+            : 0,
+      );
+
+      final updatedPhotos = List<PhotoModel>.from(currentState.photos)
+        ..add(newPhoto);
+
+      return currentState.copyWith(photos: updatedPhotos);
+    });
+
+    // Clean up the Canon temp file after we've copied it
     try {
       await file.delete();
     } catch (e) {
