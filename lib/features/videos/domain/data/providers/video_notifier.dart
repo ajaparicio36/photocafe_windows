@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:async';
 
-import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -31,7 +30,8 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     );
   }
 
-  Future<void> saveVideoTake(XFile videoXFile) async {
+  /// Save a video take from a Canon EDSDK preview recording AVI file path.
+  Future<void> saveVideoTake(String sourceVideoPath) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
@@ -40,12 +40,12 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
 
       final takeNumber = currentState.videoTakes.length + 1;
       final videoFileName =
-          'flipbook_take_${takeNumber}_${DateTime.now().millisecondsSinceEpoch}.mp4';
+          'flipbook_take_${takeNumber}_${DateTime.now().millisecondsSinceEpoch}.avi';
       final videoFilePath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        // Use file copy instead of reading bytes - much faster for video files
-        final sourceFile = File(videoXFile.path);
+        // Copy Canon AVI to our temp directory
+        final sourceFile = File(sourceVideoPath);
         final targetFile = await sourceFile.copy(videoFilePath);
 
         print('Take $takeNumber saved to: $videoFilePath');
@@ -103,7 +103,8 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
     });
   }
 
-  Future<void> saveVideoFromPhotoCamera(XFile videoXFile) async {
+  /// Save a video from a Canon EDSDK preview recording AVI file path.
+  Future<void> saveVideoFromCanon(String sourceVideoPath) async {
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
       if (currentState == null) {
@@ -111,15 +112,15 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
       }
 
       final videoFileName =
-          'flipbook_photo_camera_${DateTime.now().millisecondsSinceEpoch}.mp4';
+          'flipbook_canon_${DateTime.now().millisecondsSinceEpoch}.avi';
       final videoFilePath = p.join(currentState.tempPath, videoFileName);
 
       try {
-        // Use file copy instead of reading bytes - much faster for video files
-        final sourceFile = File(videoXFile.path);
+        // Copy Canon AVI to our temp directory
+        final sourceFile = File(sourceVideoPath);
         final targetFile = await sourceFile.copy(videoFilePath);
 
-        print('Photo camera video saved to: $videoFilePath');
+        print('Canon video saved to: $videoFilePath');
 
         final fileSize = await targetFile.length();
         print('Video file size: $fileSize bytes');
@@ -134,7 +135,7 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
           isRecording: false,
         );
       } catch (e) {
-        print('Error saving photo camera video: $e');
+        print('Error saving Canon video: $e');
 
         // Create fallback video if saving fails
         await _createFallbackVideo(videoFilePath);

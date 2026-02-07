@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
-import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/core/services/sound_service.dart';
+import 'package:photocafe_windows/services/canon_camera_service.dart';
+import 'package:photocafe_windows/widgets/canon_live_view_preview.dart';
 import 'package:video_player/video_player.dart';
 
 class FlipbookCaptureScreen extends ConsumerStatefulWidget {
@@ -18,11 +18,8 @@ class FlipbookCaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
-  CameraController?
-  _photoCameraController; // Photo camera for both preview and video recording
   VideoPlayerController? _videoPlayerController;
   final SoundService _soundService = SoundService();
-  bool _isCameraInitialized = false;
   int _countdown = 0;
   Timer? _countdownTimer;
   bool _isRecording = false;
@@ -36,85 +33,30 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     // Initialize sound service
     _soundService.initialize();
 
-    _initializePhotoCamera();
+    // Canon EDSDK live view is managed by CanonCameraService (shared singleton).
+    // The preview widget subscribes to the live-view stream automatically.
   }
 
   @override
   void dispose() {
-    _photoCameraController?.dispose();
     _videoPlayerController?.dispose();
     _countdownTimer?.cancel();
 
     // Dispose sound service resources
     _soundService.dispose();
 
+    // Canon EDSDK lifecycle is managed by CanonCameraService (shared singleton)
+
     super.dispose();
   }
 
-  Future<void> _initializePhotoCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        final printerState = ref.read(printerProvider).value;
-        final selectedPhotoCameraName = printerState?.photoCameraName;
-
-        CameraDescription? selectedPhotoCamera;
-        if (selectedPhotoCameraName != null) {
-          try {
-            selectedPhotoCamera = cameras.firstWhere(
-              (camera) => camera.name == selectedPhotoCameraName,
-            );
-          } catch (e) {
-            print('Selected photo camera not found, using first available');
-          }
-        }
-        selectedPhotoCamera ??= cameras.first;
-
-        print(
-          'Initializing photo camera for flipbook preview and video recording',
-        );
-
-        // Initialize photo camera controller for both preview and video recording
-        _photoCameraController = CameraController(
-          selectedPhotoCamera,
-          ResolutionPreset.high,
-          enableAudio: true, // Enable audio for video recording
-          imageFormatGroup: ImageFormatGroup.jpeg,
-        );
-
-        await _photoCameraController!.initialize();
-
-        setState(() {
-          _isCameraInitialized = true;
-        });
-
-        print(
-          'Photo camera initialized for flipbook: ${selectedPhotoCamera.name}',
-        );
-      }
-    } catch (e) {
-      print('Error initializing photo camera for flipbook: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error initializing camera: $e')));
-    }
-  }
-
   Future<void> _startRecording() async {
-    if (!_isCameraInitialized || _photoCameraController == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Camera not initialized')));
-      return;
-    }
-
     // Start 10-second countdown before recording
     setState(() {
       _countdown = 10;
       _isCountingDown = true;
     });
 
-    // REMOVED: Don't clear all videos when starting a new take!
     // Only clear on the very first take
     final videoState = ref.read(videoProvider).value;
     if (videoState?.videoTakes.isEmpty ?? true) {
@@ -149,12 +91,13 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     });
 
     try {
-      print('Starting video recording with photo camera...');
+      final canonService = ref.read(canonCameraServiceProvider);
+      print('Starting Canon preview-based video recording for flipbook...');
 
-      // Start video recording with photo camera
-      await _photoCameraController!.startVideoRecording();
+      // Start Canon preview recording (live view stays active)
+      await canonService.startRecordingWithPreviewRetry(fps: 30);
 
-      // Start the recording countdown timer
+      // Start the recording countdown timer (7 seconds)
       _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (_countdown > 1) {
           if (mounted) {
@@ -174,9 +117,9 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
         }
       });
 
-      print('Video recording started with photo camera');
+      print('Canon preview recording started for flipbook');
     } catch (e) {
-      print('Error starting video recording with photo camera: $e');
+      print('Error starting Canon preview recording for flipbook: $e');
       setState(() {
         _isRecording = false;
         _isCountingDown = false;
@@ -188,20 +131,12 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
   }
 
   Future<void> _stopVideoRecording() async {
-    if (!_isRecording || _photoCameraController == null) return;
+    if (!_isRecording) return;
 
     try {
-      if (!_photoCameraController!.value.isRecordingVideo) {
-        print('Photo camera is not recording, cannot stop');
-        setState(() {
-          _isRecording = false;
-          _countdown = 0;
-        });
-        return;
-      }
+      final canonService = ref.read(canonCameraServiceProvider);
 
-      print('Stopping video recording with photo camera...');
-      final videoXFile = await _photoCameraController!.stopVideoRecording();
+      print('Stopping Canon preview recording for flipbook...');
 
       setState(() {
         _isRecording = false;
@@ -212,18 +147,25 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       _countdownTimer?.cancel();
       _countdownTimer = null;
 
-      // Save as a take instead of single video
-      final videoNotifier = ref.read(videoProvider.notifier);
-      await videoNotifier.saveVideoTake(videoXFile);
+      // Stop Canon preview recording – returns the AVI file path
+      final videoPath = await canonService.stopRecordingWithPreviewRetry();
 
-      // Set up video preview
-      await _setupVideoPreview();
+      if (videoPath != null) {
+        // Save as a take in the video notifier
+        final videoNotifier = ref.read(videoProvider.notifier);
+        await videoNotifier.saveVideoTake(videoPath);
+
+        // Set up video preview
+        await _setupVideoPreview();
+      } else {
+        print('Warning: Canon stopRecordingWithPreview returned null');
+      }
 
       setState(() {
         _isProcessingVideo = false; // Clear processing flag
       });
     } catch (e) {
-      print('Error stopping video recording with photo camera: $e');
+      print('Error stopping Canon preview recording for flipbook: $e');
       setState(() {
         _isRecording = false;
         _isProcessingVideo = false;
@@ -489,7 +431,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Photo camera preview for flipbook
+          // Canon EDSDK live-view preview for flipbook recording
           if (!showVideoPreview)
             Container(
               color: Colors.black,
@@ -504,33 +446,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(28),
-                      child:
-                          _isCameraInitialized &&
-                              _photoCameraController != null &&
-                              _photoCameraController!.value.isInitialized
-                          ? Transform.scale(
-                              scale:
-                                  _photoCameraController!.value.aspectRatio >
-                                      (16 / 9)
-                                  ? _photoCameraController!.value.aspectRatio /
-                                        (16 / 9)
-                                  : (16 / 9) /
-                                        _photoCameraController!
-                                            .value
-                                            .aspectRatio,
-                              child: Center(
-                                child: AspectRatio(
-                                  aspectRatio:
-                                      _photoCameraController!.value.aspectRatio,
-                                  child: CameraPreview(_photoCameraController!),
-                                ),
-                              ),
-                            )
-                          : const Center(
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                              ),
-                            ),
+                      child: const CanonLiveViewPreview(aspectRatio: 16 / 9),
                     ),
                   ),
                 ),

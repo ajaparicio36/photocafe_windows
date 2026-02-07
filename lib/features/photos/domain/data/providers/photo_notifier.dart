@@ -2,18 +2,15 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:typed_data';
 
-import 'package:camera/camera.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_state.dart';
-import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
+import 'package:photocafe_windows/services/canon_camera_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 
 class PhotoNotifier extends AsyncNotifier<PhotoState> {
-  CameraController?
-  _videoCameraController; // Video camera for background recording
   Process? _ffmpegProcess;
 
   // Background processing futures to avoid blocking UI
@@ -40,73 +37,15 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     );
   }
 
-  Future<void> _initializeVideoCamera() async {
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        // Get selected video camera from settings
-        final printerStateAsync = ref.read(printerProvider);
-        final selectedVideoCameraName = printerStateAsync.hasValue
-            ? printerStateAsync.value?.videoCameraName
-            : null;
-
-        CameraDescription? selectedVideoCamera;
-        if (selectedVideoCameraName != null) {
-          try {
-            selectedVideoCamera = cameras.firstWhere(
-              (camera) => camera.name == selectedVideoCameraName,
-            );
-          } catch (e) {
-            print('Selected video camera not found, using first available');
-          }
-        }
-
-        // Fallback to first camera if no selection or camera not found
-        selectedVideoCamera ??= cameras.first;
-
-        print(
-          'Initializing video camera in photo notifier for background recording',
-        );
-
-        // Dispose existing controller if any
-        if (_videoCameraController != null) {
-          await _videoCameraController!.dispose();
-        }
-
-        // Initialize video camera controller for background recording
-        _videoCameraController = CameraController(
-          selectedVideoCamera,
-          ResolutionPreset.medium,
-          enableAudio: true, // Enable audio for video recording
-          imageFormatGroup: ImageFormatGroup.jpeg,
-        );
-
-        await _videoCameraController!.initialize();
-
-        print(
-          'Video camera initialized in photo notifier: ${selectedVideoCamera.name}',
-        );
-      }
-    } catch (e) {
-      print('Error initializing video camera in photo notifier: $e');
-      throw e; // Rethrow to handle in calling method
-    }
-  }
-
   Future<void> startVideoRecording() async {
-    // Initialize video camera only when recording starts
-    if (_videoCameraController == null) {
-      await _initializeVideoCamera();
-    }
-
-    if (_videoCameraController == null ||
-        !_videoCameraController!.value.isInitialized) {
-      throw Exception('Video camera not initialized for recording');
-    }
-
     try {
-      print('Starting video recording in photo notifier...');
-      await _videoCameraController!.startVideoRecording();
+      final canonService = ref.read(canonCameraServiceProvider);
+      print(
+        'Starting Canon preview-based video recording in photo notifier...',
+      );
+
+      // Use preview-based recording (live view stays active, no freeze)
+      await canonService.startRecordingWithPreviewRetry(fps: 30);
 
       state = await AsyncValue.guard(() async {
         final currentState = state.value;
@@ -116,29 +55,32 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         return currentState.copyWith(isRecording: true);
       });
 
-      print('Video recording started successfully in photo notifier');
+      print('Canon preview recording started successfully in photo notifier');
     } catch (e) {
-      print('Failed to start video recording in photo notifier: $e');
+      print('Failed to start Canon preview recording in photo notifier: $e');
       throw Exception('Video recording failed: $e');
     }
   }
 
   Future<void> stopVideoRecording() async {
-    if (!_videoCameraController!.value.isRecordingVideo) {
-      print('No video recording to stop in photo notifier');
-      return;
-    }
-
     try {
-      print('Stopping video recording in photo notifier...');
-      final videoXFile = await _videoCameraController!.stopVideoRecording();
+      final canonService = ref.read(canonCameraServiceProvider);
+      print(
+        'Stopping Canon preview-based video recording in photo notifier...',
+      );
 
-      // Save the raw video file using efficient file copy (non-blocking for large files)
-      await _saveRawVideoFromCaptureOptimized(videoXFile);
+      final videoPath = await canonService.stopRecordingWithPreviewRetry();
 
-      // Start VHS processing in background - don't await here
-      // This allows the UI to proceed to the filter screen immediately
-      _startBackgroundVhsProcessing();
+      if (videoPath != null) {
+        // Save the returned AVI file path as the raw video
+        await _saveRawVideoFromCanon(videoPath);
+
+        // Start VHS processing in background - don't await here
+        // This allows the UI to proceed to the filter screen immediately
+        _startBackgroundVhsProcessing();
+      } else {
+        print('Warning: stopRecordingWithPreview returned null path');
+      }
 
       state = await AsyncValue.guard(() async {
         final currentState = state.value;
@@ -149,10 +91,10 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       });
 
       print(
-        'Video recording stopped in photo notifier (VHS processing continues in background)',
+        'Canon preview recording stopped in photo notifier (VHS processing continues in background)',
       );
     } catch (e) {
-      print('Error stopping video recording in photo notifier: $e');
+      print('Error stopping Canon preview recording in photo notifier: $e');
 
       state = await AsyncValue.guard(() async {
         final currentState = state.value;
@@ -166,29 +108,29 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
-  /// Optimized video save using file copy instead of reading all bytes into memory
-  Future<void> _saveRawVideoFromCaptureOptimized(XFile videoXFile) async {
+  /// Save video from Canon preview recording AVI path.
+  Future<void> _saveRawVideoFromCanon(String canonVideoPath) async {
     final currentState = state.value;
     if (currentState == null) {
       throw Exception("State is not available to save raw video.");
     }
 
     final rawVideoFileName =
-        'raw_session_${DateTime.now().millisecondsSinceEpoch}.mp4';
+        'raw_session_${DateTime.now().millisecondsSinceEpoch}.avi';
     final rawVideoPath = p.join(currentState.tempPath, rawVideoFileName);
 
     try {
-      // Use file copy instead of reading bytes - much faster for large video files
-      final sourceFile = File(videoXFile.path);
+      // Copy the Canon AVI to our temp directory
+      final sourceFile = File(canonVideoPath);
       final targetFile = await sourceFile.copy(rawVideoPath);
 
-      print('Raw video copied to: $rawVideoPath');
+      print('Canon AVI video copied to: $rawVideoPath');
 
       final fileSize = await targetFile.length();
-      print('Raw video file size: $fileSize bytes');
+      print('Canon video file size: $fileSize bytes');
 
       if (fileSize < 1024) {
-        print('Raw video file too small, creating fallback...');
+        print('Canon video file too small, creating fallback...');
         await _createFallbackVideo(rawVideoPath);
       }
 
@@ -204,7 +146,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         return currentState.copyWith(videoPath: rawVideoPath);
       });
     } catch (e) {
-      print('Error saving raw video: $e');
+      print('Error saving Canon video: $e');
       await _createFallbackVideo(rawVideoPath);
       _pendingRawVideoPath = rawVideoPath;
 
@@ -241,53 +183,6 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       print('Waiting for background VHS processing to complete...');
       await _pendingVhsProcessing;
       print('Background VHS processing finished');
-    }
-  }
-
-  Future<void> _saveRawVideoFromCapture(XFile videoXFile) async {
-    final currentState = state.value;
-    if (currentState == null) {
-      throw Exception("State is not available to save raw video.");
-    }
-
-    final rawVideoFileName =
-        'raw_session_${DateTime.now().millisecondsSinceEpoch}.mp4';
-    final rawVideoPath = p.join(currentState.tempPath, rawVideoFileName);
-
-    try {
-      final videoBytes = await videoXFile.readAsBytes();
-      final targetFile = File(rawVideoPath);
-      await targetFile.writeAsBytes(videoBytes);
-
-      print('Raw video saved to: $rawVideoPath');
-
-      final fileSize = await targetFile.length();
-      print('Raw video file size: $fileSize bytes');
-
-      if (fileSize < 1024) {
-        print('Raw video file too small, creating fallback...');
-        await _createFallbackVideo(rawVideoPath);
-      }
-
-      // Update state with raw video path (this will be processed later)
-      state = await AsyncValue.guard(() async {
-        final currentState = state.value;
-        if (currentState == null) {
-          throw Exception("State is not available to update video path.");
-        }
-        return currentState.copyWith(videoPath: rawVideoPath);
-      });
-    } catch (e) {
-      print('Error saving raw video: $e');
-      await _createFallbackVideo(rawVideoPath);
-
-      state = await AsyncValue.guard(() async {
-        final currentState = state.value;
-        if (currentState == null) {
-          throw Exception("State is not available to update video path.");
-        }
-        return currentState.copyWith(videoPath: rawVideoPath);
-      });
     }
   }
 
@@ -422,6 +317,8 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
+  /// Add a photo from raw image bytes (used for Canon EDSDK captured photos
+  /// or contingency capture screenshots).
   Future<void> addPhoto(
     Uint8List imageBytes, {
     int layoutMode = 4,
@@ -465,6 +362,32 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
       return currentState.copyWith(photos: updatedPhotos);
     });
+  }
+
+  /// Add a photo from a file path returned by Canon EDSDK's `takePicture()`
+  /// or contingency capture. Reads the file, processes it, and stores it.
+  Future<void> addPhotoFromFile(
+    String filePath, {
+    int layoutMode = 4,
+    bool isLandscape = false,
+  }) async {
+    final file = File(filePath);
+    if (!await file.exists()) {
+      throw Exception('Photo file not found: $filePath');
+    }
+    final imageBytes = await file.readAsBytes();
+    await addPhoto(
+      imageBytes,
+      layoutMode: layoutMode,
+      isLandscape: isLandscape,
+    );
+
+    // Clean up the Canon temp file after we've processed and stored it
+    try {
+      await file.delete();
+    } catch (e) {
+      print('Warning: Could not delete Canon temp file: $e');
+    }
   }
 
   Future<Uint8List> _processImageMinimal(
@@ -632,14 +555,14 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       final currentState = state.value;
       if (currentState == null) return state.value!;
 
-      // Stop video recording if active
-      if (_videoCameraController != null &&
-          _videoCameraController!.value.isRecordingVideo) {
-        try {
-          await _videoCameraController!.stopVideoRecording();
-        } catch (e) {
-          print('Error stopping video recording during clear: $e');
+      // Stop Canon preview recording if active
+      try {
+        final canonService = ref.read(canonCameraServiceProvider);
+        if (currentState.isRecording) {
+          await canonService.stopRecordingWithPreviewRetry();
         }
+      } catch (e) {
+        print('Error stopping Canon recording during clear: $e');
       }
 
       // Delete all photo files from the temporary directory

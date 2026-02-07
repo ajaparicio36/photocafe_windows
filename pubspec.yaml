@@ -57,6 +57,8 @@ dependencies:
   flutter_soloud: ^2.0.2
   window_manager: ^0.5.1
   flutter_launcher_icons: ^0.14.4
+  canon_edsdk:
+    path: ../canon_edsdk
 
 dev_dependencies:
   flutter_test:

@@ -1,17 +1,14 @@
 import 'dart:async';
-import 'dart:io';
-import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/core/colors/colors.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/capture/camera_preview_widget.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/capture/2by2_camera_preview_widget.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/capture/landscape_camera_preview_widget.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/capture/capture_overlay.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/core/services/sound_service.dart';
+import 'package:photocafe_windows/services/canon_camera_service.dart';
+import 'package:photocafe_windows/widgets/canon_live_view_preview.dart';
 
 class ClassicCaptureScreen extends ConsumerStatefulWidget {
   const ClassicCaptureScreen({super.key});
@@ -22,11 +19,8 @@ class ClassicCaptureScreen extends ConsumerStatefulWidget {
 }
 
 class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
-  CameraController?
-  _photoCameraController; // Photo camera for preview and capture
   late final photoNotifier = ref.read(photoProvider.notifier);
   final SoundService _soundService = SoundService();
-  bool _isCameraInitialized = false;
   bool _isCountingDown = false;
   bool _isCapturing = false;
   int _countdown = 10;
@@ -58,8 +52,8 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
         print('Capture count set to 4 (layout mode only affects arrangement)');
 
-        // Initialize photo camera for preview and capture
-        await _initializePhotoCamera();
+        // Canon EDSDK live view is managed by CanonCameraService (shared singleton).
+        // The preview widget subscribes to the live-view stream automatically.
 
         if (mounted) {
           setState(() {
@@ -83,74 +77,6 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to initialize photo session: $e'),
-            backgroundColor: Theme.of(context).colorScheme.error,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _initializePhotoCamera() async {
-    if (_isDisposed) return;
-
-    try {
-      final cameras = await availableCameras();
-      if (cameras.isNotEmpty) {
-        // Get selected photo camera from settings
-        final printerStateAsync = ref.read(printerProvider);
-        final selectedPhotoCameraName = printerStateAsync.hasValue
-            ? printerStateAsync.value?.photoCameraName
-            : null;
-
-        CameraDescription? selectedPhotoCamera;
-        if (selectedPhotoCameraName != null) {
-          try {
-            selectedPhotoCamera = cameras.firstWhere(
-              (camera) => camera.name == selectedPhotoCameraName,
-            );
-          } catch (e) {
-            print('Selected photo camera not found, using first available');
-          }
-        }
-
-        // Fallback to first camera if no selection or camera not found
-        selectedPhotoCamera ??= cameras.first;
-
-        print('Initializing photo camera for preview and capture');
-
-        // Dispose existing controller if any
-        if (_photoCameraController != null) {
-          await _photoCameraController!.dispose();
-        }
-
-        // Initialize photo camera controller for both preview and photo capture
-        _photoCameraController = CameraController(
-          selectedPhotoCamera,
-          ResolutionPreset.high,
-          enableAudio: false, // No audio needed for photo camera
-          imageFormatGroup: ImageFormatGroup.jpeg,
-        );
-
-        if (!_isDisposed) {
-          await _photoCameraController!.initialize();
-
-          if (mounted && !_isDisposed) {
-            setState(() {
-              _isCameraInitialized = true;
-            });
-          }
-        }
-
-        print(
-          'Photo camera initialized for preview and capture: ${selectedPhotoCamera.name}',
-        );
-      }
-    } catch (e) {
-      print('Error initializing photo camera: $e');
-      if (mounted && !_isDisposed) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Photo camera initialization failed: $e'),
             backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
@@ -261,37 +187,27 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     }
 
     try {
-      // Capture photo using photo camera controller
-      if (_photoCameraController != null &&
-          _photoCameraController!.value.isInitialized) {
-        // Get the current layout mode and landscape orientation
-        final printerStateAsync = ref.read(printerProvider);
-        final layoutMode = printerStateAsync.hasValue
-            ? printerStateAsync.value?.layoutMode ?? 4
-            : 4;
-        final isLandscape = printerStateAsync.hasValue
-            ? printerStateAsync.value?.isLandscape ?? false
-            : false;
+      // Get the Canon camera service
+      final canonService = ref.read(canonCameraServiceProvider);
 
-        // Capture with preview aspect ratio to avoid post-processing
-        final image = await _photoCameraController!.takePicture();
-        final photoFile = File(image.path);
-        final imageBytes = await photoFile.readAsBytes();
+      // Get the current layout mode and landscape orientation
+      final printerStateAsync = ref.read(printerProvider);
+      final layoutMode = printerStateAsync.hasValue
+          ? printerStateAsync.value?.layoutMode ?? 4
+          : 4;
+      final isLandscape = printerStateAsync.hasValue
+          ? printerStateAsync.value?.isLandscape ?? false
+          : false;
 
-        // Pass the layout mode and landscape flag to determine processing approach
-        await photoNotifier.addPhoto(
-          imageBytes,
-          layoutMode: layoutMode,
-          isLandscape: isLandscape,
-        );
+      // Capture photo using Canon EDSDK (with retry + contingency fallback)
+      final filePath = await canonService.takePictureWithRetry();
 
-        // Clean up temporary file
-        if (await photoFile.exists()) {
-          await photoFile.delete();
-        }
-      } else {
-        throw Exception('Photo camera not initialized');
-      }
+      // Add the Canon photo to the notifier's state
+      await photoNotifier.addPhotoFromFile(
+        filePath,
+        layoutMode: layoutMode,
+        isLandscape: isLandscape,
+      );
 
       // Always read the current capture count from the photo state (should be 4)
       final currentPhotoStateAsync = ref.read(photoProvider);
@@ -367,18 +283,8 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     // Dispose sound service resources
     _soundService.dispose();
 
-    // Dispose photo camera controller safely
-    if (_photoCameraController != null) {
-      _photoCameraController!
-          .dispose()
-          .then((_) {
-            print('Photo camera controller disposed successfully');
-          })
-          .catchError((e) {
-            print('Error disposing photo camera controller: $e');
-          });
-      _photoCameraController = null;
-    }
+    // Canon EDSDK lifecycle is managed by CanonCameraService (shared singleton)
+    // — nothing to dispose here.
 
     super.dispose();
   }
@@ -389,66 +295,25 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera preview - choose based on the layout mode being used
+          // Canon EDSDK live-view preview — aspect ratio adapts to layout mode
           Consumer(
             builder: (context, ref, child) {
-              final photoStateAsync = ref.watch(photoProvider);
               final printerStateAsync = ref.watch(printerProvider);
 
-              return photoStateAsync.when(
-                data: (photoState) {
-                  return printerStateAsync.when(
-                    data: (printerState) {
-                      print(
-                        'Building camera preview for layout mode: ${printerState.layoutMode}, landscape: ${printerState.isLandscape}',
-                      );
+              return printerStateAsync.when(
+                data: (printerState) {
+                  // Choose aspect ratio based on layout mode
+                  double previewAspectRatio;
+                  if (printerState.layoutMode == 2) {
+                    previewAspectRatio = 5 / 6; // 2x2 portrait
+                  } else if (printerState.layoutMode == 4 &&
+                      printerState.isLandscape) {
+                    previewAspectRatio = 3 / 4; // 4x4 landscape
+                  } else {
+                    previewAspectRatio = 4 / 3; // 4x4 normal
+                  }
 
-                      // Show 2x2 preview for layout mode 2
-                      if (printerState.layoutMode == 2) {
-                        print(
-                          'Using TwoByTwoCameraPreviewWidget for 2x2 layout',
-                        );
-                        return TwoByTwoCameraPreviewWidget(
-                          isCameraInitialized: _isCameraInitialized,
-                          cameraController: _photoCameraController,
-                        );
-                      }
-                      // Show landscape preview for layout mode 4 with landscape orientation
-                      else if (printerState.layoutMode == 4 &&
-                          printerState.isLandscape) {
-                        print(
-                          'Using LandscapeCameraPreviewWidget for landscape layout',
-                        );
-                        return LandscapeCameraPreviewWidget(
-                          isCameraInitialized: _isCameraInitialized,
-                          cameraController: _photoCameraController,
-                        );
-                      }
-                      // Default to regular 4x4 preview
-                      else {
-                        print('Using CameraPreviewWidget for 4x4 layout');
-                        return CameraPreviewWidget(
-                          isCameraInitialized: _isCameraInitialized,
-                          cameraController: _photoCameraController,
-                        );
-                      }
-                    },
-                    loading: () => Container(
-                      color: Colors.black,
-                      child: const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      ),
-                    ),
-                    error: (error, stack) {
-                      print(
-                        'Printer state error, defaulting to 4x4 layout: $error',
-                      );
-                      return CameraPreviewWidget(
-                        isCameraInitialized: _isCameraInitialized,
-                        cameraController: _photoCameraController,
-                      );
-                    },
-                  );
+                  return CanonLiveViewPreview(aspectRatio: previewAspectRatio);
                 },
                 loading: () => Container(
                   color: Colors.black,
@@ -456,15 +321,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                     child: CircularProgressIndicator(color: Colors.white),
                   ),
                 ),
-                error: (error, stack) => Container(
-                  color: Colors.black,
-                  child: const Center(
-                    child: Text(
-                      'Camera preview unavailable',
-                      style: TextStyle(color: Colors.white),
-                    ),
-                  ),
-                ),
+                error: (error, stack) {
+                  return const CanonLiveViewPreview(aspectRatio: 4 / 3);
+                },
               );
             },
           ),

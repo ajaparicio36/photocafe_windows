@@ -4,6 +4,7 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   camera_windows
+  canon_edsdk
   printing
   screen_retriever_windows
   video_player_win
