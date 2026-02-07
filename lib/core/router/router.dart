@@ -40,8 +40,16 @@ final GoRouter router = GoRouter(
     ),
     GoRoute(
       path: '/classic/print',
-      builder: (context, state) =>
-          ClassicPrintScreen(pdfBytes: state.extra as Uint8List?),
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is Map<String, dynamic>) {
+          return ClassicPrintScreen(
+            pdfBytes: extra['pdfBytes'] as Uint8List?,
+            isLandscape: extra['isLandscape'] as bool?,
+          );
+        }
+        return ClassicPrintScreen(pdfBytes: extra as Uint8List?);
+      },
     ),
     GoRoute(
       path: '/flipbook/start',

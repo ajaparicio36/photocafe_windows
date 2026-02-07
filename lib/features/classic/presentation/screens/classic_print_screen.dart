@@ -12,8 +12,9 @@ import 'package:printing/printing.dart';
 
 class ClassicPrintScreen extends ConsumerStatefulWidget {
   final Uint8List? pdfBytes;
+  final bool? isLandscape;
 
-  const ClassicPrintScreen({super.key, this.pdfBytes});
+  const ClassicPrintScreen({super.key, this.pdfBytes, this.isLandscape});
 
   @override
   ConsumerState<ClassicPrintScreen> createState() => _ClassicPrintScreenState();
@@ -23,6 +24,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
   bool _isPrinting = false;
   bool _splitStrips = true;
   Uint8List? _actualPdfBytes;
+  bool _isLandscape = false;
 
   @override
   void didChangeDependencies() {
@@ -30,9 +32,16 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
     // Get PDF bytes from router state if not provided in constructor
     if (widget.pdfBytes == null) {
       final routerState = GoRouterState.of(context);
-      _actualPdfBytes = routerState.extra as Uint8List?;
+      final extra = routerState.extra;
+      if (extra is Map<String, dynamic>) {
+        _actualPdfBytes = extra['pdfBytes'] as Uint8List?;
+        _isLandscape = extra['isLandscape'] as bool? ?? false;
+      } else {
+        _actualPdfBytes = extra as Uint8List?;
+      }
     } else {
       _actualPdfBytes = widget.pdfBytes;
+      _isLandscape = widget.isLandscape ?? false;
     }
   }
 
@@ -295,7 +304,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                                       color: Colors.white,
                                     ),
                                   ),
-                                  const SizedBox(height: 24),
+                                  const SizedBox(height: 16),
 
                                   // PDF Preview
                                   Expanded(
@@ -314,22 +323,42 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                                       ),
                                       child: ClipRRect(
                                         borderRadius: BorderRadius.circular(20),
-                                        child: PdfPreview(
-                                          build: (format) => _actualPdfBytes!,
-                                          canChangePageFormat: false,
-                                          canDebug: false,
-                                          allowPrinting: false,
-                                          allowSharing: false,
-                                          useActions: false,
-                                          scrollViewDecoration: BoxDecoration(
-                                            color: Colors.white,
-                                          ),
-                                        ),
+                                        child: _isLandscape
+                                            ? Transform.rotate(
+                                                angle:
+                                                    -1.5708, // -90 degrees in radians (-π/2)
+                                                child: PdfPreview(
+                                                  build: (format) =>
+                                                      _actualPdfBytes!,
+                                                  canChangePageFormat: false,
+                                                  canDebug: false,
+                                                  allowPrinting: false,
+                                                  allowSharing: false,
+                                                  useActions: false,
+                                                  scrollViewDecoration:
+                                                      BoxDecoration(
+                                                        color: Colors.white,
+                                                      ),
+                                                ),
+                                              )
+                                            : PdfPreview(
+                                                build: (format) =>
+                                                    _actualPdfBytes!,
+                                                canChangePageFormat: false,
+                                                canDebug: false,
+                                                allowPrinting: false,
+                                                allowSharing: false,
+                                                useActions: false,
+                                                scrollViewDecoration:
+                                                    BoxDecoration(
+                                                      color: Colors.white,
+                                                    ),
+                                              ),
                                       ),
                                     ),
                                   ),
 
-                                  const SizedBox(height: 24),
+                                  const SizedBox(height: 16),
 
                                   // Preview info
                                   Container(

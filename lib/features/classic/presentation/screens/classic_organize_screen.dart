@@ -104,7 +104,13 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
 
     try {
       final pdfBytes = await _generatePdf();
-      context.go('/classic/print', extra: pdfBytes);
+      final printerState = ref.read(printerProvider).value;
+      final isLandscape = printerState?.isLandscape ?? false;
+
+      context.go(
+        '/classic/print',
+        extra: {'pdfBytes': pdfBytes, 'isLandscape': isLandscape},
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
