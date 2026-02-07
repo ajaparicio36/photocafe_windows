@@ -25,6 +25,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
   bool _splitStrips = true;
   Uint8List? _actualPdfBytes;
   bool _isLandscape = false;
+  bool _framePdfSaved = false;
 
   @override
   void didChangeDependencies() {
@@ -42,6 +43,17 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
     } else {
       _actualPdfBytes = widget.pdfBytes;
       _isLandscape = widget.isLandscape ?? false;
+    }
+
+    // Save the frame PDF to the photos temp directory so it's persisted
+    // alongside the captured photos for the user and soft-copy uploads.
+    if (_actualPdfBytes != null && !_framePdfSaved) {
+      _framePdfSaved = true;
+      ref
+          .read(photoProvider.notifier)
+          .saveFramePdf(_actualPdfBytes!)
+          .then((path) => print('Frame PDF persisted to photos temp: $path'))
+          .catchError((e) => print('Warning: Could not save frame PDF: $e'));
     }
   }
 

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photocafe_windows/core/handlers/dio_handler.dart';
+import 'package:printing/printing.dart';
 import 'package:uuid/uuid.dart';
 
 class SoftCopiesService {
@@ -76,14 +77,27 @@ class SoftCopiesService {
         }
       }
 
-      // Add PDF file if available
+      // Convert PDF to high-quality PNG and upload
       if (pdfBytes != null) {
-        print('Uploading PDF file...');
-        final multipartFile = MultipartFile.fromBytes(
-          pdfBytes,
-          filename: 'photostrip.pdf',
-        );
-        formData.files.add(MapEntry('files', multipartFile));
+        print('Converting photostrip PDF to PNG at 300 DPI...');
+        try {
+          final pngBytes = await _convertPdfToPng(pdfBytes);
+          print('PNG conversion complete: ${pngBytes.length} bytes');
+
+          final multipartFile = MultipartFile.fromBytes(
+            pngBytes,
+            filename: 'photostrip.png',
+          );
+          formData.files.add(MapEntry('files', multipartFile));
+        } catch (e) {
+          print('PNG conversion failed, uploading PDF as fallback: $e');
+          // Fallback: upload original PDF if conversion fails
+          final multipartFile = MultipartFile.fromBytes(
+            pdfBytes,
+            filename: 'photostrip.pdf',
+          );
+          formData.files.add(MapEntry('files', multipartFile));
+        }
         currentProgress += progressPerFile;
         onProgress(currentProgress);
       }
@@ -152,6 +166,24 @@ class SoftCopiesService {
 
   String _getFileExtension(String filePath) {
     return filePath.split('.').last.toLowerCase();
+  }
+
+  /// Rasterize the first page of a PDF at 300 DPI and return PNG bytes.
+  Future<Uint8List> _convertPdfToPng(Uint8List pdfBytes) async {
+    // Rasterize at 300 DPI for full print quality (4×6″ = 1200×1800 px)
+    const dpi = 300.0;
+
+    final pages = Printing.raster(pdfBytes, dpi: dpi);
+    final firstPage = await pages.first;
+
+    // PdfRaster.toPng() returns fully encoded PNG bytes at the rasterized resolution
+    final pngBytes = await firstPage.toPng();
+    print(
+      'PDF rasterized to PNG: ${firstPage.width}×${firstPage.height} px, '
+      '${pngBytes.length} bytes',
+    );
+
+    return pngBytes;
   }
 
   String _generateArchiveUrl(String archiveId) {

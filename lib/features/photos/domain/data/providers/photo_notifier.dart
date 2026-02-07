@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:printing/printing.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_state.dart';
 import 'package:photocafe_windows/services/canon_camera_service.dart';
@@ -16,6 +17,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   // Background processing futures to avoid blocking UI
   Future<void>? _pendingVhsProcessing;
   String? _pendingRawVideoPath;
+
+  // Path to the saved frame/photostrip PNG in the photos temp directory
+  String? _savedFramePath;
 
   @override
   Future<PhotoState> build() async {
@@ -445,6 +449,67 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
+  /// Save the composited frame as a high-quality PNG to the photos temp
+  /// directory so it lives alongside the captured photos.
+  ///
+  /// Accepts the raw PDF bytes, rasterizes the first page at 300 DPI,
+  /// and writes the result as a PNG file. Returns the saved file path.
+  Future<String> saveFramePdf(Uint8List pdfBytes) async {
+    final currentState = state.value;
+    if (currentState == null) {
+      throw Exception('State is not available to save frame.');
+    }
+
+    // Delete previous frame file if it exists (e.g. user re-generated)
+    if (_savedFramePath != null) {
+      try {
+        final oldFile = File(_savedFramePath!);
+        if (await oldFile.exists()) {
+          await oldFile.delete();
+          print('Deleted previous frame file: $_savedFramePath');
+        }
+      } catch (e) {
+        print('Warning: Could not delete previous frame file: $e');
+      }
+    }
+
+    // Convert PDF to PNG at 300 DPI for full print quality
+    Uint8List pngBytes;
+    try {
+      final pages = Printing.raster(pdfBytes, dpi: 300);
+      final firstPage = await pages.first;
+      pngBytes = await firstPage.toPng();
+      print(
+        'Frame PDF rasterized to PNG: '
+        '${firstPage.width}×${firstPage.height} px, ${pngBytes.length} bytes',
+      );
+    } catch (e) {
+      print('Warning: PNG conversion failed, saving as PDF fallback: $e');
+      // Fallback: save the raw PDF if rasterization fails
+      final fallbackName =
+          'photostrip_${DateTime.now().millisecondsSinceEpoch}.pdf';
+      final fallbackPath = p.join(currentState.tempPath, fallbackName);
+      final fallbackFile = File(fallbackPath);
+      await fallbackFile.writeAsBytes(pdfBytes, flush: true);
+      _savedFramePath = fallbackPath;
+      return fallbackPath;
+    }
+
+    final fileName = 'photostrip_${DateTime.now().millisecondsSinceEpoch}.png';
+    final pngPath = p.join(currentState.tempPath, fileName);
+    final file = File(pngPath);
+    await file.writeAsBytes(pngBytes, flush: true);
+
+    _savedFramePath = pngPath;
+    final fileSize = await file.length();
+    print('Frame PNG saved: $pngPath ($fileSize bytes)');
+
+    return pngPath;
+  }
+
+  /// Get the path to the saved frame file (PNG), if any.
+  String? get savedFramePdfPath => _savedFramePath;
+
   Future<Uint8List> _processImageMinimal(
     Uint8List imageBytes,
     int layoutMode, {
@@ -636,20 +701,23 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         }
       }
 
-      // Clean up processed video files
+      // Clean up processed video files and frame PDFs
       final tempDir = Directory(currentState.tempPath);
       await for (final entity in tempDir.list()) {
         if (entity is File &&
             (entity.path.contains('vhs_processed_') ||
-                entity.path.contains('raw_session_'))) {
+                entity.path.contains('raw_session_') ||
+                entity.path.contains('photostrip_'))) {
           try {
             await entity.delete();
-            print('Cleaned up video file: ${entity.path}');
+            print('Cleaned up file: ${entity.path}');
           } catch (e) {
-            print('Error cleaning up video file: $e');
+            print('Error cleaning up file: $e');
           }
         }
       }
+
+      _savedFramePath = null;
 
       return currentState.copyWith(
         photos: [],
