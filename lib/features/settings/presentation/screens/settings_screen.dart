@@ -351,44 +351,14 @@ printing functionality is working.
   }
 
   bool _showCameraConflictWarning(String? currentCamera) {
-    if (currentCamera == null) return false;
-
-    final printerState = ref.watch(printerProvider).value;
-    if (printerState == null) return false;
-
-    return printerState.photoCameraName == printerState.videoCameraName &&
-        printerState.photoCameraName == currentCamera;
+    // No conflict possible since photos use Canon EDSDK,
+    // not a system webcam. Only one webcam selector remains.
+    return false;
   }
 
   bool _validateCameraSelection(String cameraType, String selectedCamera) {
-    final printerState = ref.read(printerProvider).value;
-    if (printerState == null) return true;
-
-    // Allow selection if it's the same type being updated
-    if (cameraType == 'Photo Camera' &&
-        selectedCamera == printerState.photoCameraName) {
-      return true;
-    }
-    if (cameraType == 'Video Recording Camera' &&
-        selectedCamera == printerState.videoCameraName) {
-      return true;
-    }
-
-    // If there are only 2 or fewer cameras, allow same camera for both functions
-    if (_availableCameras.length <= 2) {
-      return true;
-    }
-
-    // Check for conflicts only if there are more than 2 cameras
-    if (cameraType == 'Photo Camera' &&
-        selectedCamera == printerState.videoCameraName) {
-      return false; // Photo camera conflicts with video camera
-    }
-    if (cameraType == 'Video Recording Camera' &&
-        selectedCamera == printerState.photoCameraName) {
-      return false; // Video camera conflicts with photo camera
-    }
-
+    // No conflict validation needed since photos use Canon EDSDK,
+    // not a system webcam. Any webcam can be selected freely.
     return true;
   }
 
@@ -730,24 +700,9 @@ printing functionality is working.
                     const SizedBox(height: 24),
                     _buildCameraSelector(
                       context: context,
-                      title: 'Photo Camera',
-                      subtitle:
-                          'Camera used for taking photos and preview display.',
-                      currentCamera: state.photoCameraName,
-                      onChanged: (camera) {
-                        if (camera != null) {
-                          ref
-                              .read(printerProvider.notifier)
-                              .setPhotoCameraName(camera);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    _buildCameraSelector(
-                      context: context,
                       title: 'Video Recording Camera',
                       subtitle:
-                          'Camera used for video recording during photo sessions.',
+                          'Webcam used for recording the companion video during photo sessions. Photos are taken by the Canon EDSDK camera.',
                       currentCamera: state.videoCameraName,
                       onChanged: (camera) {
                         if (camera != null) {

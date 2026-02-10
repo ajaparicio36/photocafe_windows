@@ -145,7 +145,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
   Future<void> _startVideoRecordingInNotifier() async {
     try {
-      print('Starting video recording in photo notifier...');
+      print('Starting webcam video recording in photo notifier...');
       await photoNotifier.startVideoRecording();
 
       ScaffoldMessenger.of(context).showSnackBar(
@@ -155,20 +155,20 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
               Icon(Icons.videocam, color: Colors.white),
               const SizedBox(width: 12),
               Text(
-                'Video recording started!',
+                'Webcam video recording started!',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
             ],
           ),
-          backgroundColor: AppColors.success,
+          backgroundColor: Colors.blueGrey,
           duration: const Duration(seconds: 2),
         ),
       );
     } catch (e) {
-      print('Failed to start video recording in notifier: $e');
+      print('Failed to start webcam video recording in notifier: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Video recording failed: $e'),
+          content: Text('Webcam video recording failed: $e'),
           backgroundColor: AppColors.lightCard,
           duration: const Duration(seconds: 3),
         ),
@@ -227,7 +227,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
       // Check if we've captured 4 photos
       if (_currentPhotoIndex >= 4) {
-        print('All 4 photos captured, stopping video recording');
+        print('All 4 photos captured, stopping webcam video recording');
         await photoNotifier.stopVideoRecording();
 
         if (mounted) {

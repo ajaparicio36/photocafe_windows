@@ -70,6 +70,9 @@ Uint8List? _applyFilterInIsolateTopLevel(_FilterIsolateArgs args) {
     // case FilterConstants.cinematicFilterName:
     //   filteredImage = FilterConstants.applyCinematicFilter(previewImage);
     //   break;
+    case FilterConstants.photoboothFilterName:
+      filteredImage = FilterConstants.applyPhotoboothFilter(previewImage);
+      break;
     default:
       filteredImage = previewImage;
   }

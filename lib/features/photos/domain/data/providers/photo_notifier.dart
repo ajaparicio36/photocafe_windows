@@ -8,6 +8,8 @@ import 'package:printing/printing.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_state.dart';
 import 'package:photocafe_windows/services/canon_camera_service.dart';
+import 'package:photocafe_windows/services/webcam_video_service.dart';
+import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 
@@ -43,13 +45,22 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
   Future<void> startVideoRecording() async {
     try {
-      final canonService = ref.read(canonCameraServiceProvider);
+      final webcamService = ref.read(webcamVideoServiceProvider);
+
+      // Get the selected video camera name from settings
+      final printerState = ref.read(printerProvider);
+      final videoCameraName = printerState.value?.videoCameraName;
+
       print(
-        'Starting Canon preview-based video recording in photo notifier...',
+        'Starting webcam video recording in photo notifier '
+        '(camera: ${videoCameraName ?? "default"})...',
       );
 
-      // Use preview-based recording (live view stays active, no freeze)
-      await canonService.startRecordingWithPreviewRetry(fps: 30);
+      // Initialize the webcam with the selected camera
+      await webcamService.initialize(videoCameraName);
+
+      // Start recording from the webcam
+      await webcamService.startRecording();
 
       state = await AsyncValue.guard(() async {
         final currentState = state.value;
@@ -59,31 +70,33 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         return currentState.copyWith(isRecording: true);
       });
 
-      print('Canon preview recording started successfully in photo notifier');
+      print('Webcam video recording started successfully in photo notifier');
     } catch (e) {
-      print('Failed to start Canon preview recording in photo notifier: $e');
+      print('Failed to start webcam video recording in photo notifier: $e');
       throw Exception('Video recording failed: $e');
     }
   }
 
   Future<void> stopVideoRecording() async {
     try {
-      final canonService = ref.read(canonCameraServiceProvider);
-      print(
-        'Stopping Canon preview-based video recording in photo notifier...',
-      );
+      final webcamService = ref.read(webcamVideoServiceProvider);
+      print('Stopping webcam video recording in photo notifier...');
 
-      final videoPath = await canonService.stopRecordingWithPreviewRetry();
+      final videoPath = await webcamService.stopRecording();
+
+      // Dispose the webcam controller to free resources
+      // (Canon EDSDK live view continues unaffected)
+      await webcamService.dispose();
 
       if (videoPath != null) {
-        // Reference the Canon AVI directly (no raw copy)
-        await _referenceCanonVideo(videoPath);
+        // Reference the webcam video for VHS processing
+        await _referenceRecordedVideo(videoPath);
 
         // Start VHS processing in background - don't await here
         // This allows the UI to proceed to the filter screen immediately
         _startBackgroundVhsProcessing();
       } else {
-        print('Warning: stopRecordingWithPreview returned null path');
+        print('Warning: webcam stopRecording returned null path');
       }
 
       state = await AsyncValue.guard(() async {
@@ -95,10 +108,16 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       });
 
       print(
-        'Canon preview recording stopped in photo notifier (VHS processing continues in background)',
+        'Webcam recording stopped in photo notifier (VHS processing continues in background)',
       );
     } catch (e) {
-      print('Error stopping Canon preview recording in photo notifier: $e');
+      print('Error stopping webcam video recording in photo notifier: $e');
+
+      // Make sure webcam is disposed even on error
+      try {
+        final webcamService = ref.read(webcamVideoServiceProvider);
+        await webcamService.dispose();
+      } catch (_) {}
 
       state = await AsyncValue.guard(() async {
         final currentState = state.value;
@@ -112,22 +131,22 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
-  /// Reference the Canon preview recording AVI path directly for VHS
-  /// processing. No raw_session copy is made — the VHS processor reads
-  /// straight from the source AVI and produces the processed mp4.
-  Future<void> _referenceCanonVideo(String canonVideoPath) async {
+  /// Reference the recorded video path directly for VHS processing.
+  /// No raw_session copy is made — the VHS processor reads straight
+  /// from the source file and produces the processed mp4.
+  Future<void> _referenceRecordedVideo(String videoFilePath) async {
     final currentState = state.value;
     if (currentState == null) {
       throw Exception("State is not available to save raw video.");
     }
 
     try {
-      final sourceFile = File(canonVideoPath);
+      final sourceFile = File(videoFilePath);
       final fileSize = await sourceFile.length();
-      print('Canon AVI video at: $canonVideoPath ($fileSize bytes)');
+      print('Recorded video at: $videoFilePath ($fileSize bytes)');
 
       if (fileSize < 1024) {
-        print('Canon video file too small, creating fallback...');
+        print('Recorded video file too small, creating fallback...');
         final fallbackPath = p.join(
           currentState.tempPath,
           'fallback_${DateTime.now().millisecondsSinceEpoch}.avi',
@@ -145,18 +164,18 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         return;
       }
 
-      // Reference the Canon AVI directly — no copy
-      _pendingRawVideoPath = canonVideoPath;
+      // Reference the recorded video directly — no copy
+      _pendingRawVideoPath = videoFilePath;
 
       state = await AsyncValue.guard(() async {
         final cs = state.value;
         if (cs == null) {
           throw Exception("State is not available to update video path.");
         }
-        return cs.copyWith(videoPath: canonVideoPath);
+        return cs.copyWith(videoPath: videoFilePath);
       });
     } catch (e) {
-      print('Error referencing Canon video: $e');
+      print('Error referencing recorded video: $e');
       final fallbackPath = p.join(
         currentState.tempPath,
         'fallback_${DateTime.now().millisecondsSinceEpoch}.avi',
