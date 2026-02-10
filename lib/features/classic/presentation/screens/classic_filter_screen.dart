@@ -63,19 +63,24 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
               case FilterConstants.hdrFilterName:
                 filteredImage = FilterConstants.applyHdrFilter(originalImage);
                 break;
-              case FilterConstants.matteFilterName:
-                filteredImage = FilterConstants.applyMatteFilter(originalImage);
-                break;
-              case FilterConstants.vscoA6FilterName:
-                filteredImage = FilterConstants.applyVscoA6Filter(
-                  originalImage,
-                );
-                break;
+              // case FilterConstants.matteFilterName:
+              //   filteredImage = FilterConstants.applyMatteFilter(originalImage);
+              //   break;
+              // case FilterConstants.vscoA6FilterName:
+              //   filteredImage = FilterConstants.applyVscoA6Filter(
+              //     originalImage,
+              //   );
+              //   break;
               case FilterConstants.blackWhiteFilterName:
                 filteredImage = FilterConstants.applyMonoFilter(originalImage);
                 break;
-              case FilterConstants.cinematicFilterName:
-                filteredImage = FilterConstants.applyCinematicFilter(
+              // case FilterConstants.cinematicFilterName:
+              //   filteredImage = FilterConstants.applyCinematicFilter(
+              //     originalImage,
+              //   );
+              //   break;
+              case FilterConstants.photoboothFilterName:
+                filteredImage = FilterConstants.applyPhotoboothFilter(
                   originalImage,
                 );
                 break;
@@ -126,20 +131,24 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
         case FilterConstants.hdrFilterName:
           await photoNotifier.applyFilters(FilterConstants.applyHdrFilter);
           break;
-        case FilterConstants.matteFilterName:
-          await photoNotifier.applyFilters(FilterConstants.applyMatteFilter);
-          break;
-        case FilterConstants.vscoA6FilterName:
-          await photoNotifier.applyFilters(FilterConstants.applyVscoA6Filter);
-          break;
+        // case FilterConstants.matteFilterName:
+        //   await photoNotifier.applyFilters(FilterConstants.applyMatteFilter);
+        //   break;
+        // case FilterConstants.vscoA6FilterName:
+        //   await photoNotifier.applyFilters(FilterConstants.applyVscoA6Filter);
+        //   break;
         case FilterConstants.blackWhiteFilterName:
           await photoNotifier.applyFilters(FilterConstants.applyMonoFilter);
           break;
-        case FilterConstants.cinematicFilterName:
+        // case FilterConstants.cinematicFilterName:
+        //   await photoNotifier.applyFilters(
+        //     FilterConstants.applyCinematicFilter,
+        //   );
+        //   break;
+        case FilterConstants.photoboothFilterName:
           await photoNotifier.applyFilters(
-            FilterConstants.applyCinematicFilter,
+            FilterConstants.applyPhotoboothFilter,
           );
-          break;
         default:
           break;
       }
