@@ -1240,6 +1240,138 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/frame19.png',
   );
 
+  static const fourFrameTwenty = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 25,
+        top: 50,
+        width: 103,
+        height: 90,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 25,
+        top: 142,
+        width: 103,
+        height: 90,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 25,
+        top: 232,
+        width: 103,
+        height: 90,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 25,
+        top: 323,
+        width: 103,
+        height: 90,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 180,
+        top: 50,
+        width: 103,
+        height: 90,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 180,
+        top: 142,
+        width: 103,
+        height: 90,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 180,
+        top: 232,
+        width: 103,
+        height: 90,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 180,
+        top: 323,
+        width: 103,
+        height: 90,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame20.png',
+  );
+
+  static const fourFrameTwentyOne = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 6,
+        top: 3,
+        width: 142,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 11,
+        top: 110,
+        width: 142,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 1,
+        top: 215,
+        width: 142,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 7,
+        top: 325,
+        width: 142,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 161,
+        top: 3,
+        width: 142,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 163,
+        top: 110,
+        width: 142,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 157,
+        top: 215,
+        width: 142,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 161,
+        top: 325,
+        width: 142,
+        height: 105,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame21.png',
+  );
+
   static const fourFrameDinagyang = FrameLayout(
     type: FrameLayoutType.fourPhotos,
     leftColumnPositions: [
@@ -1478,6 +1610,24 @@ class FrameConstants {
     description: 'A limited edition frame for Dinagyang Festival.',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameDinagyang},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameTwenty = FrameDefinition(
+    id: '4by4_frame_twenty',
+    name: 'Frame Ten',
+    description: 'A frame for the couples!',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameTwenty},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameTwentyOne = FrameDefinition(
+    id: '4by4_frame_twenty_one',
+    name: 'Frame Eleven',
+    description: 'A frame from Cupid!',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameTwentyOne},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -2199,7 +2349,8 @@ class FrameConstants {
     fourByFourFrameSixteen,
     fourByFourFrameSeventeen,
     fourByFourFrameEighteen,
-    fourByFourFrameDinagyang,
+    fourByFourFrameTwenty,
+    fourByFourFrameTwentyOne,
     twoByTwoFrameOne,
     twoByTwoFrameTwo,
     twoByTwoFrameThree,

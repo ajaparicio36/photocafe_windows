@@ -58,18 +58,18 @@ Uint8List? _applyFilterInIsolateTopLevel(_FilterIsolateArgs args) {
     case FilterConstants.hdrFilterName:
       filteredImage = FilterConstants.applyHdrFilter(previewImage);
       break;
-    case FilterConstants.matteFilterName:
-      filteredImage = FilterConstants.applyMatteFilter(previewImage);
-      break;
-    case FilterConstants.vscoA6FilterName:
-      filteredImage = FilterConstants.applyVscoA6Filter(previewImage);
-      break;
+    // case FilterConstants.matteFilterName:
+    //   filteredImage = FilterConstants.applyMatteFilter(previewImage);
+    //   break;
+    // case FilterConstants.vscoA6FilterName:
+    //   filteredImage = FilterConstants.applyVscoA6Filter(previewImage);
+    //   break;
     case FilterConstants.blackWhiteFilterName:
       filteredImage = FilterConstants.applyMonoFilter(previewImage);
       break;
-    case FilterConstants.cinematicFilterName:
-      filteredImage = FilterConstants.applyCinematicFilter(previewImage);
-      break;
+    // case FilterConstants.cinematicFilterName:
+    //   filteredImage = FilterConstants.applyCinematicFilter(previewImage);
+    //   break;
     default:
       filteredImage = previewImage;
   }
@@ -187,20 +187,24 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
         case FilterConstants.hdrFilterName:
           await photoNotifier.applyFilters(FilterConstants.applyHdrFilter);
           break;
-        case FilterConstants.matteFilterName:
-          await photoNotifier.applyFilters(FilterConstants.applyMatteFilter);
-          break;
-        case FilterConstants.vscoA6FilterName:
-          await photoNotifier.applyFilters(FilterConstants.applyVscoA6Filter);
-          break;
+        // case FilterConstants.matteFilterName:
+        //   await photoNotifier.applyFilters(FilterConstants.applyMatteFilter);
+        //   break;
+        // case FilterConstants.vscoA6FilterName:
+        //   await photoNotifier.applyFilters(FilterConstants.applyVscoA6Filter);
+        //   break;
         case FilterConstants.blackWhiteFilterName:
           await photoNotifier.applyFilters(FilterConstants.applyMonoFilter);
           break;
-        case FilterConstants.cinematicFilterName:
+        // case FilterConstants.cinematicFilterName:
+        //   await photoNotifier.applyFilters(
+        //     FilterConstants.applyCinematicFilter,
+        //   );
+        //   break;
+        case FilterConstants.photoboothFilterName:
           await photoNotifier.applyFilters(
-            FilterConstants.applyCinematicFilter,
+            FilterConstants.applyPhotoboothFilter,
           );
-          break;
         default:
           break;
       }
