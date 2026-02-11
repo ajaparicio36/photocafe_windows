@@ -2293,6 +2293,72 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/hori_five.png',
   );
 
+  static const landscapeFrameSix = FrameLayout(
+    type: FrameLayoutType.fourLandscapePhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 21,
+        top: -10,
+        width: 110,
+        height: 140,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 21,
+        top: 102,
+        width: 110,
+        height: 140,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 21,
+        top: 215,
+        width: 110,
+        height: 140,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 21,
+        top: 326,
+        width: 110,
+        height: 140,
+        rotationDegrees: -90,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 175,
+        top: -10,
+        width: 110,
+        height: 140,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 175,
+        top: 102,
+        width: 110,
+        height: 140,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 175,
+        top: 215,
+        width: 110,
+        height: 140,
+        rotationDegrees: -90,
+      ),
+      FramePhotoPosition(
+        left: 175,
+        top: 326,
+        width: 110,
+        height: 140,
+        rotationDegrees: -90,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/hori_six.png',
+  );
+
   // Landscape Frame Definitions
   static const FrameDefinition landscapeFrameOneDefinition = FrameDefinition(
     id: 'landscape_frame_one',
@@ -2339,6 +2405,15 @@ class FrameConstants {
     previewWidgetName: 'LandscapeFramePreview',
   );
 
+  static const FrameDefinition landscapeFrameSixDefinition = FrameDefinition(
+    id: 'landscape_frame_six',
+    name: 'Landscape Frame Six',
+    description: 'A landscape-oriented 4-photo layout',
+    supportedLayouts: [FrameLayoutType.fourLandscapePhotos],
+    layouts: {FrameLayoutType.fourLandscapePhotos: landscapeFrameSix},
+    previewWidgetName: 'LandscapeFramePreview',
+  );
+
   static List<FrameDefinition> get availableFrames => [
     fourByFourFrameThree,
     fourByFourFrameSix,
@@ -2364,5 +2439,6 @@ class FrameConstants {
     landscapeFrameThreeDefinition,
     landscapeFrameFourDefinition,
     landscapeFrameFiveDefinition,
+    landscapeFrameSixDefinition,
   ];
 }
