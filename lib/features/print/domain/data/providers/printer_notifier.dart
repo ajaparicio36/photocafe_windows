@@ -28,6 +28,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     final layoutMode = prefs.getInt('layoutMode') ?? 4; // Default to 4x4
     final isFullscreen = prefs.getBool('isFullscreen') ?? false;
     final isLandscape = prefs.getBool('isLandscape') ?? false;
+    final useSystemCamera = prefs.getBool('useSystemCamera') ?? false;
 
     return PrinterState(
       cutEnabledPrinter: availablePrinters.contains(cutEnabledPrinter)
@@ -44,6 +45,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
       layoutMode: layoutMode,
       isFullscreen: isFullscreen,
       isLandscape: isLandscape,
+      useSystemCamera: useSystemCamera,
     );
   }
 
@@ -169,6 +171,21 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
         final prefs = await _prefs;
         await prefs.setBool('isLandscape', isLandscape);
         return state.value!.copyWith(isLandscape: isLandscape, error: null);
+      } catch (e) {
+        return state.value!.copyWith(error: e.toString());
+      }
+    });
+  }
+
+  Future<void> setUseSystemCamera(bool useSystemCamera) async {
+    state = await AsyncValue.guard(() async {
+      try {
+        final prefs = await _prefs;
+        await prefs.setBool('useSystemCamera', useSystemCamera);
+        return state.value!.copyWith(
+          useSystemCamera: useSystemCamera,
+          error: null,
+        );
       } catch (e) {
         return state.value!.copyWith(error: e.toString());
       }

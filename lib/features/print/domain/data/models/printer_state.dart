@@ -14,6 +14,8 @@ sealed class PrinterState with _$PrinterState {
     @Default(2) int layoutMode, // 2 for 2x2 layout, 4 for 4x4 layout
     @Default(false) bool isFullscreen, // Add fullscreen mode setting
     @Default(false) bool isLandscape, // Add landscape mode setting
+    @Default(false)
+    bool useSystemCamera, // Use system webcam instead of Canon EDSDK
     String? error,
   }) = _PrinterState;
 

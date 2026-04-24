@@ -600,6 +600,54 @@ printing functionality is working.
     );
   }
 
+  Widget _buildCameraModeToggle(BuildContext context, PrinterState state) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.5),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Use System Camera for Photos',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 20,
+                    color: const Color(0xFF740000),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'When enabled, photos are captured using a system webcam instead of the Canon EDSDK camera. '
+                  'Use this as a fallback when the Canon camera is unavailable.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontSize: 16,
+                    color: const Color(0xFF740000),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 24),
+          Switch(
+            value: state.useSystemCamera,
+            onChanged: (value) {
+              ref.read(printerProvider.notifier).setUseSystemCamera(value);
+            },
+            activeColor: Theme.of(context).colorScheme.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTestSection() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -893,11 +941,29 @@ printing functionality is working.
                       Icons.camera_alt_rounded,
                     ),
                     const SizedBox(height: 24),
+                    _buildCameraModeToggle(context, state),
+                    const SizedBox(height: 24),
+                    if (state.useSystemCamera)
+                      _buildCameraSelector(
+                        context: context,
+                        title: 'Photo Capture Camera',
+                        subtitle:
+                            'System webcam used for capturing photos when Canon EDSDK is not available.',
+                        currentCamera: state.photoCameraName,
+                        onChanged: (camera) {
+                          if (camera != null) {
+                            ref
+                                .read(printerProvider.notifier)
+                                .setPhotoCameraName(camera);
+                          }
+                        },
+                      ),
+                    if (state.useSystemCamera) const SizedBox(height: 24),
                     _buildCameraSelector(
                       context: context,
                       title: 'Video Recording Camera',
                       subtitle:
-                          'Webcam used for recording the companion video during photo sessions. Photos are taken by the Canon EDSDK camera.',
+                          'Webcam used for recording the companion video during photo sessions.',
                       currentCamera: state.videoCameraName,
                       onChanged: (camera) {
                         if (camera != null) {

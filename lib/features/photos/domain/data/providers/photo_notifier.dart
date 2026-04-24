@@ -8,6 +8,7 @@ import 'package:printing/printing.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_state.dart';
 import 'package:photocafe_windows/services/canon_camera_service.dart';
+import 'package:photocafe_windows/services/system_camera_service.dart';
 import 'package:photocafe_windows/services/webcam_video_service.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:path_provider/path_provider.dart';
@@ -699,14 +700,24 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       final currentState = state.value;
       if (currentState == null) return state.value!;
 
-      // Stop Canon preview recording if active
+      // Stop recording if active
       try {
-        final canonService = ref.read(canonCameraServiceProvider);
+        final printerState = ref.read(printerProvider);
+        final useSystemCamera = printerState.hasValue
+            ? printerState.value?.useSystemCamera ?? false
+            : false;
+
         if (currentState.isRecording) {
-          await canonService.stopRecordingWithPreviewRetry();
+          if (useSystemCamera) {
+            final systemService = ref.read(systemCameraServiceProvider);
+            await systemService.stopRecordingWithPreviewRetry();
+          } else {
+            final canonService = ref.read(canonCameraServiceProvider);
+            await canonService.stopRecordingWithPreviewRetry();
+          }
         }
       } catch (e) {
-        print('Error stopping Canon recording during clear: $e');
+        print('Error stopping recording during clear: $e');
       }
 
       // Delete all photo files from the temporary directory

@@ -7,6 +7,7 @@ import 'package:photocafe_windows/features/photos/domain/data/providers/photo_no
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
 import 'package:photocafe_windows/services/canon_camera_service.dart';
+import 'package:photocafe_windows/services/system_camera_service.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -205,15 +206,31 @@ class App extends ConsumerWidget {
       final videoState = await ref.read(videoProvider.future);
       print('Video provider initialized');
 
-      // Initialize Canon EDSDK camera service (SDK init → discover → open → live view)
-      try {
-        final canonService = ref.read(canonCameraServiceProvider);
-        await canonService.initializeWithRetry();
-        print('Canon camera service initialized successfully');
-      } catch (e) {
-        print('Canon camera service initialization failed: $e');
-        // Non-fatal: the service will be in error state,
-        // and the UI will show a retry button via the connection state overlay.
+      // Initialize Canon EDSDK or system camera based on user preference
+      if (printerState.useSystemCamera) {
+        // System camera mode — use the camera package for photos
+        try {
+          final systemService = ref.read(systemCameraServiceProvider);
+          await systemService.initializeWithRetry(
+            cameraName: printerState.photoCameraName,
+          );
+          print('System camera service initialized successfully');
+        } catch (e) {
+          print('System camera service initialization failed: $e');
+          // Non-fatal: the service will be in error state,
+          // and the UI will show a retry overlay.
+        }
+      } else {
+        // Canon EDSDK mode (default)
+        try {
+          final canonService = ref.read(canonCameraServiceProvider);
+          await canonService.initializeWithRetry();
+          print('Canon camera service initialized successfully');
+        } catch (e) {
+          print('Canon camera service initialization failed: $e');
+          // Non-fatal: the service will be in error state,
+          // and the UI will show a retry button via the connection state overlay.
+        }
       }
 
       print('All providers initialized successfully');

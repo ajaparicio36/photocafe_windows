@@ -8,7 +8,9 @@ import 'package:photocafe_windows/features/classic/presentation/widgets/capture/
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/core/services/sound_service.dart';
 import 'package:photocafe_windows/services/canon_camera_service.dart';
+import 'package:photocafe_windows/services/system_camera_service.dart';
 import 'package:photocafe_windows/widgets/canon_live_view_preview.dart';
+import 'package:photocafe_windows/widgets/system_camera_preview.dart';
 
 class ClassicCaptureScreen extends ConsumerStatefulWidget {
   const ClassicCaptureScreen({super.key});
@@ -187,9 +189,6 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     }
 
     try {
-      // Get the Canon camera service
-      final canonService = ref.read(canonCameraServiceProvider);
-
       // Get the current layout mode and landscape orientation
       final printerStateAsync = ref.read(printerProvider);
       final layoutMode = printerStateAsync.hasValue
@@ -198,9 +197,19 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       final isLandscape = printerStateAsync.hasValue
           ? printerStateAsync.value?.isLandscape ?? false
           : false;
+      final useSystemCamera = printerStateAsync.hasValue
+          ? printerStateAsync.value?.useSystemCamera ?? false
+          : false;
 
-      // Capture photo using Canon EDSDK (with retry + contingency fallback)
-      final filePath = await canonService.takePictureWithRetry();
+      // Capture photo using the appropriate camera service
+      final String filePath;
+      if (useSystemCamera) {
+        final systemService = ref.read(systemCameraServiceProvider);
+        filePath = await systemService.takePictureWithRetry();
+      } else {
+        final canonService = ref.read(canonCameraServiceProvider);
+        filePath = await canonService.takePictureWithRetry();
+      }
 
       // Add the Canon photo to the notifier's state
       await photoNotifier.addPhotoFromFile(
@@ -295,7 +304,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Canon EDSDK live-view preview — aspect ratio adapts to layout mode
+          // Camera live-view preview — aspect ratio adapts to layout mode
           Consumer(
             builder: (context, ref, child) {
               final printerStateAsync = ref.watch(printerProvider);
@@ -315,6 +324,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                     previewAspectRatio = 4 / 3; // 4x4 normal
                   }
 
+                  if (printerState.useSystemCamera) {
+                    return SystemCameraPreview(aspectRatio: previewAspectRatio);
+                  }
                   return CanonLiveViewPreview(aspectRatio: previewAspectRatio);
                 },
                 loading: () => Container(

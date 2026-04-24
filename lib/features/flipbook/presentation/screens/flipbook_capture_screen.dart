@@ -4,9 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
+import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/core/services/sound_service.dart';
 import 'package:photocafe_windows/services/canon_camera_service.dart';
+import 'package:photocafe_windows/services/system_camera_service.dart';
 import 'package:photocafe_windows/widgets/canon_live_view_preview.dart';
+import 'package:photocafe_windows/widgets/system_camera_preview.dart';
 import 'package:video_player/video_player.dart';
 
 class FlipbookCaptureScreen extends ConsumerStatefulWidget {
@@ -91,11 +94,20 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     });
 
     try {
-      final canonService = ref.read(canonCameraServiceProvider);
-      print('Starting Canon preview-based video recording for flipbook...');
+      final printerStateAsync = ref.read(printerProvider);
+      final useSystemCamera = printerStateAsync.hasValue
+          ? printerStateAsync.value?.useSystemCamera ?? false
+          : false;
 
-      // Start Canon preview recording (live view stays active)
-      await canonService.startRecordingWithPreviewRetry(fps: 30);
+      if (useSystemCamera) {
+        final systemService = ref.read(systemCameraServiceProvider);
+        print('Starting system camera video recording for flipbook...');
+        await systemService.startRecordingWithPreviewRetry(fps: 30);
+      } else {
+        final canonService = ref.read(canonCameraServiceProvider);
+        print('Starting Canon preview-based video recording for flipbook...');
+        await canonService.startRecordingWithPreviewRetry(fps: 30);
+      }
 
       // Start the recording countdown timer (7 seconds)
       _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -134,9 +146,12 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     if (!_isRecording) return;
 
     try {
-      final canonService = ref.read(canonCameraServiceProvider);
+      final printerStateAsync = ref.read(printerProvider);
+      final useSystemCamera = printerStateAsync.hasValue
+          ? printerStateAsync.value?.useSystemCamera ?? false
+          : false;
 
-      print('Stopping Canon preview recording for flipbook...');
+      print('Stopping video recording for flipbook...');
 
       setState(() {
         _isRecording = false;
@@ -147,8 +162,15 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       _countdownTimer?.cancel();
       _countdownTimer = null;
 
-      // Stop Canon preview recording – returns the AVI file path
-      final videoPath = await canonService.stopRecordingWithPreviewRetry();
+      // Stop recording – returns the video file path
+      final String? videoPath;
+      if (useSystemCamera) {
+        final systemService = ref.read(systemCameraServiceProvider);
+        videoPath = await systemService.stopRecordingWithPreviewRetry();
+      } else {
+        final canonService = ref.read(canonCameraServiceProvider);
+        videoPath = await canonService.stopRecordingWithPreviewRetry();
+      }
 
       if (videoPath != null) {
         // Save as a take in the video notifier
@@ -431,26 +453,37 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Canon EDSDK live-view preview for flipbook recording
+          // Camera live-view preview for flipbook recording
           if (!showVideoPreview)
-            Container(
-              color: Colors.black,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: 16 / 9, // 16:9 aspect ratio for flipbook
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 40),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: Colors.white, width: 4),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: const CanonLiveViewPreview(aspectRatio: 16 / 9),
+            Consumer(
+              builder: (context, ref, child) {
+                final printerStateAsync = ref.watch(printerProvider);
+                final useSystemCamera = printerStateAsync.hasValue
+                    ? printerStateAsync.value?.useSystemCamera ?? false
+                    : false;
+
+                return Container(
+                  color: Colors.black,
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: 16 / 9,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 40),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(color: Colors.white, width: 4),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(28),
+                          child: useSystemCamera
+                              ? const SystemCameraPreview(aspectRatio: 16 / 9)
+                              : const CanonLiveViewPreview(aspectRatio: 16 / 9),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              },
             )
           else
             Center(child: _buildVideoPreview()),
