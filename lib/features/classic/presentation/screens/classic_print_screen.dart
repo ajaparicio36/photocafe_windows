@@ -471,7 +471,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
                 onPressed: () {
                   Navigator.of(context).pop();
                   ref.read(photoProvider.notifier).clearAllPhotos();
-                  context.go('/');
+                  context.go('/classic/start');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF740000),

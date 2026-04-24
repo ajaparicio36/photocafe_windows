@@ -49,8 +49,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       final photoStateAsync = ref.read(photoProvider);
 
       if (photoStateAsync.hasValue && photoStateAsync.value != null) {
-        // Always set capture count to 4 regardless of layout mode
-        await photoNotifier.setCaptureCount(4);
+        final captureCount = photoStateAsync.value!.captureCount;
 
         print('Capture count set to 4 (layout mode only affects arrangement)');
 
@@ -225,7 +224,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         throw Exception('Photo state became unavailable');
       }
 
-      final captureCount = 4; // Always capture 4 photos
+      final captureCount = currentPhotoStateAsync.value!.captureCount;
       print('Photo captured: ${_currentPhotoIndex + 1} of $captureCount');
 
       if (mounted) {
@@ -234,9 +233,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         });
       }
 
-      // Check if we've captured 4 photos
-      if (_currentPhotoIndex >= 4) {
-        print('All 4 photos captured, stopping webcam video recording');
+      // Check if we've captured all photos
+      if (_currentPhotoIndex >= captureCount) {
+        print('All $captureCount photos captured, stopping webcam video recording');
         await photoNotifier.stopVideoRecording();
 
         if (mounted) {
@@ -248,7 +247,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'Photo ${_currentPhotoIndex} captured! (${4 - _currentPhotoIndex} remaining)',
+                'Photo ${_currentPhotoIndex} captured! (${captureCount - _currentPhotoIndex} remaining)',
                 style: const TextStyle(fontSize: 16),
               ),
               backgroundColor: AppColors.success,
@@ -258,7 +257,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
           // Automatically start countdown for the next photo after a short delay
           await Future.delayed(const Duration(seconds: 2));
-          if (mounted && !_isDisposed && _currentPhotoIndex < 4) {
+          if (mounted && !_isDisposed && _currentPhotoIndex < captureCount) {
             _startCountdown();
           }
         }

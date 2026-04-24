@@ -852,7 +852,7 @@ printing functionality is working.
           ScreenHeader(
             title: 'Settings',
             subtitle: 'Configure application settings',
-            backRoute: '/',
+            backRoute: '/classic/start',
           ),
           const SizedBox(height: 40),
           Expanded(

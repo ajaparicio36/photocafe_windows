@@ -297,7 +297,7 @@ class ClassicStartScreen extends ConsumerWidget {
           }
         }
       },
-      child: Image.asset(assetPath, fit: BoxFit.contain, height: 340),
+      child: Image.asset(assetPath, fit: BoxFit.contain, height: 480),
     );
   }
 }
