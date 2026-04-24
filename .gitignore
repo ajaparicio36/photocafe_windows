@@ -34,6 +34,10 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Generated code (build_runner)
+*.freezed.dart
+*.g.dart
+
 # Symbolication related
 app.*.symbols
 
