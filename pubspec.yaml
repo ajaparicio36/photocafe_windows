@@ -2,7 +2,7 @@ name: photocafe_windows
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
-publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+publish_to: "none" # Remove this line if you wish to publish to pub.dev
 
 # The following defines the version and build number for your application.
 # A version number is three numbers separated by dots, like 1.2.43
@@ -82,7 +82,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
@@ -117,40 +116,9 @@ flutter:
     - assets/icons/classic_mode_button.png
     - assets/icons/clickclick_logo-min.png
     - assets/icons/strip_button.png
-    - assets/frames/frame1.png
-    - assets/frames/frame2.png
-    - assets/frames/frame3.png
-    - assets/frames/frame4.png
-    - assets/frames/frame5.png
-    - assets/frames/frame6.png
-    - assets/frames/frame7.png
-    - assets/frames/frame8.png
-    - assets/frames/frame9.png
-    - assets/frames/frame10.png
-    - assets/frames/frame11.png
-    - assets/frames/frame12.png
-    - assets/frames/frame13.png
-    - assets/frames/frame15.png
-    - assets/frames/frame16.png
-    - assets/frames/frame17.png
-    - assets/frames/frame18.png
-    - assets/frames/frame19.png
-    - assets/frames/frame20.png
-    - assets/frames/frame21.png
-    - assets/frames/frameDngyg.png
-    - assets/frames/2by2_frame1.png
-    - assets/frames/2by2_frame2.png
-    - assets/frames/2by2_frame3.png
-    - assets/frames/2by2_frame4.png
-    - assets/frames/2by2_frame5.png
-    - assets/frames/2by2_frame6.png
-    - assets/frames/2by2_frame9.png
-    - assets/frames/hori_one.png
-    - assets/frames/hori_two.png
-    - assets/frames/hori_three.png
-    - assets/frames/hori_four.png
-    - assets/frames/hori_five.png
-    - assets/frames/hori_six.png
+    - assets/frames/frame_1.png
+    - assets/frames/3by2_frame1.png
+    - assets/frames/3by2_frame2.png
     - assets/frames/test.jpg
     - assets/flipbook/frame1.png
     - assets/flipbook/frame2.png
