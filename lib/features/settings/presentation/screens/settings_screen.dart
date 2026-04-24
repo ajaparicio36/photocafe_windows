@@ -1,10 +1,13 @@
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
 import 'package:photocafe_windows/features/print/domain/data/models/printer_state.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
+import 'package:photocafe_windows/features/settings/domain/data/models/flipbook_archive_entry.dart';
+import 'package:photocafe_windows/features/settings/domain/data/providers/flipbook_archive_notifier.dart';
 import 'package:windows_printer/windows_printer.dart';
 import 'dart:typed_data';
 import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
@@ -105,6 +108,194 @@ printing functionality is working.
       setState(() {
         _isTestPrinting = false;
       });
+    }
+  }
+
+  String _formatArchiveDate(DateTime dt) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final day = dt.day.toString().padLeft(2, '0');
+    final month = months[dt.month - 1];
+    final hour = dt.hour.toString().padLeft(2, '0');
+    final minute = dt.minute.toString().padLeft(2, '0');
+    return '$day $month ${dt.year}, $hour:$minute';
+  }
+
+  Widget _buildFlipbookArchivesSection(BuildContext context) {
+    final archiveState = ref.watch(flipbookArchiveProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionHeader(
+          context,
+          'Flipbook PDF Archives',
+          Icons.picture_as_pdf_rounded,
+        ),
+        const SizedBox(height: 24),
+        archiveState.when(
+          data: (archives) {
+            if (archives.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withOpacity(0.5),
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    'No archived flipbooks yet',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontSize: 16,
+                      color: const Color(0xFF740000).withOpacity(0.6),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return Column(
+              children: archives.map((entry) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Theme.of(
+                        context,
+                      ).colorScheme.outline.withOpacity(0.5),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.picture_as_pdf_rounded,
+                        size: 28,
+                        color: const Color(0xFF740000),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _formatArchiveDate(entry.createdAt),
+                              style: Theme.of(context).textTheme.bodyLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    color: const Color(0xFF740000),
+                                  ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              entry.frameName,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    fontSize: 14,
+                                    color: const Color(
+                                      0xFF740000,
+                                    ).withOpacity(0.7),
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.visibility_rounded),
+                        color: const Color(0xFF740000),
+                        iconSize: 28,
+                        tooltip: 'Preview & Reprint',
+                        onPressed: () => _openArchive(entry),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        color: const Color(0xFF740000).withOpacity(0.6),
+                        iconSize: 28,
+                        tooltip: 'Delete',
+                        onPressed: () => _confirmDeleteArchive(entry),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (err, stack) => Text(
+            'Failed to load archives: $err',
+            style: const TextStyle(color: Colors.red),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _openArchive(FlipbookArchiveEntry entry) async {
+    try {
+      final pdfBytes = await ref
+          .read(flipbookArchiveProvider.notifier)
+          .getArchivePdfBytes(entry);
+
+      if (mounted) {
+        context.go(
+          '/settings/archive-preview',
+          extra: {'pdfBytes': pdfBytes, 'frameName': entry.frameName},
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to open archive: $e')));
+      }
+    }
+  }
+
+  Future<void> _confirmDeleteArchive(FlipbookArchiveEntry entry) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Archive'),
+        content: Text(
+          'Delete this flipbook archive from ${_formatArchiveDate(entry.createdAt)}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ref.read(flipbookArchiveProvider.notifier).deleteArchive(entry);
     }
   }
 
@@ -629,6 +820,10 @@ printing functionality is working.
               child: printerState.when(
                 data: (state) => ListView(
                   children: [
+                    // Flipbook PDF Archives Section
+                    _buildFlipbookArchivesSection(context),
+                    const SizedBox(height: 48),
+
                     // Display Configuration Section
                     _buildSectionHeader(
                       context,

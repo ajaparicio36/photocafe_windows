@@ -11,6 +11,7 @@ import 'package:photocafe_windows/features/flipbook/presentation/screens/flipboo
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_print_screen.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_start_screen.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_takes_screen.dart';
+import 'package:photocafe_windows/features/settings/presentation/screens/flipbook_archive_preview_screen.dart';
 import 'package:photocafe_windows/features/settings/presentation/screens/settings_screen.dart';
 import 'package:photocafe_windows/features/start/presentation/screens/start_screen.dart';
 
@@ -21,6 +22,16 @@ final GoRouter router = GoRouter(
     GoRoute(
       path: '/settings',
       builder: (context, state) => const SettingsScreen(),
+    ),
+    GoRoute(
+      path: '/settings/archive-preview',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return FlipbookArchivePreviewScreen(
+          pdfBytes: extra['pdfBytes'] as Uint8List,
+          frameName: extra['frameName'] as String,
+        );
+      },
     ),
     GoRoute(
       path: '/classic/start',

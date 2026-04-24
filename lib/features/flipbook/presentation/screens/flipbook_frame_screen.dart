@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/widgets/frames/flipbook_frame_factory.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/constants/frame_constants.dart';
+import 'package:photocafe_windows/features/settings/domain/data/providers/flipbook_archive_notifier.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
 
 class FlipbookFrameScreen extends ConsumerStatefulWidget {
@@ -40,6 +41,15 @@ class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
         frameDefinition,
         videoState.frames,
       );
+
+      // Archive the PDF before printing (non-blocking)
+      try {
+        await ref
+            .read(flipbookArchiveProvider.notifier)
+            .saveArchive(pdfBytes, frameDefinition);
+      } catch (_) {
+        // Archive failure should not block printing
+      }
 
       // Print directly instead of navigating
       await _printDocument(pdfBytes);
