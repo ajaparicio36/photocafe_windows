@@ -304,7 +304,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                 data: (printerState) {
                   // Choose aspect ratio based on layout mode
                   double previewAspectRatio;
-                  if (printerState.layoutMode == 2) {
+                  if (printerState.layoutMode == 3) {
+                    previewAspectRatio = 1 / 1; // 3x2 square
+                  } else if (printerState.layoutMode == 2) {
                     previewAspectRatio = 5 / 6; // 2x2 portrait
                   } else if (printerState.layoutMode == 4 &&
                       printerState.isLandscape) {

@@ -17,7 +17,7 @@ import 'package:photocafe_windows/features/settings/presentation/screens/setting
 import 'package:photocafe_windows/features/start/presentation/screens/start_screen.dart';
 
 final GoRouter router = GoRouter(
-  initialLocation: '/',
+  initialLocation: '/classic/start',
   routes: [
     GoRoute(path: '/', builder: (context, state) => const AppStartScreen()),
     GoRoute(

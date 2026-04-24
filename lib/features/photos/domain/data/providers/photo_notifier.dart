@@ -544,7 +544,12 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
           double targetAspectRatio;
           int targetWidth, targetHeight;
 
-          if (layoutMode == 2) {
+          if (layoutMode == 3) {
+            // 3x2 mode: Square 1:1 aspect ratio
+            targetAspectRatio = 1.0;
+            targetWidth = 600;
+            targetHeight = 600;
+          } else if (layoutMode == 2) {
             // 2x2 mode: Portrait 5:6 aspect ratio
             targetAspectRatio = 5 / 6;
             targetWidth = 500;
@@ -624,7 +629,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   }
 
   Future<void> setCaptureCount(int count) async {
-    print('setCaptureCount called with count: $count (but will always use 4)');
+    print('setCaptureCount called with count: $count');
 
     state = await AsyncValue.guard(() async {
       final currentState = state.value;
@@ -643,7 +648,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         final newState = PhotoState(
           photos: [],
           tempPath: photoTempDir.path,
-          captureCount: 4, // Always capture 4 photos regardless of layout
+          captureCount: count,
           isRecording: false,
           videoPath: null,
         );
@@ -652,9 +657,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       }
 
       print(
-        'Setting capture count from ${currentState.captureCount} to 4 (always capture 4 regardless of layout)',
+        'Setting capture count from ${currentState.captureCount} to $count',
       );
-      final newState = currentState.copyWith(captureCount: 4);
+      final newState = currentState.copyWith(captureCount: count);
       print('New state capture count: ${newState.captureCount}');
 
       await Future.delayed(const Duration(milliseconds: 50));

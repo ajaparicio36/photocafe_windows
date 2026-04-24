@@ -32,7 +32,9 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
     if (printerState == null) return [];
 
     final FrameLayoutType currentLayout;
-    if (printerState.isLandscape) {
+    if (printerState.layoutMode == 3) {
+      currentLayout = FrameLayoutType.threePhotos;
+    } else if (printerState.isLandscape) {
       currentLayout = FrameLayoutType.fourLandscapePhotos;
     } else if (printerState.layoutMode == 2) {
       currentLayout = FrameLayoutType.twoPhotos;
@@ -56,7 +58,11 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final printerState = ref.read(printerProvider).value;
-      if (printerState?.isLandscape == true) {
+      if (printerState?.layoutMode == 3) {
+        setState(() {
+          _selectedFrame = '3by2_frame_one';
+        });
+      } else if (printerState?.isLandscape == true) {
         setState(() {
           _selectedFrame = 'landscape_frame_one';
         });

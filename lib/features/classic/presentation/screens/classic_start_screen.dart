@@ -25,30 +25,15 @@ class ClassicStartScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(60),
             child: Column(
               children: [
-                // Back button
+                // Settings button
                 Align(
                   alignment: Alignment.topLeft,
-                  child: Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
+                  child: IconButton(
+                    onPressed: () => context.go('/settings'),
+                    icon: const Icon(
+                      Icons.settings_rounded,
+                      size: 40,
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(30),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      onPressed: () => context.go('/'),
-                      icon: const Icon(
-                        Icons.arrow_back_rounded,
-                        color: Color(0xFF740000),
-                        size: 28,
-                      ),
                     ),
                   ),
                 ),
@@ -62,35 +47,26 @@ class ClassicStartScreen extends ConsumerWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // Portrait Strips button (left)
+                      // Portrait Strips 4x2 button (left)
                       _buildPhotoOption(
                         context,
                         ref,
                         assetPath: 'assets/design/start/start_strips.png',
                         layoutMode: 4,
                         isLandscape: false,
+                        captureCount: 4,
                       ),
 
                       const SizedBox(width: 40),
 
-                      // Photo Box button (middle)
+                      // Portrait Strips 3x2 button (right)
                       _buildPhotoOption(
                         context,
                         ref,
-                        assetPath: 'assets/design/start/start_box.png',
-                        layoutMode: 2,
+                        assetPath: 'assets/design/start/start_strips_3x2.png',
+                        layoutMode: 3,
                         isLandscape: false,
-                      ),
-
-                      const SizedBox(width: 40),
-
-                      // Landscape Strips button (right)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_landscape.png',
-                        layoutMode: 4,
-                        isLandscape: true,
+                        captureCount: 3,
                       ),
                     ],
                   ),
@@ -111,6 +87,7 @@ class ClassicStartScreen extends ConsumerWidget {
     required String assetPath,
     required int layoutMode,
     required bool isLandscape,
+    required int captureCount,
   }) {
     return Expanded(
       child: GestureDetector(
@@ -167,11 +144,7 @@ class ClassicStartScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Preparing ${layoutMode == 2
-                              ? "Photo Box"
-                              : isLandscape
-                              ? "Landscape Strip"
-                              : "Portrait Strip"} layout',
+                          'Preparing ${layoutMode == 3 ? "3x2 Strip" : "Portrait Strip"} layout',
                           style: TextStyle(
                             fontFamily: 'LeagueSpartan',
                             fontSize: 14,
@@ -201,9 +174,9 @@ class ClassicStartScreen extends ConsumerWidget {
             await printerNotifier.setLandscapeOrientation(isLandscape);
             print('Landscape orientation set to: $isLandscape');
 
-            // Always set capture count to 4 (layout only affects arrangement)
-            await photoNotifier.setCaptureCount(4);
-            print('Capture count set to: 4 (always capture 4 photos)');
+            // Set capture count based on layout mode
+            await photoNotifier.setCaptureCount(captureCount);
+            print('Capture count set to: $captureCount');
 
             // Verify the setup
             final photoState = ref.read(photoProvider).value;
@@ -213,9 +186,9 @@ class ClassicStartScreen extends ConsumerWidget {
               'Setup verified - Capture count: ${photoState?.captureCount}, Layout mode: ${printerState?.layoutMode}, Landscape: ${printerState?.isLandscape}',
             );
 
-            if (photoState?.captureCount != 4) {
+            if (photoState?.captureCount != captureCount) {
               throw Exception(
-                'Capture count setup failed: expected 4, got ${photoState?.captureCount}',
+                'Capture count setup failed: expected $captureCount, got ${photoState?.captureCount}',
               );
             }
 

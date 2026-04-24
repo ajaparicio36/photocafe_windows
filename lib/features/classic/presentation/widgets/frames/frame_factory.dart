@@ -52,7 +52,9 @@ class FrameFactory {
   ) async {
     final FrameLayoutType layoutType;
 
-    if (layoutMode == 2) {
+    if (layoutMode == 3) {
+      layoutType = FrameLayoutType.threePhotos;
+    } else if (layoutMode == 2) {
       layoutType = FrameLayoutType.twoPhotos;
     } else if (layoutMode == 4 && isLandscape) {
       layoutType = FrameLayoutType.fourLandscapePhotos;

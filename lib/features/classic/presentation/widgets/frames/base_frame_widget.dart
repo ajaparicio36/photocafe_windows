@@ -307,7 +307,9 @@ abstract class BaseFrameWidget extends ConsumerWidget {
           data: (printerState) {
             final FrameLayoutType currentLayoutType;
 
-            if (printerState.layoutMode == 2) {
+            if (printerState.layoutMode == 3) {
+              currentLayoutType = FrameLayoutType.threePhotos;
+            } else if (printerState.layoutMode == 2) {
               currentLayoutType = FrameLayoutType.twoPhotos;
             } else if (printerState.layoutMode == 4 &&
                 printerState.isLandscape) {
