@@ -290,6 +290,45 @@ class FlipbookStartScreen extends ConsumerWidget {
                     ),
                   ),
 
+                  const SizedBox(height: 20),
+
+                  // Upload own video button
+                  GestureDetector(
+                    onTap: () async {
+                      // Clear existing video state before navigating
+                      await ref.read(videoProvider.notifier).clearVideo();
+                      if (context.mounted) {
+                        context.go('/flipbook/upload');
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: const Text(
+                        'Upload my own video',
+                        style: TextStyle(
+                          fontFamily: 'SpaceMono',
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF740000),
+                        ),
+                      ),
+                    ),
+                  ),
+
                   const SizedBox(height: 60),
                 ],
               ),

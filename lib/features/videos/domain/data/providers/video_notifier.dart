@@ -642,6 +642,42 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
 
     return null;
   }
+
+  /// Load an externally-provided video (e.g. uploaded by the user via the web
+  /// upload page) into the video pipeline so it can be processed through
+  /// filters, frame extraction, and PDF generation just like a Canon recording.
+  Future<void> loadExternalVideo(String localVideoPath) async {
+    state = await AsyncValue.guard(() async {
+      final currentState = state.value;
+      if (currentState == null) {
+        throw Exception('Video state is not initialized');
+      }
+
+      final videoFile = File(localVideoPath);
+      if (!await videoFile.exists()) {
+        throw Exception('External video file not found: $localVideoPath');
+      }
+
+      // Clear any previous takes / frames
+      for (final takePath in currentState.videoTakes) {
+        final f = File(takePath);
+        if (await f.exists()) await f.delete();
+      }
+      for (final frame in currentState.frames) {
+        final f = File(frame.path);
+        if (await f.exists()) await f.delete();
+      }
+
+      return currentState.copyWith(
+        videoPath: localVideoPath,
+        videoTakes: [localVideoPath],
+        selectedTakeIndex: 0,
+        frames: [],
+        isRecording: false,
+        error: null,
+      );
+    });
+  }
 }
 
 final videoProvider = AsyncNotifierProvider<VideoNotifier, VideoState>(
