@@ -74,14 +74,14 @@ class FrameConstants {
   static const threeByTwoFrameOneLayout = FrameLayout(
     type: FrameLayoutType.threePhotos,
     leftColumnPositions: [
-      FramePhotoPosition(left: 13, top: 12, width: 132, height: 126),
-      FramePhotoPosition(left: 13, top: 148, width: 132, height: 126),
-      FramePhotoPosition(left: 13, top: 284, width: 132, height: 126),
+      FramePhotoPosition(left: 13, top: 14, width: 126, height: 126),
+      FramePhotoPosition(left: 13, top: 130, width: 126, height: 126),
+      FramePhotoPosition(left: 13, top: 255, width: 126, height: 126),
     ],
     rightColumnPositions: [
-      FramePhotoPosition(left: 160, top: 12, width: 132, height: 126),
-      FramePhotoPosition(left: 160, top: 148, width: 132, height: 126),
-      FramePhotoPosition(left: 160, top: 284, width: 132, height: 126),
+      FramePhotoPosition(left: 165, top: 14, width: 126, height: 126),
+      FramePhotoPosition(left: 165, top: 130, width: 126, height: 126),
+      FramePhotoPosition(left: 165, top: 255, width: 126, height: 126),
     ],
     topOffset: 14,
     frameAssetPath: 'assets/frames/3by2_frame1.png',
@@ -90,14 +90,14 @@ class FrameConstants {
   static const threeByTwoFrameTwoLayout = FrameLayout(
     type: FrameLayoutType.threePhotos,
     leftColumnPositions: [
-      FramePhotoPosition(left: 13, top: 12, width: 132, height: 126),
-      FramePhotoPosition(left: 13, top: 148, width: 132, height: 126),
-      FramePhotoPosition(left: 13, top: 284, width: 132, height: 126),
+      FramePhotoPosition(left: 15, top: 8, width: 123, height: 123),
+      FramePhotoPosition(left: 15, top: 130, width: 123, height: 123),
+      FramePhotoPosition(left: 15, top: 255, width: 123, height: 123),
     ],
     rightColumnPositions: [
-      FramePhotoPosition(left: 160, top: 12, width: 132, height: 126),
-      FramePhotoPosition(left: 160, top: 148, width: 132, height: 126),
-      FramePhotoPosition(left: 160, top: 284, width: 132, height: 126),
+      FramePhotoPosition(left: 168, top: 8, width: 123, height: 123),
+      FramePhotoPosition(left: 168, top: 130, width: 123, height: 123),
+      FramePhotoPosition(left: 168, top: 255, width: 123, height: 123),
     ],
     topOffset: 14,
     frameAssetPath: 'assets/frames/3by2_frame2.png',
