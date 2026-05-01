@@ -221,11 +221,11 @@ class FilterConstants {
 
   static List<String> get availableFilters => [
     noFilterName,
-    vintageFilterName,
-    hdrFilterName,
+    // vintageFilterName,
+    // hdrFilterName,
     // matteFilterName,
     // vscoA6FilterName,
-    blackWhiteFilterName,
+    // blackWhiteFilterName,
     // cinematicFilterName,
     photoboothFilterName,
   ];

@@ -87,6 +87,138 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/3by2_frame1.png',
   );
 
+  static const fourFrameMissDiana = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 0,
+        top: 0,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 115,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 230,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 345,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 153,
+        top: 0,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 153,
+        top: 115,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 153,
+        top: 230,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 153,
+        top: 345,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame_missdiana.png',
+  );
+
+  static const fourFrameTwelve = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 0,
+        top: 0,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 115,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 230,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 345,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 153,
+        top: 0,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 153,
+        top: 115,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 153,
+        top: 230,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 153,
+        top: 345,
+        width: 152,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame12.png',
+  );
+
   static const threeByTwoFrameTwoLayout = FrameLayout(
     type: FrameLayoutType.threePhotos,
     leftColumnPositions: [
@@ -114,6 +246,24 @@ class FrameConstants {
     previewWidgetName: 'FourByFourFramePreview',
   );
 
+  static const FrameDefinition fourByFourFrameTwelve = FrameDefinition(
+    id: '4by4_frame_twelve',
+    name: 'Frame One',
+    description: 'A frame with plain retro feel',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameTwelve},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameMissDiana = FrameDefinition(
+    id: '4by4_frame_missdiana',
+    name: 'Frame Two',
+    description: 'A special frame',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameMissDiana},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
   static const FrameDefinition threeByTwoFrameOne = FrameDefinition(
     id: '3by2_frame_one',
     name: 'ADCON Day 1',
@@ -133,8 +283,7 @@ class FrameConstants {
   );
 
   static List<FrameDefinition> get availableFrames => [
-    fourByTwoFrameOne,
-    threeByTwoFrameOne,
-    threeByTwoFrameTwo,
+    fourByFourFrameTwelve,
+    fourByFourFrameMissDiana,
   ];
 }
