@@ -72,7 +72,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
         });
       } else {
         setState(() {
-          _selectedFrame = '4by4_frame_one';
+          _selectedFrame = '4by4_frame_twelve';
         });
       }
     });
