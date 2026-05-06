@@ -56,18 +56,6 @@ class ClassicStartScreen extends ConsumerWidget {
                         isLandscape: false,
                         captureCount: 4,
                       ),
-
-                      const SizedBox(width: 40),
-
-                      // Portrait Strips 3x2 button (right)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_strips_3x2.png',
-                        layoutMode: 3,
-                        isLandscape: false,
-                        captureCount: 3,
-                      ),
                     ],
                   ),
                 ),
