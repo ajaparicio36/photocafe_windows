@@ -56,66 +56,330 @@ class FrameConstants {
     type: FrameLayoutType.fourPhotos,
     leftColumnPositions: [
       FramePhotoPosition(
-        left: 13,
-        top: 12,
-        width: 132,
-        height: 95,
+        left: 5,
+        top: 32,
+        width: 143,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 13,
-        top: 111.5,
-        width: 132,
-        height: 95,
+        left: 5,
+        top: 137.5,
+        width: 143,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 13,
-        top: 212,
-        width: 132,
-        height: 95,
+        left: 5,
+        top: 245,
+        width: 143,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 13,
-        top: 312,
-        width: 132,
-        height: 95,
+        left: 5,
+        top: 350,
+        width: 143,
+        height: 100,
         rotationDegrees: 0.0,
       ),
     ],
     rightColumnPositions: [
       FramePhotoPosition(
         left: 160,
-        top: 12,
-        width: 132,
-        height: 95,
+        top: 32,
+        width: 143,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
         left: 160,
-        top: 111.5,
-        width: 132,
-        height: 95,
+        top: 137.5,
+        width: 143,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
         left: 160,
-        top: 212,
-        width: 132,
-        height: 95,
+        top: 245,
+        width: 143,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
         left: 160,
-        top: 316,
-        width: 132,
-        height: 95,
+        top: 350,
+        width: 143,
+        height: 100,
         rotationDegrees: 0.0,
       ),
     ],
     topOffset: 14,
-    frameAssetPath: 'assets/frames/frame1.png',
+    frameAssetPath: 'assets/frames/frame_1.png',
+  );
+
+  static const fourByFourLayoutTwo = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 5,
+        top: 42.5,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 142.5,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 245,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 348,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158.5,
+        top: 42.5,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158.5,
+        top: 142.5,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158.5,
+        top: 245,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158.5,
+        top: 348,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame_2.png',
+  );
+
+  static const fourByFourLayoutThree = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 5,
+        top: 12,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 133,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 243,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 360,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158.5,
+        top: 12,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158.5,
+        top: 133,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158.5,
+        top: 243,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158.5,
+        top: 360,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame_3.png',
+  );
+
+  static const fourByFourLayoutFour = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 4,
+        top: 4,
+        width: 143,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 4,
+        top: 110,
+        width: 143,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 4,
+        top: 236,
+        width: 143,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 4,
+        top: 346,
+        width: 143,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 157.5,
+        top: 4,
+        width: 143,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 157.5,
+        top: 110,
+        width: 143,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 157.5,
+        top: 236,
+        width: 143,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 157.5,
+        top: 346,
+        width: 143,
+        height: 110,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 0,
+    frameAssetPath: 'assets/frames/frame_4.png',
+  );
+
+  static const fourByFourLayoutFive = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 5,
+        top: 42.5,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 142.5,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 245,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 5,
+        top: 348,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 158.5,
+        top: 42.5,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158.5,
+        top: 142.5,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158.5,
+        top: 245,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 158.5,
+        top: 348,
+        width: 143,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame_5.png',
   );
 
   // Frame Definitions
@@ -136,7 +400,7 @@ class FrameConstants {
     name: 'Frame Two',
     description: 'A daily times frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
-    layouts: {FrameLayoutType.fourPhotos: fourByFourLayoutOne},
+    layouts: {FrameLayoutType.fourPhotos: fourByFourLayoutTwo},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -145,7 +409,7 @@ class FrameConstants {
     name: 'Frame Three',
     description: 'A classic kodak frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
-    layouts: {FrameLayoutType.fourPhotos: fourByFourLayoutOne},
+    layouts: {FrameLayoutType.fourPhotos: fourByFourLayoutThree},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -154,7 +418,7 @@ class FrameConstants {
     name: 'Frame Four',
     description: 'A classic black frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
-    layouts: {FrameLayoutType.fourPhotos: fourByFourLayoutOne},
+    layouts: {FrameLayoutType.fourPhotos: fourByFourLayoutFour},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -163,7 +427,7 @@ class FrameConstants {
     name: 'Sunny Side Market Frame',
     description: 'A frame created by the Sunny Side Market',
     supportedLayouts: [FrameLayoutType.fourPhotos],
-    layouts: {FrameLayoutType.fourPhotos: fourByFourLayoutOne},
+    layouts: {FrameLayoutType.fourPhotos: fourByFourLayoutFive},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -280,7 +544,7 @@ class FrameConstants {
       ),
     ],
     topOffset: 14,
-    frameAssetPath: 'assets/frames/hori_one.png',
+    frameAssetPath: 'assets/frames/landscape_1.png',
   );
 
   // Frame Definitions
@@ -295,6 +559,10 @@ class FrameConstants {
 
   static List<FrameDefinition> get availableFrames => [
     fourByFourFrameOne,
+    fourByFourFrameTwo,
+    fourByFourFrameThree,
+    fourByFourFrameFour,
+    fourByFourFrameFive,
     // Add landscape frames
     landscapeFrameOneDefinition,
   ];
