@@ -118,10 +118,10 @@ flutter:
     - assets/icons/clickclick_logo-min.png
     - assets/icons/strip_button.png
     - assets/frames/frame_1.png
-    - assets/frames/3by2_frame1.png
-    - assets/frames/3by2_frame2.png
-    - assets/frames/frame12.png
-    - assets/frames/frame_missdiana.png
+    - assets/frames/frame_2.png
+    - assets/frames/frame_3.png
+    - assets/frames/frame_4.png
+    - assets/frames/landscape_1.png
     - assets/flipbook/frame1.png
     - assets/flipbook/frame2.png
     - assets/flipbook/frame3.png

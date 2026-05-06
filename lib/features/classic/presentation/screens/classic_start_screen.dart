@@ -74,17 +74,16 @@ class ClassicStartScreen extends ConsumerWidget {
 
                       const SizedBox(width: 40),
 
-                      // Photo Box button (middle)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_box.png',
-                        layoutMode: 2,
-                        isLandscape: false,
-                        captureCount: 4,
-                      ),
-
-                      const SizedBox(width: 40),
+                      // // Photo Box button (middle)
+                      // _buildPhotoOption(
+                      //   context,
+                      //   ref,
+                      //   assetPath: 'assets/design/start/start_box.png',
+                      //   layoutMode: 2,
+                      //   isLandscape: false,
+                      //   captureCount: 4,
+                      // ),
+                      // const SizedBox(width: 40),
 
                       // Landscape Strips button (right)
                       _buildPhotoOption(
