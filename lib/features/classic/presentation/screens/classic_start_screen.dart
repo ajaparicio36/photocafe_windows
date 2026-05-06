@@ -56,45 +56,47 @@ class ClassicStartScreen extends ConsumerWidget {
                 const Spacer(),
 
                 // Photo options - horizontally aligned buttons
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 100),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Portrait Strips button (left)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_strips.png',
-                        layoutMode: 4,
-                        isLandscape: false,
-                        captureCount: 4,
-                      ),
+                Center(
+                  child: SizedBox(
+                    width: 800,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        // Portrait Strips button (left)
+                        _buildPhotoOption(
+                          context,
+                          ref,
+                          assetPath: 'assets/design/start/start_strips.png',
+                          layoutMode: 4,
+                          isLandscape: false,
+                          captureCount: 4,
+                        ),
 
-                      const SizedBox(width: 40),
+                        const SizedBox(width: 40),
 
-                      // // Photo Box button (middle)
-                      // _buildPhotoOption(
-                      //   context,
-                      //   ref,
-                      //   assetPath: 'assets/design/start/start_box.png',
-                      //   layoutMode: 2,
-                      //   isLandscape: false,
-                      //   captureCount: 4,
-                      // ),
-                      // const SizedBox(width: 40),
+                        // // Photo Box button (middle)
+                        // _buildPhotoOption(
+                        //   context,
+                        //   ref,
+                        //   assetPath: 'assets/design/start/start_box.png',
+                        //   layoutMode: 2,
+                        //   isLandscape: false,
+                        //   captureCount: 4,
+                        // ),
+                        // const SizedBox(width: 40),
 
-                      // Landscape Strips button (right)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_landscape.png',
-                        layoutMode: 4,
-                        isLandscape: true,
-                        captureCount: 4,
-                      ),
-                    ],
+                        // Landscape Strips button (right)
+                        _buildPhotoOption(
+                          context,
+                          ref,
+                          assetPath: 'assets/design/start/start_landscape.png',
+                          layoutMode: 4,
+                          isLandscape: true,
+                          captureCount: 4,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
