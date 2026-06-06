@@ -54,16 +54,16 @@ class AppStartScreen extends ConsumerWidget {
                   const SizedBox(width: 60),
 
                   // Flipbook Mode Button
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => context.go('/flipbook/start'),
-                      child: Image.asset(
-                        'assets/design/home/home_flipbook.png',
-                        fit: BoxFit.contain,
-                        height: 360,
-                      ),
-                    ),
-                  ),
+                  // Expanded(
+                  //   child: GestureDetector(
+                  //     onTap: () => context.go('/flipbook/start'),
+                  //     child: Image.asset(
+                  //       'assets/design/home/home_flipbook.png',
+                  //       fit: BoxFit.contain,
+                  //       height: 360,
+                  //     ),
+                  //   ),
+                  // ),
                 ],
               ),
             ),
