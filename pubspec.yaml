@@ -117,18 +117,8 @@ flutter:
     - assets/icons/classic_mode_button.png
     - assets/icons/clickclick_logo-min.png
     - assets/icons/strip_button.png
-    - assets/frames/frame_1.png
-    - assets/frames/frame_2.png
-    - assets/frames/frame_3.png
-    - assets/frames/frame_4.png
-    - assets/frames/frame_5.png
-    - assets/frames/landscape_1.png
-    - assets/flipbook/frame1.png
-    - assets/flipbook/frame2.png
-    - assets/flipbook/frame3.png
-    - assets/flipbook/frame4.png
-    - assets/flipbook/frame5.png
-    - assets/flipbook/frame6.png
+    - assets/frames/frame_cc.png
+    - assets/frames/frame_ja.png
     - assets/audio/countdown-tick.mp3
     - assets/audio/shutter-sound.mp3
 
