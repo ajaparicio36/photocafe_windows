@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:camera/camera.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -230,6 +232,14 @@ printing functionality is working.
                       ),
                       const SizedBox(width: 8),
                       IconButton(
+                        icon: const Icon(Icons.folder_open_rounded),
+                        color: const Color(0xFF740000),
+                        iconSize: 28,
+                        tooltip: 'Open file location',
+                        onPressed: () => _openArchiveFolder(entry),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
                         icon: const Icon(Icons.delete_outline_rounded),
                         color: const Color(0xFF740000).withOpacity(0.6),
                         iconSize: 28,
@@ -271,6 +281,10 @@ printing functionality is working.
         ).showSnackBar(SnackBar(content: Text('Failed to open archive: $e')));
       }
     }
+  }
+
+  void _openArchiveFolder(FlipbookArchiveEntry entry) {
+    Process.run('explorer', ['/select,', entry.filePath]);
   }
 
   Future<void> _confirmDeleteArchive(FlipbookArchiveEntry entry) async {
