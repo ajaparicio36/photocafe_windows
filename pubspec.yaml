@@ -117,8 +117,9 @@ flutter:
     - assets/icons/classic_mode_button.png
     - assets/icons/clickclick_logo-min.png
     - assets/icons/strip_button.png
-    - assets/frames/frame_cc.png
-    - assets/frames/frame_ja.png
+    - assets/frames/frame_rx.png
+    - assets/frames/frame_ph.png
+    - assets/frames/frame_usa.png
     - assets/audio/countdown-tick.mp3
     - assets/audio/shutter-sound.mp3
 
