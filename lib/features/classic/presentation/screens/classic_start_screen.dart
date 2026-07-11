@@ -58,7 +58,7 @@ class ClassicStartScreen extends ConsumerWidget {
                 // Photo options - horizontally aligned buttons
                 Center(
                   child: SizedBox(
-                    width: 800,
+                    width: 400,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -87,14 +87,14 @@ class ClassicStartScreen extends ConsumerWidget {
                         // const SizedBox(width: 40),
 
                         // Landscape Strips button (right)
-                        _buildPhotoOption(
-                          context,
-                          ref,
-                          assetPath: 'assets/design/start/start_landscape.png',
-                          layoutMode: 4,
-                          isLandscape: true,
-                          captureCount: 4,
-                        ),
+                        // _buildPhotoOption(
+                        //   context,
+                        //   ref,
+                        //   assetPath: 'assets/design/start/start_landscape.png',
+                        //   layoutMode: 4,
+                        //   isLandscape: true,
+                        //   captureCount: 4,
+                        // ),
                       ],
                     ),
                   ),
