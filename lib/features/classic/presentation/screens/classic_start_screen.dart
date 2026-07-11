@@ -58,7 +58,7 @@ class ClassicStartScreen extends ConsumerWidget {
                 // Photo options - horizontally aligned buttons
                 Center(
                   child: SizedBox(
-                    width: 400,
+                    width: 800,
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -74,6 +74,15 @@ class ClassicStartScreen extends ConsumerWidget {
                         ),
 
                         const SizedBox(width: 40),
+
+                        _buildPhotoOption(
+                          context,
+                          ref,
+                          assetPath: 'assets/design/start/start_strips_3x2.png',
+                          layoutMode: 3,
+                          isLandscape: false,
+                          captureCount: 3,
+                        ),
 
                         // // Photo Box button (middle)
                         // _buildPhotoOption(
@@ -206,9 +215,8 @@ class ClassicStartScreen extends ConsumerWidget {
             await printerNotifier.setLandscapeOrientation(isLandscape);
             print('Landscape orientation set to: $isLandscape');
 
-            // Always set capture count to 4 (layout only affects arrangement)
-            await photoNotifier.setCaptureCount(4);
-            print('Capture count set to: 4 (always capture 4 photos)');
+            await photoNotifier.setCaptureCount(captureCount);
+            print('Capture count set to: $captureCount');
 
             // Verify the setup
             final photoState = ref.read(photoProvider).value;
@@ -218,9 +226,9 @@ class ClassicStartScreen extends ConsumerWidget {
               'Setup verified - Capture count: ${photoState?.captureCount}, Layout mode: ${printerState?.layoutMode}, Landscape: ${printerState?.isLandscape}',
             );
 
-            if (photoState?.captureCount != 4) {
+            if (photoState?.captureCount != captureCount) {
               throw Exception(
-                'Capture count setup failed: expected 4, got ${photoState?.captureCount}',
+                'Capture count setup failed: expected $captureCount, got ${photoState?.captureCount}',
               );
             }
 

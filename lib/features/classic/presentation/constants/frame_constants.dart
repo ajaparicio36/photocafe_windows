@@ -117,65 +117,51 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/frame_ph.png',
   );
 
-  static const fourFrameRx = FrameLayout(
-    type: FrameLayoutType.fourPhotos,
+  static const threeFrameRx = FrameLayout(
+    type: FrameLayoutType.threePhotos,
     leftColumnPositions: [
       FramePhotoPosition(
-        left: 0,
-        top: 0,
-        width: 144,
-        height: 114,
+        left: 15,
+        top: 26,
+        width: 122,
+        height: 118,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 0,
-        top: 115,
-        width: 144,
-        height: 114,
+        left: 15,
+        top: 156,
+        width: 122,
+        height: 123,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 0,
-        top: 230,
-        width: 144,
-        height: 114,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 0,
-        top: 345,
-        width: 144,
-        height: 114,
+        left: 15,
+        top: 289,
+        width: 122,
+        height: 127,
         rotationDegrees: 0.0,
       ),
     ],
     rightColumnPositions: [
       FramePhotoPosition(
-        left: 153,
-        top: 0,
-        width: 154,
-        height: 120,
+        left: 168,
+        top: 26,
+        width: 122,
+        height: 118,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 153,
-        top: 115,
-        width: 154,
-        height: 120,
+        left: 168,
+        top: 156,
+        width: 122,
+        height: 123,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 153,
-        top: 230,
-        width: 154,
-        height: 120,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 153,
-        top: 345,
-        width: 154,
-        height: 120,
+        left: 168,
+        top: 289,
+        width: 122,
+        height: 127,
         rotationDegrees: 0.0,
       ),
     ],
@@ -263,11 +249,11 @@ class FrameConstants {
   );
 
   static const FrameDefinition fourByFourFrameTwo = FrameDefinition(
-    id: '4by4_frame_two',
+    id: '3by3_frame_two',
     name: 'Department of Pharmacy Frame',
     description: '',
-    supportedLayouts: [FrameLayoutType.fourPhotos],
-    layouts: {FrameLayoutType.fourPhotos: fourFrameRx},
+    supportedLayouts: [FrameLayoutType.threePhotos],
+    layouts: {FrameLayoutType.threePhotos: threeFrameRx},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
