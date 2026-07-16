@@ -51,224 +51,162 @@ class FrameDefinition {
 }
 
 class FrameConstants {
-  static const fourFramePh = FrameLayout(
+  static const fourFrameIdc = FrameLayout(
     type: FrameLayoutType.fourPhotos,
     leftColumnPositions: [
       FramePhotoPosition(
-        left: 9,
-        top: 7.5,
-        width: 135,
-        height: 102,
-        rotationDegrees: 1.8,
-      ),
-      FramePhotoPosition(
-        left: 8,
-        top: 120,
-        width: 135,
-        height: 102,
-        rotationDegrees: 2,
-      ),
-      FramePhotoPosition(
-        left: 13,
-        top: 215,
-        width: 135,
-        height: 102,
-        rotationDegrees: -1.8,
-      ),
-      FramePhotoPosition(
-        left: 10,
-        top: 315,
-        width: 135,
-        height: 102,
-        rotationDegrees: -1.8,
-      ),
-    ],
-    rightColumnPositions: [
-      FramePhotoPosition(
-        left: 160,
-        top: 7.5,
-        width: 135,
-        height: 102,
-        rotationDegrees: 1.8,
-      ),
-      FramePhotoPosition(
-        left: 159,
-        top: 120,
-        width: 135,
-        height: 102,
-        rotationDegrees: 2,
-      ),
-      FramePhotoPosition(
-        left: 164,
-        top: 215,
-        width: 135,
-        height: 102,
-        rotationDegrees: -1.8,
-      ),
-      FramePhotoPosition(
-        left: 161,
-        top: 315,
-        width: 135,
-        height: 102,
-        rotationDegrees: -1.8,
-      ),
-    ],
-    topOffset: 14,
-    frameAssetPath: 'assets/frames/frame_ph.png',
-  );
-
-  static const threeFrameRx = FrameLayout(
-    type: FrameLayoutType.threePhotos,
-    leftColumnPositions: [
-      FramePhotoPosition(
-        left: 15,
-        top: 26,
-        width: 122,
-        height: 118,
+        left: 6,
+        top: 3,
+        width: 124,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 15,
-        top: 156,
-        width: 122,
-        height: 123,
+        left: 6,
+        top: 108,
+        width: 124,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 15,
-        top: 289,
-        width: 122,
-        height: 127,
+        left: 6,
+        top: 212,
+        width: 124,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 6,
+        top: 317,
+        width: 124,
+        height: 100,
         rotationDegrees: 0.0,
       ),
     ],
     rightColumnPositions: [
       FramePhotoPosition(
-        left: 168,
-        top: 26,
-        width: 122,
-        height: 118,
+        left: 159.5,
+        top: 3,
+        width: 124,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 168,
-        top: 156,
-        width: 122,
-        height: 123,
+        left: 159.5,
+        top: 108,
+        width: 124,
+        height: 100,
         rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 168,
-        top: 289,
-        width: 122,
-        height: 127,
+        left: 159.5,
+        top: 212,
+        width: 124,
+        height: 100,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 159.5,
+        top: 317,
+        width: 124,
+        height: 100,
         rotationDegrees: 0.0,
       ),
     ],
     topOffset: 14,
-    frameAssetPath: 'assets/frames/frame_rx.png',
-  );
-
-  static const fourFrameUsa = FrameLayout(
-    type: FrameLayoutType.fourPhotos,
-    leftColumnPositions: [
-      FramePhotoPosition(
-        left: 11,
-        top: 13,
-        width: 131,
-        height: 86,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 11,
-        top: 111,
-        width: 131,
-        height: 86,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 11,
-        top: 208,
-        width: 131,
-        height: 86,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 11,
-        top: 306,
-        width: 131,
-        height: 86,
-        rotationDegrees: 0.0,
-      ),
-    ],
-    rightColumnPositions: [
-      FramePhotoPosition(
-        left: 163,
-        top: 13,
-        width: 131,
-        height: 86,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 163,
-        top: 111,
-        width: 131,
-        height: 86,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 163,
-        top: 208,
-        width: 131,
-        height: 86,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 163,
-        top: 306,
-        width: 131,
-        height: 86,
-        rotationDegrees: 0.0,
-      ),
-    ],
-    topOffset: 14,
-    frameAssetPath: 'assets/frames/frame_usa.png',
+    frameAssetPath: 'assets/frames/frame_idc.png',
   );
 
   // Frame Definitions
 
   // 4 by 4
 
-  static const FrameDefinition fourByFourFrameOne = FrameDefinition(
-    id: '4by4_frame_one',
-    name: 'PharMed Frame',
-    description: '',
-    supportedLayouts: [FrameLayoutType.fourPhotos],
-    layouts: {FrameLayoutType.fourPhotos: fourFramePh},
-    previewWidgetName: 'FourByFourFramePreview',
+  static const fourFrameSixteen = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 0,
+        top: 3.5,
+        width: 154,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 113,
+        width: 154,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 224,
+        width: 154,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 0,
+        top: 332,
+        width: 154,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 151,
+        top: 3.5,
+        width: 154,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 151,
+        top: 113,
+        width: 154,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 151,
+        top: 224,
+        width: 154,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 151,
+        top: 332,
+        width: 154,
+        height: 120,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame_cc.png',
   );
 
-  static const FrameDefinition fourByFourFrameTwo = FrameDefinition(
-    id: '3by3_frame_two',
-    name: 'Department of Pharmacy Frame',
-    description: '',
-    supportedLayouts: [FrameLayoutType.threePhotos],
-    layouts: {FrameLayoutType.threePhotos: threeFrameRx},
+  static const FrameDefinition fourByFourFrameOne = FrameDefinition(
+    id: '4by4_frame_cc',
+    name: 'Click Click Frame',
+    description: 'A classic Click Click frame!',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameSixteen},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
   static const FrameDefinition fourByFourFrameThree = FrameDefinition(
-    id: '4by4_frame_three',
-    name: 'San Agustinian Frame',
-    description: '',
+    id: '4by4_frame_idc',
+    name: 'Akwave Frame',
+    description: 'Summertide Signals',
     supportedLayouts: [FrameLayoutType.fourPhotos],
-    layouts: {FrameLayoutType.fourPhotos: fourFrameUsa},
+    layouts: {FrameLayoutType.fourPhotos: fourFrameIdc},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
   static List<FrameDefinition> get availableFrames => [
-    fourByFourFrameOne,
-    fourByFourFrameTwo,
     fourByFourFrameThree,
+    fourByFourFrameOne,
   ];
 }
