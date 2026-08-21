@@ -1,4 +1,4 @@
-enum FrameLayoutType { twoPhotos, fourPhotos, fourLandscapePhotos }
+﻿enum FrameLayoutType { twoPhotos, fourPhotos, fourLandscapePhotos }
 
 class FramePhotoPosition {
   final double left;
@@ -1372,6 +1372,72 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/frame21.png',
   );
 
+  static const fourFrameTwentyTwo = FrameLayout(
+    type: FrameLayoutType.fourPhotos,
+    leftColumnPositions: [
+      FramePhotoPosition(
+        left: 9,
+        top: 13,
+        width: 133,
+        height: 94,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 9,
+        top: 119,
+        width: 133,
+        height: 94,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 9,
+        top: 229,
+        width: 133,
+        height: 94,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 9,
+        top: 334,
+        width: 133,
+        height: 94,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    rightColumnPositions: [
+      FramePhotoPosition(
+        left: 162,
+        top: 13,
+        width: 133,
+        height: 94,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 162,
+        top: 119,
+        width: 133,
+        height: 94,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 162,
+        top: 229,
+        width: 133,
+        height: 94,
+        rotationDegrees: 0.0,
+      ),
+      FramePhotoPosition(
+        left: 162,
+        top: 334,
+        width: 133,
+        height: 94,
+        rotationDegrees: 0.0,
+      ),
+    ],
+    topOffset: 14,
+    frameAssetPath: 'assets/frames/frame22.png',
+  );
+
   static const fourFrameDinagyang = FrameLayout(
     type: FrameLayoutType.fourPhotos,
     leftColumnPositions: [
@@ -1628,6 +1694,15 @@ class FrameConstants {
     description: 'A frame from Cupid!',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameTwentyOne},
+    previewWidgetName: 'FourByFourFramePreview',
+  );
+
+  static const FrameDefinition fourByFourFrameTwentyTwo = FrameDefinition(
+    id: '4by4_frame_twenty_two',
+    name: 'Pretty Petty Paranoid Frame',
+    description: 'A special mini-event for Click Click!',
+    supportedLayouts: [FrameLayoutType.fourPhotos],
+    layouts: {FrameLayoutType.fourPhotos: fourFrameTwentyTwo},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
@@ -2426,6 +2501,7 @@ class FrameConstants {
     fourByFourFrameEighteen,
     fourByFourFrameTwenty,
     fourByFourFrameTwentyOne,
+    fourByFourFrameTwentyTwo,
     twoByTwoFrameOne,
     twoByTwoFrameTwo,
     twoByTwoFrameThree,
