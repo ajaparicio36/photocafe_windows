@@ -11,7 +11,14 @@ import 'package:photocafe_windows/services/canon_camera_service.dart';
 import 'package:photocafe_windows/widgets/canon_live_view_preview.dart';
 
 class ClassicCaptureScreen extends ConsumerStatefulWidget {
-  const ClassicCaptureScreen({super.key});
+  final String backRoute;
+  final String completionRoute;
+
+  const ClassicCaptureScreen({
+    super.key,
+    this.backRoute = '/classic/start',
+    this.completionRoute = '/classic/filter',
+  });
 
   @override
   ConsumerState<ClassicCaptureScreen> createState() =>
@@ -28,6 +35,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   Timer? _countdownTimer;
   bool _hasStartedSession = false;
   bool _isDisposed = false;
+  bool _isLeaving = false;
+  Future<void>? _webcamStartFuture;
+  Future<void>? _webcamStopFuture;
 
   @override
   void initState() {
@@ -85,7 +95,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   }
 
   void _startCountdown() {
-    if (_isDisposed) return;
+    if (_isDisposed || _isLeaving) return;
 
     // Ensure we have a valid photo state before starting countdown
     final photoStateAsync = ref.read(photoProvider);
@@ -115,7 +125,6 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     // Start video recording in photo notifier on first photo
     if (_currentPhotoIndex == 0 && !_hasStartedSession) {
       _startVideoRecordingInNotifier();
-      _hasStartedSession = true;
     }
 
     _countdownTimer?.cancel();
@@ -143,41 +152,78 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     });
   }
 
-  Future<void> _startVideoRecordingInNotifier() async {
+  void _startVideoRecordingInNotifier() {
+    if (_hasStartedSession || _isLeaving || _isDisposed) return;
+    _hasStartedSession = true;
+    _webcamStartFuture = _startVideoRecording();
+  }
+
+  Future<void> _startVideoRecording() async {
     try {
       print('Starting webcam video recording in photo notifier...');
       await photoNotifier.startVideoRecording();
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.videocam, color: Colors.white),
-              const SizedBox(width: 12),
-              Text(
-                'Webcam video recording started!',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-              ),
-            ],
+      if (mounted && !_isLeaving) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.videocam, color: Colors.white),
+                const SizedBox(width: 12),
+                const Text(
+                  'Webcam video recording started!',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.blueGrey,
+            duration: const Duration(seconds: 2),
           ),
-          backgroundColor: Colors.blueGrey,
-          duration: const Duration(seconds: 2),
-        ),
-      );
+        );
+      }
     } catch (e) {
       print('Failed to start webcam video recording in notifier: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Webcam video recording failed: $e'),
-          backgroundColor: AppColors.lightCard,
-          duration: const Duration(seconds: 3),
-        ),
-      );
+      if (mounted && !_isLeaving) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Webcam video recording failed: $e'),
+            backgroundColor: AppColors.lightCard,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
     }
   }
 
+  Future<void> _stopWebcamRecording() {
+    return _webcamStopFuture ??= _stopWebcamRecordingOnce();
+  }
+
+  Future<void> _stopWebcamRecordingOnce() async {
+    if (!_hasStartedSession) return;
+    try {
+      await _webcamStartFuture;
+    } catch (_) {
+      // The start path already reports its error; stopping remains best effort.
+    }
+    try {
+      await photoNotifier.stopVideoRecording();
+    } catch (error) {
+      debugPrint('Webcam stop failed: $error');
+    }
+  }
+
+  Future<void> _handleBack() async {
+    if (_isLeaving || _isDisposed) return;
+    _isLeaving = true;
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+    await _stopWebcamRecording();
+    if (mounted) context.go(widget.backRoute);
+  }
+
   Future<void> _capturePhoto() async {
-    if (_isCapturing || _isDisposed) return;
+    if (_isCapturing || _isDisposed || _isLeaving) return;
 
     if (mounted) {
       setState(() {
@@ -203,6 +249,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       final filePath = await canonService.takePictureWithRetry();
 
       // Add the Canon photo to the notifier's state
+      if (_isLeaving) return;
       await photoNotifier.addPhotoFromFile(
         filePath,
         layoutMode: layoutMode,
@@ -228,11 +275,11 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       // Check if we've captured 4 photos
       if (_currentPhotoIndex >= 4) {
         print('All 4 photos captured, stopping webcam video recording');
-        await photoNotifier.stopVideoRecording();
+        await _stopWebcamRecording();
 
-        if (mounted) {
+        if (mounted && !_isLeaving) {
           await Future.delayed(const Duration(seconds: 1));
-          context.go('/classic/filter');
+          if (mounted && !_isLeaving) context.go(widget.completionRoute);
         }
       } else {
         if (mounted) {
@@ -264,7 +311,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         );
       }
     } finally {
-      if (mounted && !_isDisposed) {
+      if (mounted && !_isDisposed && !_isLeaving) {
         setState(() {
           _isCapturing = false;
         });
@@ -282,6 +329,10 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
     // Dispose sound service resources
     _soundService.dispose();
+
+    // Dispose cannot await, but the idempotent stop path still closes a
+    // recording when the route is left mid-countdown or mid-capture.
+    unawaited(_stopWebcamRecording());
 
     // Canon EDSDK lifecycle is managed by CanonCameraService (shared singleton)
     // — nothing to dispose here.
@@ -338,7 +389,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: IconButton(
-                onPressed: () => context.go('/classic/start'),
+                onPressed: _handleBack,
                 icon: const Icon(
                   Icons.arrow_back_rounded,
                   color: Colors.white,
@@ -361,6 +412,4 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       ),
     );
   }
-
-  double min(double a, double b) => a < b ? a : b;
 }

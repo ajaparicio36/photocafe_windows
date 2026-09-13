@@ -12,6 +12,10 @@ import 'package:photocafe_windows/features/flipbook/presentation/screens/flipboo
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_start_screen.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_takes_screen.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/screens/flipbook_upload_screen.dart';
+import 'package:photocafe_windows/features/keychain/presentation/screens/keychain_design_screen.dart';
+import 'package:photocafe_windows/features/keychain/presentation/screens/keychain_print_screen.dart';
+import 'package:photocafe_windows/features/keychain/presentation/screens/keychain_start_screen.dart';
+import 'package:photocafe_windows/features/keychain/domain/services/keychain_composition_service.dart';
 import 'package:photocafe_windows/features/settings/presentation/screens/flipbook_archive_preview_screen.dart';
 import 'package:photocafe_windows/features/settings/presentation/screens/settings_screen.dart';
 import 'package:photocafe_windows/features/start/presentation/screens/start_screen.dart';
@@ -61,6 +65,30 @@ final GoRouter router = GoRouter(
           );
         }
         return ClassicPrintScreen(pdfBytes: extra as Uint8List?);
+      },
+    ),
+    GoRoute(
+      path: '/keychain/start',
+      builder: (context, state) => const KeychainStartScreen(),
+    ),
+    GoRoute(
+      path: '/keychain/capture',
+      builder: (context, state) => const ClassicCaptureScreen(
+        backRoute: '/keychain/start',
+        completionRoute: '/keychain/design',
+      ),
+    ),
+    GoRoute(
+      path: '/keychain/design',
+      builder: (context, state) => const KeychainDesignScreen(),
+    ),
+    GoRoute(
+      path: '/keychain/print',
+      builder: (context, state) {
+        final extra = state.extra;
+        return KeychainPrintScreen(
+          arguments: extra is KeychainPrintArguments ? extra : null,
+        );
       },
     ),
     GoRoute(

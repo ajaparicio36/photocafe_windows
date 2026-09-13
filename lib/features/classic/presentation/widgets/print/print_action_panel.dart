@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,11 +10,19 @@ import 'package:photocafe_windows/features/photos/domain/services/soft_copies_se
 import 'package:qr_flutter/qr_flutter.dart';
 
 class PrintActionPanel extends ConsumerStatefulWidget {
+  static const String defaultCutControlTitle = 'Split into Strips';
+  static const String defaultCutControlDescription =
+      'Prints two identical strips (requires cutter)';
+
   final bool isPrinting;
   final bool splitStrips;
   final ValueChanged<bool> onSplitStripsChanged;
   final ValueChanged<int> onPrint;
   final Uint8List? pdfBytes;
+  final List<File> additionalMediaFiles;
+  final List<String> additionalFileNames;
+  final String cutControlTitle;
+  final String cutControlDescription;
 
   const PrintActionPanel({
     super.key,
@@ -21,6 +31,10 @@ class PrintActionPanel extends ConsumerStatefulWidget {
     required this.onSplitStripsChanged,
     required this.onPrint,
     this.pdfBytes,
+    this.additionalMediaFiles = const [],
+    this.additionalFileNames = const [],
+    this.cutControlTitle = defaultCutControlTitle,
+    this.cutControlDescription = defaultCutControlDescription,
   });
 
   @override
@@ -265,6 +279,8 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
       final softCopiesService = SoftCopiesService();
       final result = await softCopiesService.uploadMediaFiles(
         mediaFiles: mediaFiles,
+        additionalMediaFiles: widget.additionalMediaFiles,
+        additionalFileNames: widget.additionalFileNames,
         processedVideoPath: processedVideoPath,
         pdfBytes: widget.pdfBytes,
         allowSocialMediaPosting: _allowSocialMediaPosting,
@@ -723,7 +739,7 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Split into Strips',
+                          widget.cutControlTitle,
                           style: Theme.of(context).textTheme.bodyLarge
                               ?.copyWith(
                                 fontFamily: 'SpaceMono',
@@ -734,7 +750,7 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Prints two identical strips (requires cutter)',
+                          widget.cutControlDescription,
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 fontFamily: 'SpaceMono',

@@ -14,6 +14,8 @@ class SoftCopiesService {
     required List<File> mediaFiles,
     required String? processedVideoPath, // Only the VHS processed video
     Uint8List? pdfBytes,
+    List<File> additionalMediaFiles = const [],
+    List<String> additionalFileNames = const [],
     bool allowSocialMediaPosting = false,
     required Function(double) onProgress,
   }) async {
@@ -34,6 +36,7 @@ class SoftCopiesService {
       double currentProgress = 0.1;
       final totalFiles =
           mediaFiles.length +
+          additionalMediaFiles.length +
           (processedVideoPath != null ? 1 : 0) +
           (pdfBytes != null ? 1 : 0) +
           (allowSocialMediaPosting ? 1 : 0); // +1 for consent document
@@ -51,6 +54,27 @@ class SoftCopiesService {
 
         formData.files.add(MapEntry('files', multipartFile));
 
+        currentProgress += progressPerFile;
+        onProgress(currentProgress);
+      }
+
+      // Add feature-specific files (for example Keychain variant PNGs and
+      // its imposed sheet) after originals. Originals stay separately named
+      // above so a filter/composition can never replace them.
+      for (var i = 0; i < additionalMediaFiles.length; i++) {
+        final file = additionalMediaFiles[i];
+        if (!await file.exists()) {
+          print('Warning: Additional media file not found: ${file.path}');
+          continue;
+        }
+        final requestedName = i < additionalFileNames.length
+            ? additionalFileNames[i]
+            : 'additional_${i + 1}.${_getFileExtension(file.path)}';
+        final multipartFile = await MultipartFile.fromFile(
+          file.path,
+          filename: requestedName,
+        );
+        formData.files.add(MapEntry('files', multipartFile));
         currentProgress += progressPerFile;
         onProgress(currentProgress);
       }
