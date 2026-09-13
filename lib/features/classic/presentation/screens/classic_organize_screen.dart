@@ -7,8 +7,6 @@ import 'package:photocafe_windows/features/photos/domain/data/models/photo_state
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/core/colors/colors.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_factory.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/organize/photo_organization_panel.dart';
 import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
@@ -23,7 +21,7 @@ class ClassicOrganizeScreen extends ConsumerStatefulWidget {
 
 class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
   final ScrollController _frameSelectorController = ScrollController();
-  String _selectedFrame = 'frame_one'; // Default to classic frame
+  String _selectedFrame = FrameConstants.availableFrames.first.id;
   bool _isGeneratingPdf = false;
 
   // Get available frames for current capture count
@@ -49,27 +47,6 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
   void dispose() {
     _frameSelectorController.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final printerState = ref.read(printerProvider).value;
-      if (printerState?.isLandscape == true) {
-        setState(() {
-          _selectedFrame = 'landscape_frame_one';
-        });
-      } else if (printerState?.layoutMode == 2) {
-        setState(() {
-          _selectedFrame = '2by2_frame_one';
-        });
-      } else {
-        setState(() {
-          _selectedFrame = '4by4_frame_one';
-        });
-      }
-    });
   }
 
   Future<Uint8List> _generatePdf() async {

@@ -341,7 +341,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     final pdf = pw.Document();
 
     // Use the first 4x4 frame for testing
-    const frameAssetPath = 'assets/frames/frame1.png';
+    const frameAssetPath = 'assets/frames/frame12.png';
     final frameImageBytes = await rootBundle.load(frameAssetPath);
     final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
 

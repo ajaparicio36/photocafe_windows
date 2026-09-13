@@ -73,6 +73,7 @@ void main() {
   test('Keychain catalog exposes every Classic frame layout', () {
     final frames = KeychainFrameCatalog.allClassicFrames;
     expect(frames, isNotEmpty);
+    expect(frames, hasLength(3));
     expect(
       frames.map((frame) => frame.id),
       orderedEquals(FrameConstants.availableFrames.map((frame) => frame.id)),
@@ -171,7 +172,7 @@ void main() {
 
     final png = await FrameCompositionRenderer.renderKeychainVariantPng(
       input: KeychainCompositionInput(
-        layout: FrameConstants.classicFourPhotoLayout,
+        layout: FrameConstants.fourFrameTwelve,
         frameBytes: frameBytes,
         photoBytes: photos,
       ),
@@ -269,7 +270,7 @@ void main() {
           filterId: 'vintage_sepia',
         ),
         KeychainVariantSelection(
-          frameId: activeFrames[3].id,
+          frameId: activeFrames[0].id,
           filterId: 'photobooth',
         ),
       ],

@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,16 +45,8 @@ abstract class BaseFrameWidget extends ConsumerWidget {
       }
     }
 
-    // Fallback to test image if no photos available
+    // Missing photos are rendered as labeled placeholders below.
     pw.MemoryImage? testImage;
-    if (photoImages.isEmpty) {
-      try {
-        final testImageBytes = await rootBundle.load('assets/frames/test.jpg');
-        testImage = pw.MemoryImage(testImageBytes.buffer.asUint8List());
-      } catch (e) {
-        print('Test image not found: $e');
-      }
-    }
 
     final leftPositions = layout.leftColumnPositions;
     final rightPositions = layout.rightColumnPositions;
@@ -200,16 +190,8 @@ abstract class BaseFrameWidget extends ConsumerWidget {
       }
     }
 
-    // Fallback to test image if no photos available
+    // Missing photos are rendered as labeled placeholders below.
     pw.MemoryImage? testImage;
-    if (photoImages.isEmpty) {
-      try {
-        final testImageBytes = await rootBundle.load('assets/frames/test.jpg');
-        testImage = pw.MemoryImage(testImageBytes.buffer.asUint8List());
-      } catch (e) {
-        print('Test image not found: $e');
-      }
-    }
 
     final leftPositions = layout.leftColumnPositions;
     final rightPositions = layout.rightColumnPositions;

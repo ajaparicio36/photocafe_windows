@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
-import '../../../../core/colors/colors.dart';
 
 class ClassicStartScreen extends ConsumerWidget {
   const ClassicStartScreen({super.key});
@@ -55,44 +54,13 @@ class ClassicStartScreen extends ConsumerWidget {
 
                 const Spacer(),
 
-                // Photo options - horizontally aligned buttons
+                // Photostrips is the only Classic experience.
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 100),
+                  padding: const EdgeInsets.symmetric(horizontal: 220),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Portrait Strips button (left)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_strips.png',
-                        layoutMode: 4,
-                        isLandscape: false,
-                      ),
-
-                      const SizedBox(width: 40),
-
-                      // Photo Box button (middle)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_box.png',
-                        layoutMode: 2,
-                        isLandscape: false,
-                      ),
-
-                      const SizedBox(width: 40),
-
-                      // Landscape Strips button (right)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_landscape.png',
-                        layoutMode: 4,
-                        isLandscape: true,
-                      ),
-                    ],
+                    children: [_buildPhotoOption(context, ref)],
                   ),
                 ),
 
@@ -105,16 +73,13 @@ class ClassicStartScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPhotoOption(
-    BuildContext context,
-    WidgetRef ref, {
-    required String assetPath,
-    required int layoutMode,
-    required bool isLandscape,
-  }) {
+  Widget _buildPhotoOption(BuildContext context, WidgetRef ref) {
     return Expanded(
       child: GestureDetector(
         onTap: () async {
+          const layoutMode = 4;
+          const isLandscape = false;
+
           try {
             // Show loading indicator
             showDialog(
@@ -167,11 +132,7 @@ class ClassicStartScreen extends ConsumerWidget {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Preparing ${layoutMode == 2
-                              ? "Photo Box"
-                              : isLandscape
-                              ? "Landscape Strip"
-                              : "Portrait Strip"} layout',
+                          'Preparing Portrait Strip layout',
                           style: TextStyle(
                             fontFamily: 'LeagueSpartan',
                             fontSize: 14,
@@ -327,7 +288,10 @@ class ClassicStartScreen extends ConsumerWidget {
             }
           }
         },
-        child: Image.asset(assetPath, fit: BoxFit.contain),
+        child: Image.asset(
+          'assets/design/start/start_strips.png',
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }

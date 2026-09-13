@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:photocafe_windows/features/start/presentation/screens/start_screen.dart';
 
 void main() {
-  testWidgets('start screen exposes all three experiences', (
+  testWidgets('start screen exposes Photostrips and Keychain only', (
     WidgetTester tester,
   ) async {
     await tester.pumpWidget(
@@ -13,6 +13,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('KEYCHAIN'), findsOneWidget);
-    expect(find.byType(Image), findsAtLeastNWidgets(3));
+    expect(find.textContaining('FLIPBOOK'), findsNothing);
+    expect(find.byType(Image), findsNWidgets(2));
   });
 }
