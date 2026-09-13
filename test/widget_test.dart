@@ -12,8 +12,17 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('KEYCHAIN'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName ==
+                'assets/design/start/start_keychain.png',
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining('FLIPBOOK'), findsNothing);
-    expect(find.byType(Image), findsNWidgets(2));
+    expect(find.byType(Image), findsNWidgets(3));
   });
 }
