@@ -107,6 +107,7 @@ flutter:
     - assets/design/start/start_box.png
     - assets/design/start/start_landscape.png
     - assets/design/start/start_strips.png
+    - assets/design/start/start_keychain.png
     - assets/design/frames/frames_preview.png
     - assets/design/frames/frames_title.png
     - assets/icons/choose_experience_button.png

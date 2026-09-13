@@ -70,49 +70,10 @@ class AppStartScreen extends ConsumerWidget {
                   Expanded(
                     child: GestureDetector(
                       onTap: () => context.go('/keychain/start'),
-                      child: Container(
+                      child: Image.asset(
+                        'assets/design/start/start_keychain.png',
+                        fit: BoxFit.contain,
                         height: 360,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF740000),
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: Colors.white, width: 3),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black38,
-                              blurRadius: 12,
-                              offset: Offset(0, 6),
-                            ),
-                          ],
-                        ),
-                        child: const Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.key_rounded,
-                              color: Colors.white,
-                              size: 92,
-                            ),
-                            SizedBox(height: 24),
-                            Text(
-                              'KEYCHAIN',
-                              style: TextStyle(
-                                fontFamily: 'SpaceMono',
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            Text(
-                              '4 mini designs',
-                              style: TextStyle(
-                                fontFamily: 'SpaceMono',
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                   ),
