@@ -48,13 +48,13 @@ class AppStartScreen extends ConsumerWidget {
                         child: Image.asset(
                           'assets/design/start/start_strips.png',
                           fit: BoxFit.contain,
-                          height: 360,
+                          height: 280,
                         ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(width: 60),
+                  const SizedBox(width: 10),
 
                   // Keychain button.
                   Expanded(
@@ -66,7 +66,7 @@ class AppStartScreen extends ConsumerWidget {
                         child: Image.asset(
                           'assets/design/start/start_keychain.png',
                           fit: BoxFit.contain,
-                          height: 360,
+                          height: 280,
                         ),
                       ),
                     ),

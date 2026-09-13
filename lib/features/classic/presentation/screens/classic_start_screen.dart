@@ -21,7 +21,7 @@ class ClassicStartScreen extends ConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(60),
+            padding: const EdgeInsets.all(20),
             child: Column(
               children: [
                 // Back button
@@ -56,7 +56,7 @@ class ClassicStartScreen extends ConsumerWidget {
 
                 // Photostrips is the only Classic experience.
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 220),
+                  padding: const EdgeInsets.symmetric(horizontal: 400),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -290,7 +290,8 @@ class ClassicStartScreen extends ConsumerWidget {
         },
         child: Image.asset(
           'assets/design/start/start_strips.png',
-          fit: BoxFit.contain,
+          fit: BoxFit.scaleDown,
+          scale: 1.5,
         ),
       ),
     );
