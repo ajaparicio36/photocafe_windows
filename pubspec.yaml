@@ -121,11 +121,11 @@ flutter:
     - assets/frames/frame3.png
     - assets/frames/frame12.png
     - assets/frames/frame13.png
-    - assets/frames/popup_frame_1.png
-    - assets/frames/popup_frame_2.png
-    - assets/frames/popup_frame_3.png 
-    - assets/frames/popup_frame_4.png
-    - assets/frames/popup_frame_5.png
+    - assets/frames/cpu_frame_1.png
+    - assets/frames/cpu_frame_2.png
+    - assets/frames/cpu_frame_3.png 
+    - assets/frames/cpu_frame_4.png
+    - assets/frames/cpu_frame_5.png
     - assets/flipbook/frame1.png
     - assets/flipbook/frame2.png
     - assets/flipbook/frame3.png
