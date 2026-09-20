@@ -168,26 +168,32 @@ class KeychainCompositionService {
     }
 
     final originals = await _getOriginals(photos);
-    final filteredById = <String, List<Uint8List>>{};
-    final variantPngs = <Uint8List>[];
-
+    final filterIds = <String>[];
+    final layouts = <FrameLayout>[];
+    final frameBytes = <Uint8List>[];
     for (final selection in session.variants) {
+      // Resolve catalog entries and load all Flutter assets before crossing
+      // the isolate boundary. Invalid selections keep the old synchronous
+      // validation behavior.
       final filter = KeychainFilterCatalog.byId(selection.filterId);
-      final filteredPhotos = filteredById.putIfAbsent(
-        filter.id,
-        () => _applyFilterToPhotos(originals, filter),
-      );
-      variantPngs.add(
-        await _renderSelection(
-          selection: selection,
-          photoBytes: filteredPhotos,
-        ),
-      );
+      final frame = KeychainFrameCatalog.byId(selection.frameId);
+      filterIds.add(filter.id);
+      layouts.add(_layoutFor(frame));
+      frameBytes.add(await _getFrameBytes(frame));
     }
+    final layoutDtos = layouts.map(_layoutDto).toList(growable: false);
 
-    final sheetPng = FrameCompositionRenderer.generateKeychainSheetPng(
-      variantPngs: variantPngs,
+    final rasterResult = await Isolate.run<List<Object>>(
+      () => _renderFinalRasterInIsolate(
+        originals: originals,
+        filterIds: filterIds,
+        layouts: layoutDtos,
+        frameBytes: frameBytes,
+      ),
     );
+    final variantPngs = rasterResult[0] as List<Uint8List>;
+    final sheetPng = rasterResult[1] as Uint8List;
+
     final sheetPdf = await FrameCompositionRenderer.generateKeychainSheetPdf(
       variantPngs: variantPngs,
     );
@@ -332,13 +338,18 @@ class KeychainCompositionService {
     if (originals.length != previewSources.length) {
       throw StateError('Preview source count does not match originals.');
     }
+    final layoutType = layout.type.index;
+    final leftPositions = _positionDto(layout.leftColumnPositions);
+    final rightPositions = _positionDto(layout.rightColumnPositions);
+    final topOffset = layout.topOffset;
+    final frameAssetPath = layout.frameAssetPath;
     return Isolate.run<Uint8List>(
       () => _renderPreviewInIsolate(
-        layoutType: layout.type.index,
-        leftPositions: _positionDto(layout.leftColumnPositions),
-        rightPositions: _positionDto(layout.rightColumnPositions),
-        topOffset: layout.topOffset,
-        frameAssetPath: layout.frameAssetPath,
+        layoutType: layoutType,
+        leftPositions: leftPositions,
+        rightPositions: rightPositions,
+        topOffset: topOffset,
+        frameAssetPath: frameAssetPath,
         frameBytes: previewFrameBytes,
         photoBytes: filteredPhotos,
       ),
@@ -406,21 +417,6 @@ class KeychainCompositionService {
     );
     _previewFrameBytesById[frame.id] = previewFrame;
     return previewFrame;
-  }
-
-  Future<Uint8List> _renderSelection({
-    required KeychainVariantSelection selection,
-    required List<Uint8List> photoBytes,
-  }) async {
-    final frame = KeychainFrameCatalog.byId(selection.frameId);
-    final layout = _layoutFor(frame);
-    final frameBytes = await _getFrameBytes(frame);
-    final input = KeychainCompositionInput(
-      layout: layout,
-      frameBytes: frameBytes,
-      photoBytes: photoBytes,
-    );
-    return FrameCompositionRenderer.renderKeychainVariantPng(input: input);
   }
 
   Future<Uint8List> _getFrameBytes(FrameDefinition frame) async {
@@ -491,33 +487,89 @@ class KeychainCompositionService {
     return originals;
   }
 
-  List<Uint8List> _applyFilterToPhotos(
-    List<Uint8List> originals,
-    FilterDefinition filter,
-  ) {
-    return [
-      for (final original in originals) _applyFilterToBytes(original, filter),
-    ];
-  }
-
-  Uint8List _applyFilterToBytes(Uint8List original, FilterDefinition filter) {
-    if (filter.id == 'no_filter') {
-      return Uint8List.fromList(original);
-    }
-    final decoded = img.decodeImage(original);
-    if (decoded == null) {
-      throw StateError('Unable to decode an original photo for filtering.');
-    }
-    final filtered = filter.applyFilter(img.Image.from(decoded));
-    return Uint8List.fromList(img.encodeJpg(filtered, quality: 95));
-  }
-
   FrameLayout _layoutFor(FrameDefinition frame) {
     if (frame.layouts.isEmpty) {
       throw StateError('Frame ${frame.id} does not define a Classic layout.');
     }
     return frame.layouts.values.first;
   }
+}
+
+List<Object> _layoutDto(FrameLayout layout) {
+  return <Object>[
+    layout.type.index,
+    _positionDto(layout.leftColumnPositions),
+    _positionDto(layout.rightColumnPositions),
+    layout.topOffset,
+    layout.frameAssetPath,
+  ];
+}
+
+Future<List<Object>> _renderFinalRasterInIsolate({
+  required List<Uint8List> originals,
+  required List<String> filterIds,
+  required List<List<Object>> layouts,
+  required List<Uint8List> frameBytes,
+}) async {
+  if (filterIds.length != keychainVariantCount ||
+      layouts.length != keychainVariantCount ||
+      frameBytes.length != keychainVariantCount) {
+    throw ArgumentError('Final Keychain raster input requires four variants.');
+  }
+
+  final filteredById = <String, List<Uint8List>>{};
+  final variantPngs = <Uint8List>[];
+  for (var index = 0; index < keychainVariantCount; index++) {
+    final filterId = filterIds[index];
+    final filteredPhotos = filteredById.putIfAbsent(
+      filterId,
+      () => _applyFinalFilterToPhotos(originals, filterId),
+    );
+    final variant = await FrameCompositionRenderer.renderKeychainVariantPng(
+      input: KeychainCompositionInput(
+        layout: _layoutFromDto(layouts[index]),
+        frameBytes: frameBytes[index],
+        photoBytes: filteredPhotos,
+      ),
+    );
+    variantPngs.add(variant);
+  }
+  final sheetPng = FrameCompositionRenderer.generateKeychainSheetPng(
+    variantPngs: variantPngs,
+  );
+  return <Object>[variantPngs, sheetPng];
+}
+
+List<Uint8List> _applyFinalFilterToPhotos(
+  List<Uint8List> originals,
+  String filterId,
+) {
+  return [
+    for (final original in originals)
+      _applyFinalFilterToBytes(original, filterId),
+  ];
+}
+
+Uint8List _applyFinalFilterToBytes(Uint8List original, String filterId) {
+  if (filterId == 'no_filter') {
+    return Uint8List.fromList(original);
+  }
+  final decoded = img.decodeImage(original);
+  if (decoded == null) {
+    throw StateError('Unable to decode an original photo for filtering.');
+  }
+  final filtered = _applyFilterById(img.Image.from(decoded), filterId);
+  return Uint8List.fromList(img.encodeJpg(filtered, quality: 95));
+}
+
+FrameLayout _layoutFromDto(List<Object> layoutDto) {
+  return FrameLayout(
+    type: FrameLayoutType.values[layoutDto[0] as int],
+    leftColumnPositions: _positionsFromDto(layoutDto[1] as List<List<double>>),
+    rightColumnPositions: _positionsFromDto(layoutDto[2] as List<List<double>>),
+    topOffset: layoutDto[3] as double,
+    frameAssetPath: layoutDto[4] as String,
+  );
 }
 
 List<List<double>> _positionDto(List<FramePhotoPosition> positions) {
