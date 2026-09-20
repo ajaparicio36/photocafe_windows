@@ -239,8 +239,18 @@ class FrameCompositionRenderer {
       final height = bottom - dstY;
       var photo = _fitPhoto(photos[slot.photoIndex], width, height);
       if (position.rotationDegrees != 0) {
-        photo = img.copyRotate(photo, angle: position.rotationDegrees);
-        photo = img.copyResize(photo, width: width, height: height);
+        // package:image uses screen coordinates, so its positive rotation
+        // direction is opposite the PDF transform used by Classic.
+        photo = img.copyRotate(photo, angle: -position.rotationDegrees);
+        // Rotation expands the raster bounds. Crop that expansion instead of
+        // resizing it, which would make the visible photo smaller than Classic.
+        photo = img.copyCrop(
+          photo,
+          x: (photo.width - width) ~/ 2,
+          y: (photo.height - height) ~/ 2,
+          width: width,
+          height: height,
+        );
       }
       img.compositeImage(canvas, photo, dstX: dstX, dstY: dstY);
     }
