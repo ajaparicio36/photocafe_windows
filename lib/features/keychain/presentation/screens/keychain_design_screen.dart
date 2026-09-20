@@ -40,7 +40,9 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
   }) {
     if (session.isReview) return;
     final selection = session.variants[session.designIndex];
-    final photosKey = photos?.map((photo) => photo.imagePath).join('|');
+    final photosKey = photos
+        ?.map((photo) => '${photo.index}:${photo.imagePath}')
+        .join('|');
     final key =
         '${session.designIndex}:${selection.frameId}:${selection.filterId}:$photosKey';
     if (key == _previewKey) return;
@@ -445,13 +447,15 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
                   child: Text(frame.name, overflow: TextOverflow.ellipsis),
                 ),
             ],
-            onChanged: (value) {
-              if (value != null) {
-                ref
-                    .read(keychainSessionProvider.notifier)
-                    .setVariantFrame(currentIndex, value);
-              }
-            },
+            onChanged: _isRendering
+                ? null
+                : (value) {
+                    if (value != null) {
+                      ref
+                          .read(keychainSessionProvider.notifier)
+                          .setVariantFrame(currentIndex, value);
+                    }
+                  },
           ),
           const SizedBox(height: 24),
           const Text(
@@ -481,13 +485,15 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
                   child: Text(filter.name, overflow: TextOverflow.ellipsis),
                 ),
             ],
-            onChanged: (value) {
-              if (value != null) {
-                ref
-                    .read(keychainSessionProvider.notifier)
-                    .setVariantFilter(currentIndex, value);
-              }
-            },
+            onChanged: _isRendering
+                ? null
+                : (value) {
+                    if (value != null) {
+                      ref
+                          .read(keychainSessionProvider.notifier)
+                          .setVariantFilter(currentIndex, value);
+                    }
+                  },
           ),
           const Spacer(),
           Text(

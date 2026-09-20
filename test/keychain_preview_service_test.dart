@@ -150,6 +150,38 @@ void main() {
     },
   );
 
+  test('reordered photo indices invalidate the preview source cache', () async {
+    final directory = await Directory.systemTemp.createTemp(
+      'keychain-preview-indexes-',
+    );
+    addTearDown(() => directory.delete(recursive: true));
+
+    final frameBytes = _solidPng(1200, 1800, 255, 255, 255);
+    final photos = await _writePhotos(directory);
+    final service = KeychainCompositionService(
+      loadAsset: (_) async => ByteData.sublistView(frameBytes),
+    );
+    addTearDown(service.dispose);
+
+    final selection = _selection(frameId: FrameConstants.availableFrames[0].id);
+    await service.renderVariantPreview(selection: selection, photos: photos);
+    await File(photos[0].imagePath).delete();
+
+    final reorderedPhotos = [
+      photos[0].copyWith(index: 1),
+      photos[1].copyWith(index: 0),
+      photos[2],
+      photos[3],
+    ];
+    await expectLater(
+      service.renderVariantPreview(
+        selection: selection,
+        photos: reorderedPhotos,
+      ),
+      throwsA(isA<StateError>()),
+    );
+  });
+
   test('VHS processing is deferred only for Keychain capture', () {
     expect(
       PhotoNotifier.shouldDeferVhsProcessing(
