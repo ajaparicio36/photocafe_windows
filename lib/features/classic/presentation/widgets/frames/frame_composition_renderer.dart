@@ -162,21 +162,16 @@ class FrameCompositionRenderer {
         pageFormat: FramePdfGeometry.pageFormat,
         margin: pw.EdgeInsets.zero,
         build: (context) {
-          final tileWidth = FramePdfGeometry.sheetContentWidth * keychainScale;
-          final tileHeight =
-              FramePdfGeometry.sheetContentHeight * keychainScale;
+          final tileWidth = FramePdfGeometry.pageWidth * keychainScale;
+          final tileHeight = FramePdfGeometry.pageHeight * keychainScale;
           final sheet = pw.Stack(
             fit: pw.StackFit.expand,
             children: [
               pw.Positioned.fill(child: pw.Container(color: PdfColors.white)),
               for (var index = 0; index < variantPngs.length; index++)
                 pw.Positioned(
-                  left:
-                      FramePdfGeometry.sheetContentLeft +
-                      (index % 2) * tileWidth,
-                  top:
-                      FramePdfGeometry.sheetContentTop +
-                      (index ~/ 2) * tileHeight,
+                  left: (index % 2) * tileWidth,
+                  top: (index ~/ 2) * tileHeight,
                   child: pw.SizedBox(
                     width: tileWidth,
                     height: tileHeight,

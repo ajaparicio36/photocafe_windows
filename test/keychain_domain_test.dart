@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -73,7 +74,7 @@ void main() {
   test('Keychain catalog exposes every Classic frame layout', () {
     final frames = KeychainFrameCatalog.allClassicFrames;
     expect(frames, isNotEmpty);
-    expect(frames, hasLength(3));
+    expect(frames, hasLength(FrameConstants.availableFrames.length));
     expect(
       frames.map((frame) => frame.id),
       orderedEquals(FrameConstants.availableFrames.map((frame) => frame.id)),
@@ -136,6 +137,27 @@ void main() {
       variantPngs: variants,
     );
     expect(pdfBytes, isNotEmpty);
+    final tileBounds = _extractKeychainTileBounds(pdfBytes);
+    expect(tileBounds, hasLength(4));
+    final expectedTileWidth = FramePdfGeometry.pageWidth / 2;
+    final expectedTileHeight = FramePdfGeometry.pageHeight / 2;
+    for (var index = 0; index < tileBounds.length; index++) {
+      final bounds = tileBounds[index];
+      expect(
+        bounds.left,
+        closeTo((index % 2) * expectedTileWidth, 0.0001),
+      );
+      expect(
+        bounds.bottom,
+        closeTo(
+          FramePdfGeometry.pageHeight -
+              ((index ~/ 2) + 1) * expectedTileHeight,
+          0.0001,
+        ),
+      );
+      expect(bounds.width, closeTo(expectedTileWidth, 0.0001));
+      expect(bounds.height, closeTo(expectedTileHeight, 0.0001));
+    }
     expect(
       FramePdfGeometry.pageFormat.width,
       closeTo(FramePdfGeometry.pageWidth, 0.001),
@@ -316,3 +338,35 @@ void main() {
 void _noopBool(bool _) {}
 
 void _noopInt(int _) {}
+
+List<({double left, double bottom, double width, double height})>
+    _extractKeychainTileBounds(Uint8List pdfBytes) {
+  final pdfText = latin1.decode(pdfBytes);
+  final streamMatch = RegExp(
+    r'4 0 obj\s*<</Filter/FlateDecode/Length (\d+)>>stream\r?\n',
+  ).firstMatch(pdfText);
+  if (streamMatch == null) {
+    throw StateError('Keychain PDF page content stream was not found.');
+  }
+  final streamLength = int.parse(streamMatch.group(1)!);
+  final streamStart = streamMatch.end;
+  final contentBytes = ZLibCodec().decode(
+    pdfBytes.sublist(streamStart, streamStart + streamLength),
+  );
+  final content = latin1.decode(contentBytes);
+  final tilePattern = RegExp(
+    r'q 1 0 0 1 (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) cm '
+    r'q 1 0 0 1 0 0 cm q 1 0 0 1 0 0 cm '
+    r'q 0 0 (\d+(?:\.\d+)?) (\d+(?:\.\d+)?) re W n '
+    r'q (\d+(?:\.\d+)?) 0 0 (\d+(?:\.\d+)?) 0 0 cm /I\d+ Do',
+  );
+  return [
+    for (final match in tilePattern.allMatches(content))
+      (
+        left: double.parse(match.group(1)!),
+        bottom: double.parse(match.group(2)!),
+        width: double.parse(match.group(3)!),
+        height: double.parse(match.group(4)!),
+      ),
+  ];
+}
