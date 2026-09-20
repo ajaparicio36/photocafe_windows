@@ -52,7 +52,7 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
       );
       return;
     }
-    _previewFuture = _compositionService.renderVariant(
+    _previewFuture = _compositionService.renderVariantPreview(
       selection: selection,
       photos: photos,
     );
@@ -128,6 +128,12 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  void dispose() {
+    _compositionService.dispose();
+    super.dispose();
   }
 
   @override
@@ -239,6 +245,11 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
         future: _previewFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF740000)),
+            );
+          }
+          if (snapshot.error is KeychainPreviewCancelledException) {
             return const Center(
               child: CircularProgressIndicator(color: Color(0xFF740000)),
             );

@@ -207,7 +207,11 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       // The start path already reports its error; stopping remains best effort.
     }
     try {
-      await photoNotifier.stopVideoRecording();
+      await photoNotifier.stopVideoRecording(
+        deferVhsProcessing: PhotoNotifier.shouldDeferVhsProcessing(
+          completionRoute: widget.completionRoute,
+        ),
+      );
     } catch (error) {
       debugPrint('Webcam stop failed: $error');
     }
