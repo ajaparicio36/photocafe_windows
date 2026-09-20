@@ -64,6 +64,47 @@ void main() {
   });
 
   test(
+    'full export keeps final geometry through isolated raster work',
+    () async {
+      final directory = await Directory.systemTemp.createTemp(
+        'keychain-final-export-',
+      );
+      addTearDown(() => directory.delete(recursive: true));
+
+      final frameBytes = _solidPng(1200, 1800, 255, 255, 255);
+      final photos = await _writePhotos(directory);
+      final service = KeychainCompositionService(
+        loadAsset: (_) async => ByteData.sublistView(frameBytes),
+      );
+      addTearDown(service.dispose);
+
+      final frames = FrameConstants.availableFrames;
+      final session = KeychainSessionState(
+        variants: [
+          _selection(frameId: frames[0].id),
+          _selection(frameId: frames[1].id, filterId: 'mono_b1'),
+          _selection(frameId: frames[2].id, filterId: 'mono_b1'),
+          _selection(frameId: frames[0].id),
+        ],
+      );
+      final output = await service.render(session: session, photos: photos);
+
+      expect(output.variantPngs, hasLength(keychainVariantCount));
+      for (final variant in output.variantPngs) {
+        final decoded = img.decodeImage(variant);
+        expect(decoded, isNotNull);
+        expect(decoded!.width, 600);
+        expect(decoded.height, 900);
+      }
+      final sheet = img.decodeImage(output.sheetPng);
+      expect(sheet, isNotNull);
+      expect(sheet!.width, 1200);
+      expect(sheet.height, 1800);
+      expect(output.sheetPdf, isNotEmpty);
+    },
+  );
+
+  test(
     'rapid preview requests keep only the newest queued selection',
     () async {
       final directory = await Directory.systemTemp.createTemp(
