@@ -23,6 +23,12 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   // Path to the saved frame/photostrip PNG in the photos temp directory
   String? _savedFramePath;
 
+  /// Keychain design should remain responsive while the raw webcam file is
+  /// retained for the existing on-demand soft-copy path.
+  static bool shouldDeferVhsProcessing({required String completionRoute}) {
+    return completionRoute == '/keychain/design';
+  }
+
   @override
   Future<PhotoState> build() async {
     final tempPath = await getTemporaryDirectory();
@@ -77,7 +83,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
-  Future<void> stopVideoRecording() async {
+  Future<void> stopVideoRecording({bool deferVhsProcessing = false}) async {
     try {
       final webcamService = ref.read(webcamVideoServiceProvider);
       print('Stopping webcam video recording in photo notifier...');
@@ -92,9 +98,13 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
         // Reference the webcam video for VHS processing
         await _referenceRecordedVideo(videoPath);
 
-        // Start VHS processing in background - don't await here
-        // This allows the UI to proceed to the filter screen immediately
-        _startBackgroundVhsProcessing();
+        if (deferVhsProcessing) {
+          print('Deferring VHS processing until the existing on-demand path.');
+        } else {
+          // Start VHS processing in background - don't await here. This keeps
+          // the existing behavior for Classic capture sessions.
+          _startBackgroundVhsProcessing();
+        }
       } else {
         print('Warning: webcam stopRecording returned null path');
       }
@@ -108,7 +118,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       });
 
       print(
-        'Webcam recording stopped in photo notifier (VHS processing continues in background)',
+        deferVhsProcessing
+            ? 'Webcam recording stopped in photo notifier (VHS processing deferred)'
+            : 'Webcam recording stopped in photo notifier (VHS processing continues in background)',
       );
     } catch (e) {
       print('Error stopping webcam video recording in photo notifier: $e');
