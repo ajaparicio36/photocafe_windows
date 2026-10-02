@@ -315,72 +315,6 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/cpu_frame_1.png',
   );
 
-  static const popupFrameTwo = FrameLayout(
-    type: FrameLayoutType.fourPhotos,
-    leftColumnPositions: [
-      FramePhotoPosition(
-        left: 8,
-        top: 8,
-        width: 138,
-        height: 94,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 8,
-        top: 110,
-        width: 138,
-        height: 94,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 8,
-        top: 208,
-        width: 138,
-        height: 94,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 8,
-        top: 308,
-        width: 138,
-        height: 96,
-        rotationDegrees: 0.0,
-      ),
-    ],
-    rightColumnPositions: [
-      FramePhotoPosition(
-        left: 161,
-        top: 8,
-        width: 138,
-        height: 94,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 161,
-        top: 110,
-        width: 138,
-        height: 94,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 161,
-        top: 208,
-        width: 138,
-        height: 94,
-        rotationDegrees: 0.0,
-      ),
-      FramePhotoPosition(
-        left: 161,
-        top: 308,
-        width: 138,
-        height: 94,
-        rotationDegrees: 0.0,
-      ),
-    ],
-    topOffset: 14,
-    frameAssetPath: 'assets/frames/cpu_frame_2.png',
-  );
-
   static const popupFrameThree = FrameLayout(
     type: FrameLayoutType.fourPhotos,
     leftColumnPositions: [
@@ -513,75 +447,75 @@ class FrameConstants {
     frameAssetPath: 'assets/frames/cpu_frame_5.png',
   );
 
-  static const popupFrameFive = FrameLayout(
+  static const centerCourtOne = FrameLayout(
     type: FrameLayoutType.fourPhotos,
     leftColumnPositions: [
       FramePhotoPosition(
-        left: 19,
-        top: 65,
-        width: 118,
-        height: 86,
-        rotationDegrees: 5,
+        left: 7,
+        top: 8,
+        width: 139,
+        height: 92,
+        rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: -5,
-        top: 157,
-        width: 135,
-        height: 93,
-        rotationDegrees: -3.85,
+        left: 7,
+        top: 105,
+        width: 139,
+        height: 92,
+        rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 30,
-        top: 248,
-        width: 116,
-        height: 84,
-        rotationDegrees: 5,
+        left: 7,
+        top: 201,
+        width: 139,
+        height: 92,
+        rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 3,
-        top: 352,
-        width: 138,
-        height: 95,
-        rotationDegrees: -0.5,
+        left: 7,
+        top: 299,
+        width: 139,
+        height: 92,
+        rotationDegrees: 0.0,
       ),
     ],
     rightColumnPositions: [
       FramePhotoPosition(
-        left: 174,
-        top: 69,
-        width: 118,
-        height: 86,
-        rotationDegrees: 5.0,
+        left: 160,
+        top: 8,
+        width: 139,
+        height: 92,
+        rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 150,
-        top: 162,
-        width: 135,
-        height: 93,
-        rotationDegrees: -3.85,
+        left: 160,
+        top: 105,
+        width: 139,
+        height: 92,
+        rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 182,
-        top: 253,
-        width: 116,
-        height: 84,
-        rotationDegrees: 5.0,
+        left: 160,
+        top: 201,
+        width: 139,
+        height: 92,
+        rotationDegrees: 0.0,
       ),
       FramePhotoPosition(
-        left: 157,
-        top: 354,
-        width: 138,
-        height: 95,
-        rotationDegrees: -0.5,
+        left: 160,
+        top: 299,
+        width: 139,
+        height: 92,
+        rotationDegrees: 0.0,
       ),
     ],
     topOffset: 14,
-    frameAssetPath: 'assets/frames/cpu_frame_4.png',
+    frameAssetPath: 'assets/frames/corner_frame_1.png',
   );
 
   static const FrameDefinition fourByFourFrameThree = FrameDefinition(
     id: '4by4_frame_three',
-    name: 'Classic Frame One',
+    name: 'Classic Frame 1',
     description: 'A classic black and white frame',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameThree},
@@ -590,7 +524,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameTwelve = FrameDefinition(
     id: '4by4_frame_twelve',
-    name: 'Classic Frame Two',
+    name: 'Classic Frame 2',
     description: 'A frame for classic monochrome',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameTwelve},
@@ -599,7 +533,7 @@ class FrameConstants {
 
   static const FrameDefinition fourByFourFrameThirteen = FrameDefinition(
     id: '4by4_frame_thirteen',
-    name: 'Classic Frame Three',
+    name: 'Classic Frame 3',
     description: 'A frame with plain retro feel',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: fourFrameThirteen},
@@ -608,25 +542,16 @@ class FrameConstants {
 
   static const FrameDefinition popupOne = FrameDefinition(
     id: 'popup_frame_one',
-    name: 'UWCF Frame One',
+    name: 'Classic Frame 4',
     description: '',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: popupFrameOne},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
-  static const FrameDefinition popupTwo = FrameDefinition(
-    id: 'popup_frame_two',
-    name: 'UWCF Frame Two',
-    description: '',
-    supportedLayouts: [FrameLayoutType.fourPhotos],
-    layouts: {FrameLayoutType.fourPhotos: popupFrameTwo},
-    previewWidgetName: 'FourByFourFramePreview',
-  );
-
   static const FrameDefinition popupThree = FrameDefinition(
     id: 'popup_frame_three',
-    name: 'UWCF Frame Three',
+    name: 'Classic Frame 5',
     description: '',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: popupFrameThree},
@@ -635,30 +560,29 @@ class FrameConstants {
 
   static const FrameDefinition popupFour = FrameDefinition(
     id: 'popup_frame_four',
-    name: 'UWCF Frame Four',
+    name: 'Classic Frame 6',
     description: '',
     supportedLayouts: [FrameLayoutType.fourPhotos],
     layouts: {FrameLayoutType.fourPhotos: popupFrameFour},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
-  static const FrameDefinition popupFive = FrameDefinition(
-    id: 'popup_frame_five',
-    name: 'UWCF Frame Five',
+  static const FrameDefinition centerOne = FrameDefinition(
+    id: 'center_court_one',
+    name: 'Center Court',
     description: '',
     supportedLayouts: [FrameLayoutType.fourPhotos],
-    layouts: {FrameLayoutType.fourPhotos: popupFrameFive},
+    layouts: {FrameLayoutType.fourPhotos: centerCourtOne},
     previewWidgetName: 'FourByFourFramePreview',
   );
 
   static List<FrameDefinition> get availableFrames => [
-    popupOne,
-    popupTwo,
-    popupThree,
-    popupFour,
-    popupFive,
+    centerOne,
     fourByFourFrameThree,
     fourByFourFrameTwelve,
     fourByFourFrameThirteen,
+    popupOne,
+    popupThree,
+    popupFour,
   ];
 }
