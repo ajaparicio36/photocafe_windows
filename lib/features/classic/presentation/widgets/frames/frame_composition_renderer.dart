@@ -6,39 +6,15 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
 
-/// Geometry used by the Windows printer and by the Keychain imposed sheet.
-///
-/// Classic's existing PDF path intentionally keeps its printer compensation
-/// and page geometry. Keychain composes the four variants first and applies
-/// this compensation once to the outer sheet only.
+/// Native printer raster geometry shared by Classic and Keychain.
+/// Frame artwork fills this page from the origin without printer compensation.
 class FramePdfGeometry {
-  static const double bleedMm = 3.0;
-  static const double pointsPerMillimetre = 2.834645669;
-  static const double bleedPoints = bleedMm * pointsPerMillimetre;
-  static const double trimWidth = 4 * PdfPageFormat.inch;
-  static const double trimHeight = 6 * PdfPageFormat.inch;
-  static const double pageWidth = trimWidth + (bleedPoints * 2);
-  static const double pageHeight = trimHeight + (bleedPoints * 3);
-  static const double sheetContentLeft = bleedPoints;
-  static const double sheetContentTop = bleedPoints;
-  static const double sheetContentWidth = trimWidth;
-  static const double sheetContentHeight = trimHeight;
-  static const double printerScale = 0.94;
-  static const double printerOffsetX = bleedPoints * 0.5;
-  static const double printerOffsetY = bleedPoints * -0.92;
-
+  static const int rasterWidth = 1240;
+  static const int rasterHeight = 1844;
+  static const double dpi = 300;
+  static const double pageWidth = rasterWidth / dpi * PdfPageFormat.inch;
+  static const double pageHeight = rasterHeight / dpi * PdfPageFormat.inch;
   static const PdfPageFormat pageFormat = PdfPageFormat(pageWidth, pageHeight);
-
-  /// Applies the physical-printer compensation exactly once to a page.
-  static pw.Widget applyPrinterTransform(pw.Widget child) {
-    return pw.Transform.scale(
-      scale: printerScale,
-      child: pw.Transform.translate(
-        offset: const PdfPoint(-printerOffsetX, -printerOffsetY),
-        child: child,
-      ),
-    );
-  }
 }
 
 /// A frame/photo input for one Keychain variant.
@@ -61,9 +37,8 @@ class KeychainCompositionInput {
 class FrameCompositionRenderer {
   static const int requiredPhotoCount = 4;
   static const double keychainScale = 0.5;
-  static const int keychainVariantWidth = 600;
-  static const int keychainVariantHeight = 900;
-  static const double classicFrameCoverageScale = 1.005;
+  static const int keychainVariantWidth = FramePdfGeometry.rasterWidth ~/ 2;
+  static const int keychainVariantHeight = FramePdfGeometry.rasterHeight ~/ 2;
 
   /// Resolves the source photo index for a slot in a frame layout.
   static int photoIndexForSlot(
@@ -81,11 +56,8 @@ class FrameCompositionRenderer {
     return slotIndex;
   }
 
-  /// Renders one complete Keychain composition directly to a 600×900 PNG.
-  ///
-  /// The output is a 2×3 inch raster at 300 DPI. It uses the same adjusted
-  /// 4×6 page coordinate space as Classic, but does not apply printer
-  /// compensation; that belongs to the outer sheet PDF only.
+  /// Renders one complete composition to a 620×922 PNG, half the native
+  /// printer page on each axis, using Classic's untransformed coordinates.
   static Future<Uint8List> renderKeychainVariantPng({
     required KeychainCompositionInput input,
   }) async {
@@ -109,11 +81,10 @@ class FrameCompositionRenderer {
     );
     img.fill(canvas, color: img.ColorRgb8(255, 255, 255));
     _paintPhotoSlots(canvas, input.layout, photoImages);
-    final frameOverlay = _resizeAndCenterCrop(
+    final frameOverlay = img.copyResize(
       frame,
       width: keychainVariantWidth,
       height: keychainVariantHeight,
-      coverageScale: classicFrameCoverageScale,
     );
     img.compositeImage(canvas, frameOverlay, dstX: 0, dstY: 0);
     final pngBytes = Uint8List.fromList(img.encodePng(canvas));
@@ -125,33 +96,39 @@ class FrameCompositionRenderer {
     );
   }
 
-  /// Creates a 1200×1800 PNG sheet in TL, TR, BL, BR order, with no gutters.
+  /// Creates a 1240×1844 PNG sheet in TL, TR, BL, BR order, with no gutters.
   static Uint8List generateKeychainSheetPng({
     required List<Uint8List> variantPngs,
   }) {
     _validateVariantPngs(variantPngs);
-    final sheet = img.Image(width: 1200, height: 1800);
+    final sheet = img.Image(
+      width: FramePdfGeometry.rasterWidth,
+      height: FramePdfGeometry.rasterHeight,
+    );
     img.fill(sheet, color: img.ColorRgb8(255, 255, 255));
     for (var index = 0; index < variantPngs.length; index++) {
       final decoded = img.decodeImage(variantPngs[index]);
       if (decoded == null) {
         throw StateError('Unable to decode Keychain variant $index.');
       }
-      final tile = img.copyResize(decoded, width: 600, height: 900);
+      final tile = img.copyResize(
+        decoded,
+        width: keychainVariantWidth,
+        height: keychainVariantHeight,
+      );
       img.compositeImage(
         sheet,
         tile,
-        dstX: (index % 2) * 600,
-        dstY: (index ~/ 2) * 900,
+        dstX: (index % 2) * keychainVariantWidth,
+        dstY: (index ~/ 2) * keychainVariantHeight,
       );
     }
     return Uint8List.fromList(img.encodePng(sheet));
   }
 
-  /// Creates the printable 4×6 PDF from four 600×900 variant PNGs.
+  /// Creates the printable native-size PDF from four 620×922 variant PNGs.
   ///
-  /// The four tiles touch at their edges. Printer compensation is wrapped
-  /// around the complete sheet exactly once, never around each quadrant.
+  /// The four tiles fill the page and touch at their edges, with no offsets.
   static Future<Uint8List> generateKeychainSheetPdf({
     required List<Uint8List> variantPngs,
   }) async {
@@ -183,7 +160,7 @@ class FrameCompositionRenderer {
                 ),
             ],
           );
-          return FramePdfGeometry.applyPrinterTransform(sheet);
+          return sheet;
         },
       ),
     );
@@ -199,7 +176,7 @@ class FrameCompositionRenderer {
     final verticalScale = canvas.height / FramePdfGeometry.pageHeight;
     if ((horizontalScale - verticalScale).abs() > 0.0001) {
       throw StateError(
-        'Keychain output must preserve the adjusted Classic page ratio.',
+        'Keychain output must preserve the native Classic page ratio.',
       );
     }
     final scale = horizontalScale;
@@ -254,24 +231,6 @@ class FrameCompositionRenderer {
       }
       img.compositeImage(canvas, photo, dstX: dstX, dstY: dstY);
     }
-  }
-
-  static img.Image _resizeAndCenterCrop(
-    img.Image source, {
-    required int width,
-    required int height,
-    required double coverageScale,
-  }) {
-    final coveredWidth = (width * coverageScale).ceil();
-    final coveredHeight = (height * coverageScale).ceil();
-    final covered = _fitPhoto(source, coveredWidth, coveredHeight);
-    return img.copyCrop(
-      covered,
-      x: (covered.width - width) ~/ 2,
-      y: (covered.height - height) ~/ 2,
-      width: width,
-      height: height,
-    );
   }
 
   static img.Image _fitPhoto(img.Image source, int width, int height) {

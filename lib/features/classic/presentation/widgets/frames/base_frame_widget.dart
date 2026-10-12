@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_composition_renderer.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
@@ -51,80 +52,54 @@ abstract class BaseFrameWidget extends ConsumerWidget {
     final leftPositions = layout.leftColumnPositions;
     final rightPositions = layout.rightColumnPositions;
 
-    // DNP DS-RX1HS specific dimensions with bleed compensation
-    // Standard 4x6 is 288x432 points, but we add bleed and adjust for printer offset
-    // DNP DS-RX1HS specific dimensions with bleed compensation
-    const double bleedMm = 3.0;
-    const double bleedPoints = bleedMm * 2.834645669;
-    const double originalWidth = 4 * PdfPageFormat.inch;
-    const double originalHeight = 6 * PdfPageFormat.inch;
-    const double adjustedWidth = originalWidth + (bleedPoints * 2);
-    const double adjustedHeight = originalHeight + (bleedPoints * 3);
-
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(adjustedWidth, adjustedHeight),
+        pageFormat: FramePdfGeometry.pageFormat,
         margin: const pw.EdgeInsets.all(0),
         build: (pw.Context context) {
-          const double scaleFactor = 0.94;
-          const double offsetX = bleedPoints * 0.5; // Reduced to move right
-          const double offsetY = bleedPoints * -0.92; // Increased to move up
-
-          return pw.Transform.scale(
-            scale: scaleFactor,
-            child: pw.Transform.translate(
-              offset: const PdfPoint(-offsetX, -offsetY),
-              child: pw.Stack(
-                children: [
-                  // Black background with bleed
-                  pw.Positioned.fill(
-                    child: pw.Container(color: PdfColors.white),
-                  ),
-                  // Left column images (photos 1 and 2 for 2x2, all 4 for 4x4)
-                  for (int i = 0; i < leftPositions.length; i++)
-                    pw.Positioned(
-                      left: leftPositions[i].left,
-                      top: leftPositions[i].top,
-                      child: pw.Container(
-                        width: leftPositions[i].width,
-                        height: leftPositions[i].height,
-                        child: _buildPhotoWidget(
-                          i,
-                          photoImages,
-                          testImage,
-                          leftPositions[i].rotationDegrees,
-                        ),
-                      ),
-                    ),
-                  // Right column images (photos 3 and 4 for 2x2, duplicates for 4x4)
-                  for (int i = 0; i < rightPositions.length; i++)
-                    pw.Positioned(
-                      left: rightPositions[i].left,
-                      top: rightPositions[i].top,
-                      child: pw.Container(
-                        width: rightPositions[i].width,
-                        height: rightPositions[i].height,
-                        child: _buildPhotoWidget(
-                          layoutMode == 2
-                              ? i + 2
-                              : i, // For 2x2 use photos 3,4; for 4x4 use duplicates
-                          photoImages,
-                          testImage,
-                          rightPositions[i].rotationDegrees,
-                        ),
-                      ),
-                    ),
-                  // Frame overlay on top
-                  pw.Positioned.fill(
-                    child: pw.Transform.scale(
-                      scale:
-                          1.005, // Very slight scale to ensure frame covers everything
-                      child: pw.Image(frameImage, fit: pw.BoxFit.fill),
+          return pw.Stack(
+            children: [
+              // White page background
+              pw.Positioned.fill(child: pw.Container(color: PdfColors.white)),
+              // Left column images (photos 1 and 2 for 2x2, all 4 for 4x4)
+              for (int i = 0; i < leftPositions.length; i++)
+                pw.Positioned(
+                  left: leftPositions[i].left,
+                  top: leftPositions[i].top,
+                  child: pw.Container(
+                    width: leftPositions[i].width,
+                    height: leftPositions[i].height,
+                    child: _buildPhotoWidget(
+                      i,
+                      photoImages,
+                      testImage,
+                      leftPositions[i].rotationDegrees,
                     ),
                   ),
-                ],
+                ),
+              // Right column images (photos 3 and 4 for 2x2, duplicates for 4x4)
+              for (int i = 0; i < rightPositions.length; i++)
+                pw.Positioned(
+                  left: rightPositions[i].left,
+                  top: rightPositions[i].top,
+                  child: pw.Container(
+                    width: rightPositions[i].width,
+                    height: rightPositions[i].height,
+                    child: _buildPhotoWidget(
+                      layoutMode == 2
+                          ? i + 2
+                          : i, // For 2x2 use photos 3,4; for 4x4 use duplicates
+                      photoImages,
+                      testImage,
+                      rightPositions[i].rotationDegrees,
+                    ),
+                  ),
+                ),
+              // Frame overlay on top
+              pw.Positioned.fill(
+                child: pw.Image(frameImage, fit: pw.BoxFit.fill),
               ),
-            ),
+            ],
           );
         },
       ),
@@ -196,79 +171,53 @@ abstract class BaseFrameWidget extends ConsumerWidget {
     final leftPositions = layout.leftColumnPositions;
     final rightPositions = layout.rightColumnPositions;
 
-    // DNP DS-RX1HS specific dimensions with bleed compensation
-    const double bleedMm = 3.0;
-    const double bleedPoints = bleedMm * 2.834645669;
-    const double originalWidth = 4 * PdfPageFormat.inch;
-    const double originalHeight = 6 * PdfPageFormat.inch;
-    const double adjustedWidth = originalWidth + (bleedPoints * 2);
-    const double adjustedHeight = originalHeight + (bleedPoints * 3);
-
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(adjustedWidth, adjustedHeight),
+        pageFormat: FramePdfGeometry.pageFormat,
         margin: const pw.EdgeInsets.all(0),
         build: (pw.Context context) {
-          const double scaleFactor = 0.94;
-          const double offsetX = bleedPoints * 0.5; // Reduced to move right
-          const double offsetY = bleedPoints * -0.92; // Increased to move up
-
-          return pw.Transform.scale(
-            scale: scaleFactor,
-            child: pw.Transform.translate(
-              offset: const PdfPoint(-offsetX, -offsetY),
-              child: pw.Stack(
-                children: [
-                  pw.Positioned.fill(
-                    child: pw.Container(color: PdfColors.green),
-                  ),
-                  // Left column images
-                  for (int i = 0; i < leftPositions.length; i++)
-                    pw.Positioned(
-                      left: leftPositions[i].left,
-                      top: leftPositions[i].top,
-                      child: pw.Container(
-                        width: leftPositions[i].width,
-                        height: leftPositions[i].height,
-                        child: _buildPhotoWidget(
-                          i,
-                          photoImages,
-                          testImage,
-                          i < rotationsDegrees.length
-                              ? rotationsDegrees[i]
-                              : 0.0,
-                        ),
-                      ),
-                    ),
-                  // Right column images
-                  for (int i = 0; i < rightPositions.length; i++)
-                    pw.Positioned(
-                      left: rightPositions[i].left,
-                      top: rightPositions[i].top,
-                      child: pw.Container(
-                        width: rightPositions[i].width,
-                        height: rightPositions[i].height,
-                        child: _buildPhotoWidget(
-                          layoutMode == 2 ? i + 2 : i,
-                          photoImages,
-                          testImage,
-                          (layoutMode == 2 ? i + 2 : i) <
-                                  rotationsDegrees.length
-                              ? rotationsDegrees[layoutMode == 2 ? i + 2 : i]
-                              : 0.0,
-                        ),
-                      ),
-                    ),
-                  // Frame overlay
-                  pw.Positioned.fill(
-                    child: pw.Transform.scale(
-                      scale: 1.005,
-                      child: pw.Image(frameImage, fit: pw.BoxFit.fill),
+          return pw.Stack(
+            children: [
+              pw.Positioned.fill(child: pw.Container(color: PdfColors.green)),
+              // Left column images
+              for (int i = 0; i < leftPositions.length; i++)
+                pw.Positioned(
+                  left: leftPositions[i].left,
+                  top: leftPositions[i].top,
+                  child: pw.Container(
+                    width: leftPositions[i].width,
+                    height: leftPositions[i].height,
+                    child: _buildPhotoWidget(
+                      i,
+                      photoImages,
+                      testImage,
+                      i < rotationsDegrees.length ? rotationsDegrees[i] : 0.0,
                     ),
                   ),
-                ],
+                ),
+              // Right column images
+              for (int i = 0; i < rightPositions.length; i++)
+                pw.Positioned(
+                  left: rightPositions[i].left,
+                  top: rightPositions[i].top,
+                  child: pw.Container(
+                    width: rightPositions[i].width,
+                    height: rightPositions[i].height,
+                    child: _buildPhotoWidget(
+                      layoutMode == 2 ? i + 2 : i,
+                      photoImages,
+                      testImage,
+                      (layoutMode == 2 ? i + 2 : i) < rotationsDegrees.length
+                          ? rotationsDegrees[layoutMode == 2 ? i + 2 : i]
+                          : 0.0,
+                    ),
+                  ),
+                ),
+              // Frame overlay
+              pw.Positioned.fill(
+                child: pw.Image(frameImage, fit: pw.BoxFit.fill),
               ),
-            ),
+            ],
           );
         },
       ),
@@ -321,10 +270,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                     allowSharing: false,
                     allowPrinting: false,
                     canChangeOrientation: false,
-                    initialPageFormat: const PdfPageFormat(
-                      4 * PdfPageFormat.inch,
-                      6 * PdfPageFormat.inch,
-                    ), // Keep preview at standard 4x6 for UI
+                    initialPageFormat: FramePdfGeometry.pageFormat,
                     canChangePageFormat: false,
                     canDebug: false,
                     useActions: false,

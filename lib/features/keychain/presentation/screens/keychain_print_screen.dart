@@ -149,8 +149,8 @@ class _KeychainPrintScreenState extends ConsumerState<KeychainPrintScreen> {
                           cutControlDescription:
                               KeychainPrintScreen.cutControlDescription,
                           // The printable PDF is sent by [_print]. Soft-copy
-                          // upload uses the exact 600×900 variants and the
-                          // 1200×1800 sheet PNG below, so it must not add a
+                          // upload uses the exact 620×922 variants and the
+                          // 1240×1844 sheet PNG below, so it must not add a
                           // second rasterized copy of the PDF.
                           pdfBytes: null,
                           additionalMediaFiles: additionalFiles,
@@ -196,7 +196,7 @@ class _KeychainPrintScreenState extends ConsumerState<KeychainPrintScreen> {
                               ),
                               const SizedBox(height: 14),
                               Text(
-                                'TL • TR • BL • BR  |  1200 × 1800 PNG',
+                                'TL • TR • BL • BR  |  1240 × 1844 PNG',
                                 style: TextStyle(
                                   fontFamily: 'SpaceMono',
                                   color: Colors.white.withValues(alpha: 0.9),

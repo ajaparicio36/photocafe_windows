@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_composition_renderer.dart';
 import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/constants/frame_constants.dart';
 import 'package:photocafe_windows/features/print/domain/data/models/printer_state.dart';
@@ -345,45 +346,22 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
     final frameImageBytes = await rootBundle.load(frameAssetPath);
     final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
 
-    // DNP DS-RX1HS specific dimensions with bleed compensation
-    const double bleedMm = 3.0;
-    const double bleedPoints = bleedMm * 2.834645669;
-    const double originalWidth = 4 * PdfPageFormat.inch;
-    const double originalHeight = 6 * PdfPageFormat.inch;
-    const double adjustedWidth = originalWidth + (bleedPoints * 2);
-    const double adjustedHeight = originalHeight + (bleedPoints * 3);
-
     pdf.addPage(
       pw.Page(
-        pageFormat: PdfPageFormat(adjustedWidth, adjustedHeight),
+        pageFormat: FramePdfGeometry.pageFormat,
         margin: const pw.EdgeInsets.all(0),
         build: (pw.Context context) {
-          const double scaleFactor = 0.94;
-          const double offsetX = bleedPoints * 0.5; // Reduced to move right
-          const double offsetY = bleedPoints * -0.92; // Increased to move up
-
-          return pw.Transform.scale(
-            scale: scaleFactor,
-            child: pw.Transform.translate(
-              offset: const PdfPoint(-offsetX, -offsetY),
-              child: pw.Stack(
-                children: [
-                  // White background
-                  pw.Positioned.fill(
-                    child: pw.Container(color: PdfColors.white),
-                  ),
-                  // Test pattern to show photo areas
-                  ..._buildTestPatternForClassicFrame(),
-                  // Frame overlay on top
-                  pw.Positioned.fill(
-                    child: pw.Transform.scale(
-                      scale: 1.005,
-                      child: pw.Image(frameImage, fit: pw.BoxFit.fill),
-                    ),
-                  ),
-                ],
+          return pw.Stack(
+            children: [
+              // White background
+              pw.Positioned.fill(child: pw.Container(color: PdfColors.white)),
+              // Test pattern to show photo areas
+              ..._buildTestPatternForClassicFrame(),
+              // Frame overlay on top
+              pw.Positioned.fill(
+                child: pw.Image(frameImage, fit: pw.BoxFit.fill),
               ),
-            ),
+            ],
           );
         },
       ),

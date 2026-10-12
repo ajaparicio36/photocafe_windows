@@ -15,8 +15,8 @@ import 'package:photocafe_windows/features/photos/domain/data/models/photo_model
 typedef FrameAssetLoader = Future<ByteData> Function(String assetPath);
 
 const int _previewPhotoMaxDimension = 640;
-const int _previewFrameWidth = 600;
-const int _previewFrameHeight = 900;
+const int _previewFrameWidth = FrameCompositionRenderer.keychainVariantWidth;
+const int _previewFrameHeight = FrameCompositionRenderer.keychainVariantHeight;
 const int _previewJpegQuality = 82;
 
 /// Returned to callers whose preview request was replaced by a newer request.

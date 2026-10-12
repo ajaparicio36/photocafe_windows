@@ -266,7 +266,7 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
           );
         },
       ),
-      footer: 'Live 600 × 900 PNG composition from the captured originals.',
+      footer: 'Live 620 × 922 PNG composition from the captured originals.',
     );
   }
 
@@ -283,7 +283,7 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
               fit: BoxFit.contain,
               filterQuality: FilterQuality.high,
             ),
-      footer: 'Actual 1200 × 1800 PNG sheet • TL • TR • BL • BR',
+      footer: 'Actual 1240 × 1844 PNG sheet • TL • TR • BL • BR',
     );
   }
 
