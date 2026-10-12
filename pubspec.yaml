@@ -118,13 +118,16 @@ flutter:
     - assets/icons/classic_mode_button.png
     - assets/icons/clickclick_logo-min.png
     - assets/icons/strip_button.png
-    - assets/frames/frame3.png
-    - assets/frames/frame12.png
-    - assets/frames/frame13.png
-    - assets/frames/cpu_frame_1.png
-    - assets/frames/cpu_frame_3.png 
-    - assets/frames/cpu_frame_5.png
-    - assets/frames/corner_frame_1.png
+    - assets/frames/fr_1.png
+    - assets/frames/fr_2.png
+    - assets/frames/fr_3.png
+    - assets/frames/fr_4.png
+    - assets/frames/fr_5.png 
+    - assets/frames/fr_6.png
+    - assets/frames/fr_7.png 
+    - assets/frames/fr_8.png
+    - assets/frames/sanag_1.png
+    - assets/frames/sanag_2.png
     - assets/flipbook/frame1.png
     - assets/flipbook/frame2.png
     - assets/flipbook/frame3.png
