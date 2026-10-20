@@ -61,14 +61,14 @@ class AppStartScreen extends ConsumerWidget {
             ),
           ),
           Positioned(
-            top: 58,
+            top: 36,
             left: 0,
             right: 0,
             child: Center(
               child: Image.asset(
                 'assets/event/clickclick_logo_white.png',
-                width: 240,
-                height: 240,
+                width: 280,
+                height: 280,
                 semanticLabel: 'Click Click',
               ),
             ),
@@ -88,7 +88,7 @@ class AppStartScreen extends ConsumerWidget {
             ),
           ),
           const Positioned(
-            top: 356,
+            top: 350,
             left: 30,
             right: 30,
             child: Text(
@@ -97,12 +97,12 @@ class AppStartScreen extends ConsumerWidget {
               style: TextStyle(
                 fontFamily: EventDesign.display,
                 color: EventDesign.white,
-                fontSize: 43,
+                fontSize: 55,
               ),
             ),
           ),
           const Positioned(
-            top: 421,
+            top: 434,
             left: 0,
             right: 0,
             child: Text(
