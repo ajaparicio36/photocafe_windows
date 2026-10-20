@@ -116,7 +116,7 @@ void main() {
     ];
     final variants = <Uint8List>[];
     for (final color in colors) {
-      final image = img.Image(width: 600, height: 900);
+      final image = img.Image(width: 620, height: 922);
       img.fill(image, color: img.ColorRgb8(color[0], color[1], color[2]));
       variants.add(Uint8List.fromList(img.encodePng(image)));
     }
@@ -126,32 +126,32 @@ void main() {
     );
     final sheet = img.decodeImage(sheetBytes);
     expect(sheet, isNotNull);
-    expect(sheet!.width, 1200);
-    expect(sheet.height, 1800);
+    expect(sheet!.width, 1240);
+    expect(sheet.height, 1844);
     expect(sheet.getPixel(10, 10).r, 255);
-    expect(sheet.getPixel(610, 10).g, 255);
-    expect(sheet.getPixel(10, 910).b, 255);
-    expect(sheet.getPixel(610, 910).r, 255);
+    expect(sheet.getPixel(630, 10).g, 255);
+    expect(sheet.getPixel(10, 932).b, 255);
+    expect(sheet.getPixel(630, 932).r, 255);
 
     final pdfBytes = await FrameCompositionRenderer.generateKeychainSheetPdf(
       variantPngs: variants,
     );
     expect(pdfBytes, isNotEmpty);
+    expect(
+      latin1.decode(pdfBytes).contains('/MediaBox[0 0 297.6 442.56]'),
+      isTrue,
+    );
     final tileBounds = _extractKeychainTileBounds(pdfBytes);
     expect(tileBounds, hasLength(4));
     final expectedTileWidth = FramePdfGeometry.pageWidth / 2;
     final expectedTileHeight = FramePdfGeometry.pageHeight / 2;
     for (var index = 0; index < tileBounds.length; index++) {
       final bounds = tileBounds[index];
-      expect(
-        bounds.left,
-        closeTo((index % 2) * expectedTileWidth, 0.0001),
-      );
+      expect(bounds.left, closeTo((index % 2) * expectedTileWidth, 0.0001));
       expect(
         bounds.bottom,
         closeTo(
-          FramePdfGeometry.pageHeight -
-              ((index ~/ 2) + 1) * expectedTileHeight,
+          FramePdfGeometry.pageHeight - ((index ~/ 2) + 1) * expectedTileHeight,
           0.0001,
         ),
       );
@@ -166,10 +166,8 @@ void main() {
       FramePdfGeometry.pageFormat.height,
       closeTo(FramePdfGeometry.pageHeight, 0.001),
     );
-    expect(FramePdfGeometry.sheetContentLeft, FramePdfGeometry.bleedPoints);
-    expect(FramePdfGeometry.sheetContentTop, FramePdfGeometry.bleedPoints);
-    expect(FramePdfGeometry.sheetContentWidth, FramePdfGeometry.trimWidth);
-    expect(FramePdfGeometry.sheetContentHeight, FramePdfGeometry.trimHeight);
+    expect(FramePdfGeometry.pageWidth, closeTo(297.6, 0.0001));
+    expect(FramePdfGeometry.pageHeight, closeTo(442.56, 0.0001));
   });
 
   test('Renderer rejects any variant count other than four', () {
@@ -181,8 +179,49 @@ void main() {
     );
   });
 
-  test('one complete Keychain composition is exactly 600 by 900 PNG', () async {
-    final frame = img.Image(width: 1200, height: 1800);
+  test('Keychain frame preserves artwork at all four raster corners', () async {
+    final frame = img.Image(width: 1240, height: 1844, numChannels: 4);
+    img.fill(frame, color: img.ColorRgba8(0, 0, 0, 0));
+    for (final x in [0, 1238]) {
+      for (final y in [0, 1842]) {
+        img.fillRect(
+          frame,
+          x1: x,
+          y1: y,
+          x2: x + 1,
+          y2: y + 1,
+          color: img.ColorRgba8(255, 0, 0, 255),
+        );
+      }
+    }
+    final photo = img.Image(width: 2, height: 2);
+    final photoBytes = Uint8List.fromList(img.encodePng(photo));
+    final png = await FrameCompositionRenderer.renderKeychainVariantPng(
+      input: KeychainCompositionInput(
+        layout: const FrameLayout(
+          type: FrameLayoutType.fourPhotos,
+          leftColumnPositions: [],
+          rightColumnPositions: [],
+          topOffset: 0,
+          frameAssetPath: 'unused',
+        ),
+        frameBytes: Uint8List.fromList(img.encodePng(frame)),
+        photoBytes: List.filled(4, photoBytes),
+      ),
+    );
+    final decoded = img.decodeImage(png)!;
+    for (final x in [0, 619]) {
+      for (final y in [0, 921]) {
+        final pixel = decoded.getPixel(x, y);
+        expect(pixel.r, 255);
+        expect(pixel.g, 0);
+        expect(pixel.b, 0);
+      }
+    }
+  });
+
+  test('one complete Keychain composition is exactly 620 by 922 PNG', () async {
+    final frame = img.Image(width: 1240, height: 1844);
     img.fill(frame, color: img.ColorRgba8(255, 255, 255, 255));
     final frameBytes = Uint8List.fromList(img.encodePng(frame));
     final photos = <Uint8List>[];
@@ -194,23 +233,23 @@ void main() {
 
     final png = await FrameCompositionRenderer.renderKeychainVariantPng(
       input: KeychainCompositionInput(
-        layout: FrameConstants.classicFourPhotoLayout,
+        layout: FrameConstants.fourFrameTwelve,
         frameBytes: frameBytes,
         photoBytes: photos,
       ),
     );
     final decoded = img.decodeImage(png);
     expect(decoded, isNotNull);
-    expect(decoded!.width, 600);
-    expect(decoded.height, 900);
+    expect(decoded!.width, 620);
+    expect(decoded.height, 922);
   });
 
   test(
-    'transparent frame keeps a boundary slot inside adjusted page bounds',
+    'transparent frame keeps a boundary slot inside native page bounds',
     () async {
       final transparentFrame = img.Image(
-        width: 1200,
-        height: 1800,
+        width: 1240,
+        height: 1844,
         numChannels: 4,
       );
       img.fill(transparentFrame, color: img.ColorRgba8(0, 0, 0, 0));
@@ -247,11 +286,11 @@ void main() {
       );
       final decoded = img.decodeImage(png);
       expect(decoded, isNotNull);
-      final scale = 600 / FramePdfGeometry.pageWidth;
+      final scale = 620 / FramePdfGeometry.pageWidth;
       final expectedLeft = ((FramePdfGeometry.pageWidth - 12) * scale).round();
       final expectedTop = ((FramePdfGeometry.pageHeight - 12) * scale).round();
       expect(decoded!.getPixel(expectedLeft + 1, expectedTop + 1).r, 255);
-      expect(decoded.getPixel(599, 899).r, 255);
+      expect(decoded.getPixel(619, 921).r, 255);
     },
   );
 
@@ -261,7 +300,7 @@ void main() {
     );
     addTearDown(() => tempDirectory.delete(recursive: true));
 
-    final frame = img.Image(width: 1200, height: 1800);
+    final frame = img.Image(width: 1240, height: 1844);
     img.fill(frame, color: img.ColorRgba8(255, 255, 255, 255));
     final frameBytes = Uint8List.fromList(img.encodePng(frame));
     final photos = <PhotoModel>[];
@@ -292,7 +331,7 @@ void main() {
           filterId: 'vintage_sepia',
         ),
         KeychainVariantSelection(
-          frameId: activeFrames[3].id,
+          frameId: activeFrames[0].id,
           filterId: 'photobooth',
         ),
       ],
@@ -304,12 +343,12 @@ void main() {
       selection: session.variants[1],
       photos: photos,
     );
-    expect(img.decodeImage(preview)?.width, 600);
-    expect(img.decodeImage(preview)?.height, 900);
+    expect(img.decodeImage(preview)?.width, 620);
+    expect(img.decodeImage(preview)?.height, 922);
     final output = await service.render(session: session, photos: photos);
 
     expect(output.variantPngs, hasLength(keychainVariantCount));
-    expect(img.decodeImage(output.sheetPng)?.width, 1200);
+    expect(img.decodeImage(output.sheetPng)?.width, 1240);
     expect(output.selections, session.variants);
     expect(output.selections[0].frameId, session.variants[0].frameId);
     expect(output.selections[1].filterId, session.variants[1].filterId);
@@ -340,7 +379,7 @@ void _noopBool(bool _) {}
 void _noopInt(int _) {}
 
 List<({double left, double bottom, double width, double height})>
-    _extractKeychainTileBounds(Uint8List pdfBytes) {
+_extractKeychainTileBounds(Uint8List pdfBytes) {
   final pdfText = latin1.decode(pdfBytes);
   final streamMatch = RegExp(
     r'4 0 obj\s*<</Filter/FlateDecode/Length (\d+)>>stream\r?\n',
@@ -354,6 +393,9 @@ List<({double left, double bottom, double width, double height})>
     pdfBytes.sublist(streamStart, streamStart + streamLength),
   );
   final content = latin1.decode(contentBytes);
+  expect(content, isNot(contains('0.94 0 0 0.94')));
+  expect(content, isNot(contains('-4.252')));
+  expect(content, isNot(contains('7.823')));
   final tilePattern = RegExp(
     r'q 1 0 0 1 (-?\d+(?:\.\d+)?) (-?\d+(?:\.\d+)?) cm '
     r'q 1 0 0 1 0 0 cm q 1 0 0 1 0 0 cm '

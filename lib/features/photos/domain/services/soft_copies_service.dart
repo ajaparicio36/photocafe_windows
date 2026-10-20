@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:photocafe_windows/services/bouncy_fixture.dart';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -7,19 +8,34 @@ import 'package:printing/printing.dart';
 import 'package:uuid/uuid.dart';
 
 class SoftCopiesService {
-  final Dio _dio = DioClient().instance;
+  final Dio _dio = BouncyFixture.enabled
+      ? Dio(
+          BaseOptions(
+            baseUrl: const String.fromEnvironment(
+              'BOUNCY_QA_API_BASE',
+              defaultValue: 'http://127.0.0.1:3017',
+            ),
+          ),
+        )
+      : DioClient().instance;
   final _uuid = Uuid();
 
   Future<SoftCopiesUploadResult> uploadMediaFiles({
     required List<File> mediaFiles,
-    required String? processedVideoPath, // Only the VHS processed video
     Uint8List? pdfBytes,
+    CancelToken? cancelToken,
     List<File> additionalMediaFiles = const [],
     List<String> additionalFileNames = const [],
     bool allowSocialMediaPosting = false,
     required Function(double) onProgress,
   }) async {
     try {
+      if (BouncyFixture.enabled) {
+        final host = Uri.parse(_dio.options.baseUrl).host;
+        if (!const ['127.0.0.1', 'localhost', '::1'].contains(host)) {
+          throw StateError('QA uploads require a local test server.');
+        }
+      }
       onProgress(0.0);
 
       final archiveId = _uuid.v4();
@@ -37,7 +53,6 @@ class SoftCopiesService {
       final totalFiles =
           mediaFiles.length +
           additionalMediaFiles.length +
-          (processedVideoPath != null ? 1 : 0) +
           (pdfBytes != null ? 1 : 0) +
           (allowSocialMediaPosting ? 1 : 0); // +1 for consent document
       final progressPerFile = totalFiles > 0 ? 0.8 / totalFiles : 0.8;
@@ -77,28 +92,6 @@ class SoftCopiesService {
         formData.files.add(MapEntry('files', multipartFile));
         currentProgress += progressPerFile;
         onProgress(currentProgress);
-      }
-
-      // Add processed video if available (only VHS filtered version)
-      if (processedVideoPath != null) {
-        final videoFile = File(processedVideoPath);
-        if (await videoFile.exists()) {
-          print('Uploading VHS processed video: $processedVideoPath');
-
-          final multipartFile = await MultipartFile.fromFile(
-            processedVideoPath,
-            filename:
-                'session_video_vhs.mp4', // Clear naming for processed video
-          );
-
-          formData.files.add(MapEntry('files', multipartFile));
-          currentProgress += progressPerFile;
-          onProgress(currentProgress);
-        } else {
-          print(
-            'Warning: Processed video file not found at: $processedVideoPath',
-          );
-        }
       }
 
       // Convert PDF to high-quality PNG and upload
@@ -145,6 +138,7 @@ class SoftCopiesService {
       // Upload to server using the correct route
       final response = await _dio.post(
         '/api/upload',
+        cancelToken: cancelToken,
         data: formData,
         options: Options(headers: {'Content-Type': 'multipart/form-data'}),
         onSendProgress: (sent, total) {
@@ -212,7 +206,9 @@ class SoftCopiesService {
 
   String _generateArchiveUrl(String archiveId) {
     // Generate the archive URL that points to the Next.js page
-    final baseUrl = dotenv.env['WEB_URL'] ?? _dio.options.baseUrl;
+    final baseUrl = BouncyFixture.enabled
+        ? _dio.options.baseUrl
+        : dotenv.env['WEB_URL'] ?? _dio.options.baseUrl;
     return '$baseUrl/archive/$archiveId';
   }
 

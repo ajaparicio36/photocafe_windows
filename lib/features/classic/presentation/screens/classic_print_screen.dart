@@ -1,14 +1,16 @@
+import 'package:photocafe_windows/widgets/confirm_discard_session.dart';
+import 'package:photocafe_windows/widgets/bouncy_preview.dart';
+import 'package:photocafe_windows/services/bouncy_session.dart';
+import 'package:photocafe_windows/services/bouncy_media_service.dart';
+import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
+import 'package:photocafe_windows/features/keychain/domain/data/models/keychain_models.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:photocafe_windows/core/colors/colors.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_header.dart';
-import 'package:photocafe_windows/features/classic/presentation/widgets/shared/screen_container.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/print/print_action_panel.dart';
-import 'package:printing/printing.dart';
 
 class ClassicPrintScreen extends ConsumerStatefulWidget {
   final Uint8List? pdfBytes;
@@ -58,6 +60,13 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
   }
 
   Future<void> _printDocument(int copies) async {
+    if (!ref
+        .read(bouncySessionProvider)
+        .valid(
+          ref.read(photoProvider).value?.photos.map((p) => p.captureId) ?? [],
+        )) {
+      return;
+    }
     if (_actualPdfBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -88,6 +97,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
         cut: _splitStrips,
         copies: copies,
       );
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -107,6 +117,7 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
 
       _showPrintCompletionDialog();
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Row(
@@ -125,295 +136,92 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _isPrinting = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isPrinting = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/design/background.png'),
-          fit: BoxFit.cover,
+    final photos = ref.watch(photoProvider).value?.photos ?? [];
+    final printer = ref.watch(printerProvider).value;
+    final layout = _isLandscape
+        ? FrameLayoutType.fourLandscapePhotos
+        : printer?.layoutMode == 2
+        ? FrameLayoutType.twoPhotos
+        : FrameLayoutType.fourPhotos;
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/design/background.png'),
+            fit: BoxFit.cover,
+          ),
         ),
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: _actualPdfBytes == null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+        child: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    IconButton(
+                      tooltip: 'Back to arrange',
+                      onPressed: () => context.go('/classic/organize'),
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    ),
+                    const Text(
+                      'Print preview',
+                      style: TextStyle(color: Colors.white, fontSize: 26),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Expanded(
+                  child: Row(
                     children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(60),
+                      Expanded(
+                        flex: 2,
+                        child: PrintActionPanel(
+                          isPrinting: _isPrinting,
+                          printReady: _actualPdfBytes != null,
+                          splitStrips: _splitStrips,
+                          pdfBytes: _actualPdfBytes,
+                          onSplitStripsChanged: (value) =>
+                              setState(() => _splitStrips = value),
+                          onPrint: _printDocument,
                         ),
-                        child: Icon(
-                          Icons.error_rounded,
-                          size: 60,
+                      ),
+                      const SizedBox(width: 24),
+                      Expanded(
+                        flex: 3,
+                        child: Container(
                           color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 30),
-                      Text(
-                        'No PDF Available',
-                        style: TextStyle(
-                          fontFamily: 'SpaceMono',
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Please go back and generate the PDF first.',
-                        style: TextStyle(
-                          fontFamily: 'SpaceMono',
-                          fontSize: 20,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      Container(
-                        width: 300,
-                        height: 80,
-                        child: ElevatedButton(
-                          onPressed: () => context.go('/classic/organize'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Color(0xFF740000),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                          ),
-                          child: Text(
-                            'Go Back',
-                            style: TextStyle(
-                              fontFamily: 'SpaceMono',
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          padding: const EdgeInsets.all(12),
+                          child: BouncyPreview(
+                            archive: true,
+                            photos: photos,
+                            selections: [
+                              KeychainVariantSelection(
+                                frameId: ref.watch(classicBouncyFrameProvider),
+                                filterId: ref
+                                    .watch(bouncySessionProvider)
+                                    .classicFilterId,
+                              ),
+                            ],
+                            classicLayout: layout,
                           ),
                         ),
                       ),
                     ],
                   ),
-                )
-              : Column(
-                  children: [
-                    // Header with back button
-                    Row(
-                      children: [
-                        // Back button
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(30),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: IconButton(
-                            onPressed: () => context.go('/classic/organize'),
-                            icon: const Icon(
-                              Icons.arrow_back_rounded,
-                              color: Color(0xFF740000),
-                              size: 28,
-                            ),
-                          ),
-                        ),
-
-                        const Spacer(),
-
-                        // Title section
-                        Column(
-                          children: [
-                            Text(
-                              'PRINT PREVIEW',
-                              style: TextStyle(
-                                fontFamily: 'SpaceMono',
-                                fontSize: 36,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              'Review your photo strip before printing',
-                              style: TextStyle(
-                                fontFamily: 'SpaceMono',
-                                fontSize: 18,
-                                color: Colors.white.withOpacity(0.8),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const Spacer(),
-
-                        // Empty spacer to balance the layout
-                        SizedBox(width: 60),
-                      ],
-                    ),
-
-                    const SizedBox(height: 40),
-
-                    // Main content area
-                    Expanded(
-                      child: Row(
-                        children: [
-                          // Left panel - Action buttons
-                          Expanded(
-                            flex: 2,
-                            child: PrintActionPanel(
-                              isPrinting: _isPrinting,
-                              splitStrips: _splitStrips,
-                              pdfBytes: _actualPdfBytes,
-                              onSplitStripsChanged: (value) {
-                                setState(() {
-                                  _splitStrips = value;
-                                });
-                              },
-                              onPrint: _printDocument,
-                            ),
-                          ),
-
-                          const SizedBox(width: 32),
-
-                          // Right panel - PDF preview
-                          Expanded(
-                            flex: 3,
-                            child: Container(
-                              padding: const EdgeInsets.all(32),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF740000).withOpacity(0.5),
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'FINAL PREVIEW',
-                                    style: TextStyle(
-                                      fontFamily: 'SpaceMono',
-                                      fontSize: 32,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // PDF Preview
-                                  Expanded(
-                                    child: Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(20),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.black.withOpacity(
-                                              0.2,
-                                            ),
-                                            blurRadius: 15,
-                                            offset: const Offset(0, 5),
-                                          ),
-                                        ],
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(20),
-                                        child: _isLandscape
-                                            ? Transform.rotate(
-                                                angle:
-                                                    -1.5708, // -90 degrees in radians (-π/2)
-                                                child: PdfPreview(
-                                                  build: (format) =>
-                                                      _actualPdfBytes!,
-                                                  canChangePageFormat: false,
-                                                  canDebug: false,
-                                                  allowPrinting: false,
-                                                  allowSharing: false,
-                                                  useActions: false,
-                                                  scrollViewDecoration:
-                                                      BoxDecoration(
-                                                        color: Colors.white,
-                                                      ),
-                                                ),
-                                              )
-                                            : PdfPreview(
-                                                build: (format) =>
-                                                    _actualPdfBytes!,
-                                                canChangePageFormat: false,
-                                                canDebug: false,
-                                                allowPrinting: false,
-                                                allowSharing: false,
-                                                useActions: false,
-                                                scrollViewDecoration:
-                                                    BoxDecoration(
-                                                      color: Colors.white,
-                                                    ),
-                                              ),
-                                      ),
-                                    ),
-                                  ),
-
-                                  const SizedBox(height: 16),
-
-                                  // Preview info
-                                  Container(
-                                    padding: const EdgeInsets.all(20),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: Colors.white,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.info_outline_rounded,
-                                          size: 28,
-                                          color: Colors.white,
-                                        ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
-                                          child: Text(
-                                            'This is how your photo strip will look when printed',
-                                            style: TextStyle(
-                                              fontFamily: 'SpaceMono',
-                                              fontSize: 18,
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -468,10 +276,12 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
               width: double.infinity,
               height: 60,
               child: ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   Navigator.of(context).pop();
-                  ref.read(photoProvider.notifier).clearAllPhotos();
-                  context.go('/');
+                  if (!await confirmDiscardSession(this.context) || !mounted)
+                    return;
+                  await ref.read(photoProvider.notifier).clearAllPhotos();
+                  if (mounted) this.context.go('/');
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(0xFF740000),

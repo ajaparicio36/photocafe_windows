@@ -9,7 +9,6 @@ import 'package:photocafe_windows/features/videos/domain/data/models/video_state
 import 'package:photocafe_windows/features/videos/domain/data/constants/filter_constants.dart';
 
 class VideoNotifier extends AsyncNotifier<VideoState> {
-  Process? _ffmpegProcess;
 
   @override
   Future<VideoState> build() async {

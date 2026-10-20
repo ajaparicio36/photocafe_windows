@@ -1,3 +1,5 @@
+import 'package:photocafe_windows/widgets/confirm_discard_session.dart';
+import 'package:photocafe_windows/services/bouncy_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,11 @@ class KeychainStartScreen extends ConsumerWidget {
   const KeychainStartScreen({super.key});
 
   Future<void> _start(BuildContext context, WidgetRef ref) async {
+    if ((ref.read(photoProvider).value?.photos.isNotEmpty ?? false) ||
+        ref.read(bouncySessionProvider).hasWork) {
+      if (!await confirmDiscardSession(context) || !context.mounted) return;
+    }
+
     try {
       await ref.read(photoProvider.notifier).clearAllPhotos();
       await ref.read(photoProvider.notifier).setCaptureCount(4);

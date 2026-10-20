@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
+import 'package:photocafe_windows/services/bouncy_session.dart';
 
 import 'package:canon_edsdk/canon_edsdk.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -56,6 +57,14 @@ class CanonCameraService {
   /// Latest live-view frame, kept up-to-date by the frame tap.
   Uint8List? _latestFrame;
   Uint8List? get latestFrame => _latestFrame;
+  BouncySession? bouncySession;
+
+  /// Strict Bouncy capture: exactly one real shutter command, no contingency.
+  /// The caller freezes immediately before this command, never after download.
+  Future<String> takeBouncyPicture({void Function()? onShutterCommand}) {
+    onShutterCommand?.call();
+    return _camera.takePicture();
+  }
 
   /// Temp directory for contingency captures and other artifacts.
   String? _tempPath;
@@ -259,6 +268,7 @@ class CanonCameraService {
         .listen(
           (frame) {
             _latestFrame = frame; // § 1.5 – cache latest frame
+            bouncySession?.feed(frame);
             if (!_liveViewBroadcast.isClosed) {
               _liveViewBroadcast.add(frame);
             }

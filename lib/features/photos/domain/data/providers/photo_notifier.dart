@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:photocafe_windows/services/bouncy_session.dart';
+import 'package:photocafe_windows/services/bouncy_media_service.dart';
 import 'dart:isolate';
 import 'dart:typed_data';
 
@@ -7,38 +10,22 @@ import 'package:path/path.dart' as p;
 import 'package:printing/printing.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_state.dart';
-import 'package:photocafe_windows/services/canon_camera_service.dart';
-import 'package:photocafe_windows/services/webcam_video_service.dart';
-import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:image/image.dart' as img;
 
 class PhotoNotifier extends AsyncNotifier<PhotoState> {
-  Process? _ffmpegProcess;
-
-  // Background processing futures to avoid blocking UI
-  Future<void>? _pendingVhsProcessing;
-  String? _pendingRawVideoPath;
-
   // Path to the saved frame/photostrip PNG in the photos temp directory
   String? _savedFramePath;
-
-  /// Keychain design should remain responsive while the raw webcam file is
-  /// retained for the existing on-demand soft-copy path.
-  static bool shouldDeferVhsProcessing({required String completionRoute}) {
-    return completionRoute == '/keychain/design';
-  }
 
   @override
   Future<PhotoState> build() async {
     final tempPath = await getTemporaryDirectory();
-    final photoTempDir = Directory(p.join(tempPath.path, 'photos'));
+    final photoTempDir = await Directory(
+      tempPath.path,
+    ).createTemp('bouncy_photos_');
     if (!await photoTempDir.exists()) {
       await photoTempDir.create(recursive: true);
     }
-
-    // Don't initialize video camera here to avoid conflicts with photo camera
-    // Video camera will be initialized when needed for recording
 
     return PhotoState(
       photos: [],
@@ -49,334 +36,6 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     );
   }
 
-  Future<void> startVideoRecording() async {
-    try {
-      final webcamService = ref.read(webcamVideoServiceProvider);
-
-      // Get the selected video camera name from settings
-      final printerState = ref.read(printerProvider);
-      final videoCameraName = printerState.value?.videoCameraName;
-
-      print(
-        'Starting webcam video recording in photo notifier '
-        '(camera: ${videoCameraName ?? "default"})...',
-      );
-
-      // Initialize the webcam with the selected camera
-      await webcamService.initialize(videoCameraName);
-
-      // Start recording from the webcam
-      await webcamService.startRecording();
-
-      state = await AsyncValue.guard(() async {
-        final currentState = state.value;
-        if (currentState == null) {
-          throw Exception("State is not available to start video recording.");
-        }
-        return currentState.copyWith(isRecording: true);
-      });
-
-      print('Webcam video recording started successfully in photo notifier');
-    } catch (e) {
-      print('Failed to start webcam video recording in photo notifier: $e');
-      throw Exception('Video recording failed: $e');
-    }
-  }
-
-  Future<void> stopVideoRecording({bool deferVhsProcessing = false}) async {
-    try {
-      final webcamService = ref.read(webcamVideoServiceProvider);
-      print('Stopping webcam video recording in photo notifier...');
-
-      final videoPath = await webcamService.stopRecording();
-
-      // Dispose the webcam controller to free resources
-      // (Canon EDSDK live view continues unaffected)
-      await webcamService.dispose();
-
-      if (videoPath != null) {
-        // Reference the webcam video for VHS processing
-        await _referenceRecordedVideo(videoPath);
-
-        if (deferVhsProcessing) {
-          print('Deferring VHS processing until the existing on-demand path.');
-        } else {
-          // Start VHS processing in background - don't await here. This keeps
-          // the existing behavior for Classic capture sessions.
-          _startBackgroundVhsProcessing();
-        }
-      } else {
-        print('Warning: webcam stopRecording returned null path');
-      }
-
-      state = await AsyncValue.guard(() async {
-        final currentState = state.value;
-        if (currentState == null) {
-          throw Exception("State is not available to stop video recording.");
-        }
-        return currentState.copyWith(isRecording: false);
-      });
-
-      print(
-        deferVhsProcessing
-            ? 'Webcam recording stopped in photo notifier (VHS processing deferred)'
-            : 'Webcam recording stopped in photo notifier (VHS processing continues in background)',
-      );
-    } catch (e) {
-      print('Error stopping webcam video recording in photo notifier: $e');
-
-      // Make sure webcam is disposed even on error
-      try {
-        final webcamService = ref.read(webcamVideoServiceProvider);
-        await webcamService.dispose();
-      } catch (_) {}
-
-      state = await AsyncValue.guard(() async {
-        final currentState = state.value;
-        if (currentState == null) {
-          throw Exception("State is not available to update recording state.");
-        }
-        return currentState.copyWith(isRecording: false);
-      });
-
-      throw Exception('Failed to stop video recording: $e');
-    }
-  }
-
-  /// Reference the recorded video path directly for VHS processing.
-  /// No raw_session copy is made — the VHS processor reads straight
-  /// from the source file and produces the processed mp4.
-  Future<void> _referenceRecordedVideo(String videoFilePath) async {
-    final currentState = state.value;
-    if (currentState == null) {
-      throw Exception("State is not available to save raw video.");
-    }
-
-    try {
-      final sourceFile = File(videoFilePath);
-      final fileSize = await sourceFile.length();
-      print('Recorded video at: $videoFilePath ($fileSize bytes)');
-
-      if (fileSize < 1024) {
-        print('Recorded video file too small, creating fallback...');
-        final fallbackPath = p.join(
-          currentState.tempPath,
-          'fallback_${DateTime.now().millisecondsSinceEpoch}.avi',
-        );
-        await _createFallbackVideo(fallbackPath);
-        _pendingRawVideoPath = fallbackPath;
-
-        state = await AsyncValue.guard(() async {
-          final cs = state.value;
-          if (cs == null) {
-            throw Exception("State is not available to update video path.");
-          }
-          return cs.copyWith(videoPath: fallbackPath);
-        });
-        return;
-      }
-
-      // Reference the recorded video directly — no copy
-      _pendingRawVideoPath = videoFilePath;
-
-      state = await AsyncValue.guard(() async {
-        final cs = state.value;
-        if (cs == null) {
-          throw Exception("State is not available to update video path.");
-        }
-        return cs.copyWith(videoPath: videoFilePath);
-      });
-    } catch (e) {
-      print('Error referencing recorded video: $e');
-      final fallbackPath = p.join(
-        currentState.tempPath,
-        'fallback_${DateTime.now().millisecondsSinceEpoch}.avi',
-      );
-      await _createFallbackVideo(fallbackPath);
-      _pendingRawVideoPath = fallbackPath;
-
-      state = await AsyncValue.guard(() async {
-        final cs = state.value;
-        if (cs == null) {
-          throw Exception("State is not available to update video path.");
-        }
-        return cs.copyWith(videoPath: fallbackPath);
-      });
-    }
-  }
-
-  /// Start VHS processing in background without blocking
-  void _startBackgroundVhsProcessing() {
-    _pendingVhsProcessing = _processVideoWithVHSFilterAsync();
-    _pendingVhsProcessing!
-        .then((_) {
-          print('Background VHS processing completed');
-          _pendingVhsProcessing = null;
-        })
-        .catchError((e) {
-          print('Background VHS processing failed: $e');
-          _pendingVhsProcessing = null;
-        });
-  }
-
-  /// Check if VHS processing is still in progress
-  bool get isVhsProcessingInProgress => _pendingVhsProcessing != null;
-
-  /// Wait for any pending VHS processing to complete (call before upload)
-  Future<void> ensureVhsProcessingComplete() async {
-    if (_pendingVhsProcessing != null) {
-      print('Waiting for background VHS processing to complete...');
-      await _pendingVhsProcessing;
-      print('Background VHS processing finished');
-    }
-  }
-
-  Future<void> _processVideoWithVHSFilter() async {
-    await _processVideoWithVHSFilterAsync();
-  }
-
-  /// Async VHS processing that can run in background
-  Future<void> _processVideoWithVHSFilterAsync() async {
-    final currentState = state.value;
-    if (currentState == null || currentState.videoPath == null) {
-      throw Exception("No raw video available for VHS processing");
-    }
-
-    final rawVideoFile = File(currentState.videoPath!);
-    if (!await rawVideoFile.exists()) {
-      throw Exception("Raw video file not found: ${currentState.videoPath}");
-    }
-
-    final processedVideoFileName =
-        'vhs_processed_${DateTime.now().millisecondsSinceEpoch}.mp4';
-    final processedVideoPath = p.join(
-      currentState.tempPath,
-      processedVideoFileName,
-    );
-
-    try {
-      print('Processing raw video with VHS filter (background)...');
-      print('Input: ${currentState.videoPath}');
-      print('Output: $processedVideoPath');
-
-      // Apply VHS filter with optimized settings for faster processing
-      final ffmpegArgs = [
-        '-i', currentState.videoPath!,
-        '-y', // Overwrite output
-        '-v', 'warning', // Reduce log verbosity for speed
-        '-threads', '0', // Use all available CPU threads
-        '-vf',
-        [
-          'scale=640:480', // Standard definition for VHS effect
-          'fps=24', // Standardize frame rate
-          'noise=alls=15:allf=t', // Add noise for VHS effect
-          'eq=contrast=1.4:brightness=0.1:saturation=1.5', // Enhance colors
-          'unsharp=5:5:1.5:5:5:0.0', // Add slight blur
-        ].join(','),
-        '-c:v', 'libx264',
-        '-preset', 'veryfast', // Faster encoding preset (was 'fast')
-        '-tune', 'fastdecode', // Optimize for fast decoding
-        '-crf', '25', // Slightly lower quality for faster encoding (was 23)
-        '-movflags', '+faststart',
-        '-c:a', 'aac',
-        '-b:a', '96k', // Lower audio bitrate for faster encoding (was 128k)
-        processedVideoPath,
-      ];
-
-      print(
-        'FFmpeg VHS processing (optimized): ffmpeg ${ffmpegArgs.join(' ')}',
-      );
-      final process = await Process.run('ffmpeg', ffmpegArgs);
-
-      if (process.exitCode == 0) {
-        final processedFile = File(processedVideoPath);
-        if (await processedFile.exists()) {
-          final fileSize = await processedFile.length();
-          print('VHS processing completed successfully, size: $fileSize bytes');
-          print('VHS filter applied successfully');
-
-          // Delete the source AVI to save disk space — only keep the processed mp4
-          try {
-            final sourceAvi = File(currentState.videoPath!);
-            if (await sourceAvi.exists()) {
-              await sourceAvi.delete();
-              print(
-                'Deleted source AVI to save space: ${currentState.videoPath}',
-              );
-            }
-          } catch (cleanupErr) {
-            print('Warning: Could not delete source AVI: $cleanupErr');
-          }
-        } else {
-          throw Exception('Processed video file was not created');
-        }
-      } else {
-        print('VHS processing failed: ${process.stderr}');
-        throw Exception('VHS processing failed: ${process.stderr}');
-      }
-    } catch (e) {
-      print('Error in VHS processing: $e');
-      // If VHS processing fails, we still have the raw video
-      print('VHS processing failed, will use raw video as fallback');
-    }
-  }
-
-  // Legacy method kept for compatibility
-  @Deprecated('Use _processVideoWithVHSFilterAsync instead')
-  Future<void> _processVideoWithVHSFilterLegacy() async {
-    await _processVideoWithVHSFilterAsync();
-  }
-
-  Future<void> _createFallbackVideo(String outputPath) async {
-    try {
-      print('Creating fallback video at: $outputPath');
-
-      final outputDir = Directory(p.dirname(outputPath));
-      if (!await outputDir.exists()) {
-        await outputDir.create(recursive: true);
-      }
-
-      final ffmpegArgs = [
-        '-f',
-        'lavfi',
-        '-i',
-        'testsrc=duration=10:size=640x480:rate=25',
-        '-f',
-        'lavfi',
-        '-i',
-        'sine=frequency=1000:duration=10',
-        '-c:v',
-        'libx264',
-        '-preset',
-        'ultrafast',
-        '-pix_fmt',
-        'yuv420p',
-        '-c:a',
-        'aac',
-        '-shortest',
-        '-y',
-        outputPath,
-      ];
-
-      print('Running FFmpeg fallback: ${ffmpegArgs.join(' ')}');
-      final process = await Process.run('ffmpeg', ffmpegArgs);
-
-      if (process.exitCode == 0) {
-        final outputFile = File(outputPath);
-        if (await outputFile.exists()) {
-          final fileSize = await outputFile.length();
-          print('Fallback video created successfully, size: $fileSize bytes');
-        }
-      } else {
-        print('Fallback video creation failed: ${process.stderr}');
-      }
-    } catch (e) {
-      print('Error creating fallback video: $e');
-    }
-  }
-
-  /// Add a photo from raw image bytes (used for Canon EDSDK captured photos
-  /// or contingency capture screenshots).
   Future<void> addPhoto(
     Uint8List imageBytes, {
     int layoutMode = 4,
@@ -430,54 +89,83 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     String filePath, {
     int layoutMode = 4,
     bool isLandscape = false,
-  }) async {
-    final file = File(filePath);
-    if (!await file.exists()) {
-      throw Exception('Photo file not found: $filePath');
-    }
-
-    state = await AsyncValue.guard(() async {
-      final currentState = state.value;
-      if (currentState == null) {
-        throw Exception("State is not available to add a photo.");
-      }
-
-      // Copy the full-resolution Canon file directly to our temp directory.
-      // This preserves the original camera quality (multi-megapixel JPEG)
-      // for both frame building (printing) and soft-copy uploads.
-      final sourceExtension = p.extension(filePath).toLowerCase();
-      final ext = sourceExtension.isNotEmpty ? sourceExtension : '.jpg';
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}$ext';
-      final imagePath = p.join(currentState.tempPath, fileName);
-
-      await file.copy(imagePath);
-
-      final copiedFile = File(imagePath);
-      final fileSize = await copiedFile.length();
-      print('Full-res Canon photo stored: $imagePath ($fileSize bytes)');
-
-      final newPhoto = PhotoModel(
-        imagePath: imagePath,
-        index: currentState.photos.isNotEmpty
-            ? (currentState.photos
-                      .map((p) => p.index)
-                      .reduce((a, b) => a > b ? a : b) +
-                  1)
-            : 0,
+    BouncyAttempt? attempt,
+    BouncyClip? clip,
+    int? replaceIndex,
+  }) => ref
+      .read(bouncySessionProvider)
+      .track(
+        _storePhoto(
+          filePath,
+          layoutMode: layoutMode,
+          isLandscape: isLandscape,
+          attempt: attempt,
+          clip: clip,
+          replaceIndex: replaceIndex,
+        ),
       );
 
-      final updatedPhotos = List<PhotoModel>.from(currentState.photos)
-        ..add(newPhoto);
-
-      return currentState.copyWith(photos: updatedPhotos);
-    });
-
-    // Clean up the Canon temp file after we've copied it
-    try {
-      await file.delete();
-    } catch (e) {
-      print('Warning: Could not delete Canon temp file: $e');
+  Future<void> _storePhoto(
+    String filePath, {
+    int layoutMode = 4,
+    bool isLandscape = false,
+    BouncyAttempt? attempt,
+    BouncyClip? clip,
+    int? replaceIndex,
+  }) async {
+    final session = ref.read(bouncySessionProvider);
+    final generation = session.generation;
+    if (attempt != null && (clip == null || clip.problem != null)) {
+      throw StateError(clip?.problem ?? 'No live view clip. Retake this shot.');
     }
+    final currentState = state.requireValue;
+    final previousIndex = replaceIndex == null
+        ? -1
+        : currentState.photos.indexWhere((p) => p.index == replaceIndex);
+    if (replaceIndex != null && previousIndex < 0) {
+      throw StateError('Retake shot no longer exists.');
+    }
+    final ext = p.extension(filePath).isEmpty ? '.jpg' : p.extension(filePath);
+    final captureId =
+        attempt?.captureId ?? '${DateTime.now().microsecondsSinceEpoch}';
+    final imagePath = p.join(
+      currentState.tempPath,
+      'shot_${captureId}_${attempt?.number ?? 0}$ext',
+    );
+    final bytes = await File(filePath).readAsBytes();
+    final codec = await ui.instantiateImageCodec(
+      bytes,
+      targetWidth: 64,
+      targetHeight: 64,
+      allowUpscaling: false,
+    );
+    try {
+      final frame = await codec.getNextFrame();
+      frame.image.dispose();
+    } finally {
+      codec.dispose();
+    }
+    await File(filePath).copy(imagePath);
+    if (session.generation != generation ||
+        (attempt != null && !session.current(attempt))) {
+      await File(imagePath).delete();
+      throw StateError('Capture session changed.');
+    }
+    final photos = List<PhotoModel>.from(currentState.photos);
+    final index = replaceIndex ?? photos.length;
+    final photo = PhotoModel(
+      imagePath: imagePath,
+      originalPath: imagePath,
+      index: index,
+      captureId: captureId,
+    );
+    if (attempt != null) session.accept(attempt, clip!);
+    if (replaceIndex == null) {
+      photos.add(photo);
+    } else {
+      photos[previousIndex] = photo;
+    }
+    state = AsyncValue.data(currentState.copyWith(photos: photos));
   }
 
   /// Save the composited frame as a high-quality PNG to the photos temp
@@ -485,7 +173,11 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   ///
   /// Accepts the raw PDF bytes, rasterizes the first page at 300 DPI,
   /// and writes the result as a PNG file. Returns the saved file path.
-  Future<String> saveFramePdf(Uint8List pdfBytes) async {
+  Future<String> saveFramePdf(Uint8List pdfBytes) =>
+      ref.read(bouncySessionProvider).track(_saveFramePdf(pdfBytes));
+  Future<String> _saveFramePdf(Uint8List pdfBytes) async {
+    final session = ref.read(bouncySessionProvider);
+    final generation = session.generation;
     final currentState = state.value;
     if (currentState == null) {
       throw Exception('State is not available to save frame.');
@@ -507,13 +199,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     // Convert PDF to PNG at 300 DPI for full print quality
     Uint8List pngBytes;
     try {
-      final pages = Printing.raster(pdfBytes, dpi: 300);
-      final firstPage = await pages.first;
-      pngBytes = await firstPage.toPng();
-      print(
-        'Frame PDF rasterized to PNG: '
-        '${firstPage.width}×${firstPage.height} px, ${pngBytes.length} bytes',
-      );
+      pngBytes = await rasterFrame(pdfBytes);
     } catch (e) {
       print('Warning: PNG conversion failed, saving as PDF fallback: $e');
       // Fallback: save the raw PDF if rasterization fails
@@ -522,6 +208,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       final fallbackPath = p.join(currentState.tempPath, fallbackName);
       final fallbackFile = File(fallbackPath);
       await fallbackFile.writeAsBytes(pdfBytes, flush: true);
+      if (generation != session.generation) {
+        throw StateError('Session changed.');
+      }
       _savedFramePath = fallbackPath;
       return fallbackPath;
     }
@@ -531,11 +220,17 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     final file = File(pngPath);
     await file.writeAsBytes(pngBytes, flush: true);
 
+    if (generation != session.generation) throw StateError('Session changed.');
     _savedFramePath = pngPath;
     final fileSize = await file.length();
     print('Frame PNG saved: $pngPath ($fileSize bytes)');
 
     return pngPath;
+  }
+
+  Future<Uint8List> rasterFrame(Uint8List pdfBytes) async {
+    final firstPage = await Printing.raster(pdfBytes, dpi: 300).first;
+    return firstPage.toPng();
   }
 
   /// Get the path to the saved frame file (PNG), if any.
@@ -645,7 +340,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
           'Warning: Photo state was null when setting capture count, creating new state',
         );
         final tempPath = await getTemporaryDirectory();
-        final photoTempDir = Directory(p.join(tempPath.path, 'photos'));
+        final photoTempDir = await Directory(
+          tempPath.path,
+        ).createTemp('bouncy_photos_');
         if (!await photoTempDir.exists()) {
           await photoTempDir.create(recursive: true);
         }
@@ -701,61 +398,33 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     });
   }
 
-  Future<void> clearAllPhotos() async {
-    state = await AsyncValue.guard(() async {
-      final currentState = state.value;
-      if (currentState == null) return state.value!;
-
-      // Stop Canon preview recording if active
-      try {
-        final canonService = ref.read(canonCameraServiceProvider);
-        if (currentState.isRecording) {
-          await canonService.stopRecordingWithPreviewRetry();
-        }
-      } catch (e) {
-        print('Error stopping Canon recording during clear: $e');
-      }
-
-      // Delete all photo files from the temporary directory
-      for (final photo in currentState.photos) {
-        final file = File(photo.imagePath);
-        if (await file.exists()) {
-          await file.delete();
-        }
-      }
-
-      // Delete video files if they exist
-      if (currentState.videoPath != null) {
-        final videoFile = File(currentState.videoPath!);
-        if (await videoFile.exists()) {
-          await videoFile.delete();
-        }
-      }
-
-      // Clean up processed video files and frame PDFs
-      final tempDir = Directory(currentState.tempPath);
-      await for (final entity in tempDir.list()) {
-        if (entity is File &&
-            (entity.path.contains('vhs_processed_') ||
-                entity.path.contains('raw_session_') ||
-                entity.path.contains('photostrip_'))) {
-          try {
-            await entity.delete();
-            print('Cleaned up file: ${entity.path}');
-          } catch (e) {
-            print('Error cleaning up file: $e');
-          }
-        }
-      }
-
-      _savedFramePath = null;
-
-      return currentState.copyWith(
+  Future<void>? _resetWork;
+  Future<void> clearAllPhotos() =>
+      _resetWork ??= _clearAllPhotos().whenComplete(() => _resetWork = null);
+  Future<void> _clearAllPhotos() async {
+    final currentState = state.value;
+    if (currentState == null) return;
+    final session = ref.read(bouncySessionProvider);
+    session.reset();
+    await session.drain();
+    await ref.read(bouncyMediaProvider).cancelAndDrain();
+    // Each session owns a unique directory; never glob the shared temp folder.
+    final temp = await getTemporaryDirectory();
+    final next = await Directory(temp.path).createTemp('bouncy_photos_');
+    state = AsyncValue.data(
+      currentState.copyWith(
         photos: [],
+        tempPath: next.path,
         videoPath: null,
         isRecording: false,
-      );
-    });
+      ),
+    );
+    _savedFramePath = null;
+    final owned = Directory(currentState.tempPath);
+    if (p.basename(owned.path).startsWith('bouncy_photos_') &&
+        await owned.exists()) {
+      await owned.delete(recursive: true);
+    }
   }
 
   Future<void> switchPhotoOrder(int indexA, int indexB) async {
@@ -806,9 +475,25 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     });
   }
 
-  Future<void> applyFilters(
+  void restoreOriginalPhotos() {
+    final current = state.requireValue;
+    state = AsyncValue.data(
+      current.copyWith(
+        photos: [
+          for (final photo in current.photos)
+            photo.copyWith(imagePath: photo.originalPath ?? photo.imagePath),
+        ],
+      ),
+    );
+  }
+
+  Future<void> applyFilters(img.Image Function(img.Image) filterFunction) =>
+      ref.read(bouncySessionProvider).track(_applyFilters(filterFunction));
+  Future<void> _applyFilters(
     img.Image Function(img.Image) filterFunction,
   ) async {
+    final session = ref.read(bouncySessionProvider);
+    final generation = session.generation;
     final currentState = state.value;
     if (currentState == null) {
       throw Exception("State is not available to apply filters.");
@@ -820,7 +505,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     try {
       // Process all photos in parallel using Isolate.run for each
       final futures = currentState.photos.map((photo) async {
-        final file = File(photo.imagePath);
+        final file = File(photo.originalPath ?? photo.imagePath);
         if (!await file.exists()) {
           return photo; // Keep original if file doesn't exist
         }
@@ -830,16 +515,10 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
           final imageBytes = await file.readAsBytes();
 
           // Process in isolate to avoid blocking UI
-          final filteredBytes = await Isolate.run(() {
-            final originalImage = img.decodeImage(imageBytes);
-            if (originalImage == null) return imageBytes;
-
-            // Apply the filter
-            final filteredImage = filterFunction(originalImage);
-
-            // Encode back to JPEG with good quality
-            return img.encodeJpg(filteredImage, quality: 92);
-          });
+          final filteredBytes = await _filterFullPhoto(
+            imageBytes,
+            filterFunction,
+          );
 
           // Generate unique filename
           final fileName =
@@ -849,11 +528,6 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
           // Write filtered image (use flush: false for speed)
           await filteredFile.writeAsBytes(filteredBytes, flush: false);
-
-          // Delete old file
-          try {
-            await file.delete();
-          } catch (_) {}
 
           return photo.copyWith(imagePath: filteredPath);
         } catch (e) {
@@ -865,6 +539,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       // Wait for all photos to be processed in parallel
       final updatedPhotos = await Future.wait(futures);
 
+      if (generation != session.generation) return;
       // Update state directly with data, keeping it as AsyncData
       state = AsyncValue.data(
         currentState.copyWith(photos: updatedPhotos.toList()),
@@ -886,7 +561,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
 
     // Add all photo files
     for (final photo in currentState.photos) {
-      final file = File(photo.imagePath);
+      final file = File(photo.originalPath ?? photo.imagePath);
       if (await file.exists()) {
         mediaFiles.add(file);
         print('Added photo file: ${photo.imagePath}');
@@ -898,205 +573,17 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     print('Total media files: ${mediaFiles.length}');
     return mediaFiles;
   }
-
-  // Get processed video specifically for soft copy upload
-  Future<File?> getProcessedVideo() async {
-    // Wait for any background VHS processing to complete first
-    await ensureVhsProcessingComplete();
-
-    final currentState = state.value;
-    if (currentState == null) {
-      return null;
-    }
-
-    // Look for VHS processed video files in temp directory
-    final tempDir = Directory(currentState.tempPath);
-    final files = await tempDir.list().toList();
-
-    for (final file in files) {
-      if (file is File &&
-          file.path.contains('vhs_processed_') &&
-          file.path.endsWith('.mp4')) {
-        if (await file.exists()) {
-          print('Found VHS processed video: ${file.path}');
-          return file;
-        }
-      }
-    }
-
-    print('No VHS processed video found');
-    return null;
-  }
-
-  Future<String?> processVideoWithVHSFilter({
-    required Function(double) onProgress,
-  }) async {
-    final currentState = state.value;
-    if (currentState == null || currentState.videoPath == null) {
-      throw Exception("No video available for processing");
-    }
-
-    final videoFile = File(currentState.videoPath!);
-    if (!await videoFile.exists()) {
-      throw Exception("Video file not found at: ${currentState.videoPath}");
-    }
-
-    // Check if the video file is valid
-    final fileSize = await videoFile.length();
-    print('Processing video file size: $fileSize bytes');
-
-    if (fileSize < 1024) {
-      throw Exception(
-        "Video file is too small or corrupted (${fileSize} bytes)",
-      );
-    }
-
-    // Create output path for processed video in the same temp directory
-    final outputFileName =
-        'vhs_filtered_${DateTime.now().millisecondsSinceEpoch}.mp4';
-    final outputPath = p.join(currentState.tempPath, outputFileName);
-
-    try {
-      onProgress(0.1); // Starting
-
-      // Validate input video with ffprobe first
-      try {
-        print('Validating input video with ffprobe...');
-        final probeResult = await Process.run('ffprobe', [
-          '-v',
-          'quiet',
-          '-print_format',
-          'json',
-          '-show_format',
-          '-show_streams',
-          currentState.videoPath!,
-        ]);
-
-        if (probeResult.exitCode != 0) {
-          print('FFprobe failed: ${probeResult.stderr}');
-          throw Exception(
-            'Input video validation failed: ${probeResult.stderr}',
-          );
-        }
-
-        print('Video validation successful');
-        print('FFprobe output: ${probeResult.stdout}');
-      } catch (e) {
-        print('Video validation error: $e');
-        // Continue anyway, FFmpeg might still be able to process it
-      }
-
-      onProgress(0.2); // Validation complete
-
-      print('Starting VHS filter processing...');
-      print('Input: ${currentState.videoPath}');
-      print('Output: $outputPath');
-
-      // Apply VHS filter with more robust settings
-      final ffmpegArgs = [
-        '-i', currentState.videoPath!,
-        '-t', '40', // Limit to 40 seconds max
-        '-y', // Overwrite output
-        '-v', 'info', // More verbose logging
-        '-vf',
-        [
-          'scale=640:480', // Resize to standard definition
-          'fps=24', // Standardize frame rate
-          'noise=alls=10:allf=t', // Add noise for VHS effect
-          'eq=contrast=1.3:brightness=0.05:saturation=1.4', // Adjust colors
-          'unsharp=5:5:1.0:5:5:0.0', // Add slight blur
-        ].join(','),
-        '-c:v', 'libx264',
-        '-preset', 'fast', // Faster than medium
-        '-crf', '23', // Better quality than 28
-        '-movflags', '+faststart',
-        '-c:a', 'aac', // Keep audio but re-encode
-        '-b:a', '128k', // Audio bitrate
-        outputPath,
-      ];
-
-      onProgress(0.3); // Starting processing
-
-      print('FFmpeg command: ffmpeg ${ffmpegArgs.join(' ')}');
-
-      final process = await Process.start('ffmpeg', ffmpegArgs);
-
-      // Capture stderr for progress monitoring
-      final stderrBuffer = StringBuffer();
-      process.stderr.transform(const SystemEncoding().decoder).listen((data) {
-        stderrBuffer.write(data);
-        print('FFmpeg stderr: $data');
-
-        // Parse progress from time information
-        final timeRegex = RegExp(r'time=(\d{2}):(\d{2}):(\d{2})\.(\d{2})');
-        final match = timeRegex.firstMatch(data);
-        if (match != null) {
-          final hours = int.parse(match.group(1)!);
-          final minutes = int.parse(match.group(2)!);
-          final seconds = int.parse(match.group(3)!);
-          final totalSeconds = hours * 3600 + minutes * 60 + seconds;
-
-          // Estimate progress (assuming 10 second video)
-          final estimatedDuration = 10;
-          final progress = 0.3 + (totalSeconds / estimatedDuration) * 0.6;
-          onProgress(progress.clamp(0.3, 0.9));
-        }
-      });
-
-      // Capture stdout
-      process.stdout.transform(const SystemEncoding().decoder).listen((data) {
-        print('FFmpeg stdout: $data');
-      });
-
-      final exitCode = await process.exitCode;
-      print('FFmpeg finished with exit code: $exitCode');
-
-      if (exitCode != 0) {
-        print('FFmpeg stderr output: ${stderrBuffer.toString()}');
-        throw Exception(
-          'VHS filter processing failed with exit code: $exitCode',
-        );
-      }
-
-      onProgress(0.95);
-
-      // Verify output file
-      final outputFile = File(outputPath);
-      if (!await outputFile.exists()) {
-        throw Exception('Processed video file was not created at: $outputPath');
-      }
-
-      final outputSize = await outputFile.length();
-      if (outputSize < 1024) {
-        throw Exception('Processed video file is too small: $outputSize bytes');
-      }
-
-      print('VHS processing completed successfully!');
-      print('Output file: $outputPath');
-      print('Output size: $outputSize bytes');
-
-      onProgress(1.0);
-      return outputPath;
-    } catch (e) {
-      print('VHS processing error: $e');
-
-      // Fallback: copy the original file with a different name
-      try {
-        print('Creating fallback processed video...');
-        final inputBytes = await File(currentState.videoPath!).readAsBytes();
-        await File(outputPath).writeAsBytes(inputBytes);
-
-        onProgress(1.0);
-        print('Used original video as VHS processed fallback');
-        return outputPath;
-      } catch (fallbackError) {
-        print('Fallback creation failed: $fallbackError');
-        throw Exception('VHS processing and fallback failed: $e');
-      }
-    }
-  }
 }
 
 final photoProvider = AsyncNotifierProvider<PhotoNotifier, PhotoState>(
-  () => PhotoNotifier(),
+  PhotoNotifier.new,
 );
+
+Future<List<int>> _filterFullPhoto(
+  Uint8List imageBytes,
+  img.Image Function(img.Image) filter,
+) => Isolate.run(() {
+  final original = img.decodeImage(imageBytes);
+  if (original == null) throw StateError('Original image is unreadable.');
+  return img.encodeJpg(filter(original), quality: 92);
+});

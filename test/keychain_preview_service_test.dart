@@ -8,7 +8,6 @@ import 'package:photocafe_windows/features/classic/presentation/constants/frame_
 import 'package:photocafe_windows/features/keychain/domain/data/models/keychain_models.dart';
 import 'package:photocafe_windows/features/keychain/domain/services/keychain_composition_service.dart';
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
-import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -19,7 +18,7 @@ void main() {
     );
     addTearDown(() => directory.delete(recursive: true));
 
-    final frameBytes = _solidPng(1200, 1800, 255, 255, 255);
+    final frameBytes = _solidPng(1240, 1844, 255, 255, 255);
     final photos = await _writePhotos(directory);
     var frameAssetReads = 0;
     final service = KeychainCompositionService(
@@ -35,8 +34,8 @@ void main() {
       photos: photos,
     );
     expect(img.decodeImage(first), isNotNull);
-    expect(img.decodeImage(first)!.width, 600);
-    expect(img.decodeImage(first)!.height, 900);
+    expect(img.decodeImage(first)!.width, 620);
+    expect(img.decodeImage(first)!.height, 922);
     expect(frameAssetReads, 1);
 
     // The source files are no longer readable, proving that the second
@@ -71,7 +70,7 @@ void main() {
       );
       addTearDown(() => directory.delete(recursive: true));
 
-      final frameBytes = _solidPng(1200, 1800, 255, 255, 255);
+      final frameBytes = _solidPng(1240, 1844, 255, 255, 255);
       final photos = await _writePhotos(directory);
       final service = KeychainCompositionService(
         loadAsset: (_) async => ByteData.sublistView(frameBytes),
@@ -93,13 +92,13 @@ void main() {
       for (final variant in output.variantPngs) {
         final decoded = img.decodeImage(variant);
         expect(decoded, isNotNull);
-        expect(decoded!.width, 600);
-        expect(decoded.height, 900);
+        expect(decoded!.width, 620);
+        expect(decoded.height, 922);
       }
       final sheet = img.decodeImage(output.sheetPng);
       expect(sheet, isNotNull);
-      expect(sheet!.width, 1200);
-      expect(sheet.height, 1800);
+      expect(sheet!.width, 1240);
+      expect(sheet.height, 1844);
       expect(output.sheetPdf, isNotEmpty);
     },
   );
@@ -112,7 +111,7 @@ void main() {
       );
       addTearDown(() => directory.delete(recursive: true));
 
-      final frameBytes = _solidPng(1200, 1800, 255, 255, 255);
+      final frameBytes = _solidPng(1240, 1844, 255, 255, 255);
       final photos = await _writePhotos(directory);
       final service = KeychainCompositionService(
         loadAsset: (_) async {
@@ -145,8 +144,8 @@ void main() {
       await firstRequest;
       await supersededExpectation;
       final latest = await latestRequest;
-      expect(img.decodeImage(latest)!.width, 600);
-      expect(img.decodeImage(latest)!.height, 900);
+      expect(img.decodeImage(latest)!.width, 620);
+      expect(img.decodeImage(latest)!.height, 922);
     },
   );
 
@@ -156,7 +155,7 @@ void main() {
     );
     addTearDown(() => directory.delete(recursive: true));
 
-    final frameBytes = _solidPng(1200, 1800, 255, 255, 255);
+    final frameBytes = _solidPng(1240, 1844, 255, 255, 255);
     final photos = await _writePhotos(directory);
     final service = KeychainCompositionService(
       loadAsset: (_) async => ByteData.sublistView(frameBytes),
@@ -179,21 +178,6 @@ void main() {
         photos: reorderedPhotos,
       ),
       throwsA(isA<StateError>()),
-    );
-  });
-
-  test('VHS processing is deferred only for Keychain capture', () {
-    expect(
-      PhotoNotifier.shouldDeferVhsProcessing(
-        completionRoute: '/keychain/design',
-      ),
-      isTrue,
-    );
-    expect(
-      PhotoNotifier.shouldDeferVhsProcessing(
-        completionRoute: '/classic/filter',
-      ),
-      isFalse,
     );
   });
 }

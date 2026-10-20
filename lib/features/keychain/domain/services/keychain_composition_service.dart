@@ -15,8 +15,8 @@ import 'package:photocafe_windows/features/photos/domain/data/models/photo_model
 typedef FrameAssetLoader = Future<ByteData> Function(String assetPath);
 
 const int _previewPhotoMaxDimension = 640;
-const int _previewFrameWidth = 600;
-const int _previewFrameHeight = 900;
+const int _previewFrameWidth = FrameCompositionRenderer.keychainVariantWidth;
+const int _previewFrameHeight = FrameCompositionRenderer.keychainVariantHeight;
 const int _previewJpegQuality = 82;
 
 /// Returned to callers whose preview request was replaced by a newer request.
@@ -517,49 +517,33 @@ Future<List<Object>> _renderFinalRasterInIsolate({
     throw ArgumentError('Final Keychain raster input requires four variants.');
   }
 
-  final filteredById = <String, List<Uint8List>>{};
-  final variantPngs = <Uint8List>[];
-  for (var index = 0; index < keychainVariantCount; index++) {
-    final filterId = filterIds[index];
-    final filteredPhotos = filteredById.putIfAbsent(
-      filterId,
-      () => _applyFinalFilterToPhotos(originals, filterId),
-    );
-    final variant = await FrameCompositionRenderer.renderKeychainVariantPng(
-      input: KeychainCompositionInput(
-        layout: _layoutFromDto(layouts[index]),
-        frameBytes: frameBytes[index],
-        photoBytes: filteredPhotos,
-      ),
-    );
-    variantPngs.add(variant);
-  }
-  final sheetPng = FrameCompositionRenderer.generateKeychainSheetPng(
-    variantPngs: variantPngs,
+  // Decode originals once. Retain only the active filter set, not four 24MP sets.
+  final decoded = originals.map(_decodeRequiredImage).toList(growable: false);
+  final variantPngs = List<Uint8List?>.filled(keychainVariantCount, null);
+  final sheet = img.Image(
+    width: FramePdfGeometry.rasterWidth,
+    height: FramePdfGeometry.rasterHeight,
   );
-  return <Object>[variantPngs, sheetPng];
-}
-
-List<Uint8List> _applyFinalFilterToPhotos(
-  List<Uint8List> originals,
-  String filterId,
-) {
-  return [
-    for (final original in originals)
-      _applyFinalFilterToBytes(original, filterId),
+  img.fill(sheet, color: img.ColorRgb8(255, 255, 255));
+  for (var index = 0; index < keychainVariantCount; index++) {
+    final tile = FrameCompositionRenderer.renderDecodedVariant(
+      layout: _layoutFromDto(layouts[index]),
+      frame: _decodeRequiredImage(frameBytes[index]),
+      photos: decoded,
+      filterId: filterIds[index],
+    );
+    variantPngs[index] = Uint8List.fromList(img.encodePng(tile));
+    img.compositeImage(
+      sheet,
+      tile,
+      dstX: (index % 2) * FrameCompositionRenderer.keychainVariantWidth,
+      dstY: (index ~/ 2) * FrameCompositionRenderer.keychainVariantHeight,
+    );
+  }
+  return <Object>[
+    variantPngs.cast<Uint8List>(),
+    Uint8List.fromList(img.encodePng(sheet)),
   ];
-}
-
-Uint8List _applyFinalFilterToBytes(Uint8List original, String filterId) {
-  if (filterId == 'no_filter') {
-    return Uint8List.fromList(original);
-  }
-  final decoded = img.decodeImage(original);
-  if (decoded == null) {
-    throw StateError('Unable to decode an original photo for filtering.');
-  }
-  final filtered = _applyFilterById(img.Image.from(decoded), filterId);
-  return Uint8List.fromList(img.encodeJpg(filtered, quality: 95));
 }
 
 FrameLayout _layoutFromDto(List<Object> layoutDto) {

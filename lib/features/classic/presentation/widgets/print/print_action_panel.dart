@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'package:dio/dio.dart';
+import 'package:photocafe_windows/services/bouncy_session.dart';
+import 'package:photocafe_windows/services/bouncy_media_service.dart';
+import 'package:photocafe_windows/services/bouncy_fixture.dart';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:photocafe_windows/core/colors/colors.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/photos/domain/services/soft_copies_service.dart';
 import 'package:qr_flutter/qr_flutter.dart';
@@ -15,6 +18,7 @@ class PrintActionPanel extends ConsumerStatefulWidget {
       'Prints two identical strips (requires cutter)';
 
   final bool isPrinting;
+  final bool printReady;
   final bool splitStrips;
   final ValueChanged<bool> onSplitStripsChanged;
   final ValueChanged<int> onPrint;
@@ -27,6 +31,7 @@ class PrintActionPanel extends ConsumerStatefulWidget {
   const PrintActionPanel({
     super.key,
     required this.isPrinting,
+    this.printReady = true,
     required this.splitStrips,
     required this.onSplitStripsChanged,
     required this.onPrint,
@@ -206,787 +211,397 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
     );
   }
 
-  Future<void> _handleSoftCopies() async {
+  CancelToken? _uploadCancellation;
+  Future<void> _handleSoftCopies() =>
+      ref.read(bouncySessionProvider).track(_softCopiesWork());
+  Future<void> _softCopiesWork() async {
+    if (_isProcessingSoftCopies) return;
+    final session = ref.read(bouncySessionProvider);
+    final generation = session.generation;
+    if (!session.valid(
+      ref.read(photoProvider).requireValue.photos.map((p) => p.captureId),
+    )) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Retake incomplete shots before continuing.'),
+        ),
+      );
+      return;
+    }
     setState(() {
       _isProcessingSoftCopies = true;
-      _processingProgress = 0.0;
-      _processingStatus = 'Preparing media files...';
+      _processingStatus = 'Preparing Bouncy MP4…';
     });
-
+    final token = CancelToken();
+    _uploadCancellation = token;
+    void cancel() => token.cancel('Session cancelled');
+    session.cancellations.add(cancel);
     try {
-      final photoNotifier = ref.read(photoProvider.notifier);
-
-      // Step 1: Get all media files
-      setState(() {
-        _processingStatus = 'Collecting photos...';
-        _processingProgress = 0.1;
-      });
-
-      final mediaFiles = await photoNotifier.getAllMediaFiles();
-      print('Media files collected: ${mediaFiles.length}');
-
-      // Step 2: Get processed video (waits for background VHS processing if still running)
-      String? processedVideoPath;
-      final photoState = ref.read(photoProvider).value;
-
-      if (photoState?.videoPath != null) {
-        setState(() {
-          _processingStatus = photoNotifier.isVhsProcessingInProgress
-              ? 'Waiting for video processing...'
-              : 'Getting processed video...';
-        });
-
-        try {
-          // This will wait for background processing to complete if still running
-          final processedVideo = await photoNotifier.getProcessedVideo();
-          processedVideoPath = processedVideo?.path;
-
-          if (processedVideoPath != null) {
-            print('Video processing completed: $processedVideoPath');
-            setState(() {
-              _processingProgress = 0.5;
-            });
-          } else {
-            // Fallback: process video on-demand if no processed video found
-            setState(() {
-              _processingStatus = 'Applying VHS filter to video...';
-            });
-
-            processedVideoPath = await photoNotifier.processVideoWithVHSFilter(
-              onProgress: (progress) {
-                setState(() {
-                  _processingProgress = 0.1 + (progress * 0.4); // 0.1 to 0.5
-                });
-              },
-            );
-            print('On-demand video processing completed: $processedVideoPath');
-          }
-        } catch (e) {
-          print('Video processing failed: $e');
-          // Continue without video
-        }
-      } else {
-        setState(() {
-          _processingProgress = 0.5;
-        });
-      }
-
-      // Step 3: Upload to server
-      setState(() {
-        _processingStatus = 'Uploading to server...';
-      });
-
-      final softCopiesService = SoftCopiesService();
-      final result = await softCopiesService.uploadMediaFiles(
-        mediaFiles: mediaFiles,
-        additionalMediaFiles: widget.additionalMediaFiles,
-        additionalFileNames: widget.additionalFileNames,
-        processedVideoPath: processedVideoPath,
-        pdfBytes: widget.pdfBytes,
-        allowSocialMediaPosting: _allowSocialMediaPosting,
-        onProgress: (progress) {
-          setState(() {
-            _processingProgress = 0.5 + (progress * 0.5); // 0.5 to 1.0
-          });
-        },
-      );
-
-      if (result.success) {
-        setState(() {
-          _processingStatus = 'Upload complete!';
-          _processingProgress = 1.0;
-        });
-
-        // Show success dialog with QR code
-        _showSoftCopiesSuccessDialog(result.downloadUrl!);
-      } else {
-        throw Exception(result.error ?? 'Upload failed');
-      }
-    } catch (e) {
-      print('Error in soft copies processing: $e');
-      setState(() {
-        _isProcessingSoftCopies = false;
-        _processingProgress = 0.0;
-        _processingStatus = '';
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              Icon(Icons.error_rounded, color: Colors.white),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Failed to process soft copies: $e',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+      late final String animation;
+      try {
+        animation = await ref.read(bouncyMediaProvider).export();
+      } catch (error) {
+        if (!mounted || generation != session.generation) return;
+        await showDialog<void>(
+          context: context,
+          builder: (dialog) => AlertDialog(
+            backgroundColor: Colors.white,
+            titleTextStyle: const TextStyle(
+              color: Color(0xff740000),
+              fontSize: 24,
+              fontWeight: FontWeight.w600,
+            ),
+            contentTextStyle: const TextStyle(
+              color: Color(0xff740000),
+              fontSize: 16,
+            ),
+            title: const Text('Motion export unavailable'),
+            content: const Text(
+              'Your photos are still printable. Choose Get Soft Copies again to retry the motion export. No archive has been uploaded.',
+            ),
+            actions: [
+              TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xff740000),
                 ),
+                onPressed: () => Navigator.pop(dialog),
+                child: const Text('Retry later'),
               ),
             ],
           ),
-          backgroundColor: Theme.of(context).colorScheme.error,
-          duration: const Duration(seconds: 5),
+        );
+        return;
+      }
+      if (!mounted || generation != session.generation) return;
+      setState(() {
+        _processingStatus = 'Uploading soft copies…';
+        _processingProgress = 0.5;
+      });
+      final media = await ref.read(photoProvider.notifier).getAllMediaFiles();
+      if (generation != session.generation || token.isCancelled) return;
+      final files = [...widget.additionalMediaFiles, File(animation)];
+      final names = [...widget.additionalFileNames, 'bouncy_preview.mp4'];
+      final result = await session.track(
+        SoftCopiesService().uploadMediaFiles(
+          mediaFiles: media,
+          additionalMediaFiles: files,
+          additionalFileNames: names,
+          pdfBytes: widget.pdfBytes,
+          cancelToken: token,
+          allowSocialMediaPosting: _allowSocialMediaPosting,
+          onProgress: (progress) {
+            if (mounted && generation == session.generation)
+              setState(() => _processingProgress = progress);
+          },
         ),
       );
+      if (!mounted || generation != session.generation) return;
+      if (!result.success) throw StateError(result.error ?? 'Upload failed');
+      _showSoftCopiesSuccessDialog(result.downloadUrl!);
+    } catch (error) {
+      if (mounted && generation == session.generation)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Soft copies unavailable: $error')),
+        );
+    } finally {
+      session.cancellations.remove(cancel);
+      if (mounted && generation == session.generation)
+        setState(() {
+          _isProcessingSoftCopies = false;
+          _processingStatus = '';
+        });
     }
   }
 
-  void _showSoftCopiesSuccessDialog(String downloadUrl) {
-    print('Attempting to show QR dialog...');
+  @override
+  void dispose() {
+    _uploadCancellation?.cancel('Screen closed');
+    super.dispose();
+  }
 
-    // Ensure we're not in a processing state when showing dialog
+  void _showSoftCopiesSuccessDialog(String downloadUrl) {
+    if (!mounted) return;
     setState(() {
       _isProcessingSoftCopies = false;
-      _processingProgress = 0.0;
+      _processingProgress = 0;
       _processingStatus = '';
     });
-
-    showDialog(
+    showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (BuildContext dialogContext) {
-        print('Dialog builder called');
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Container(
-            constraints: BoxConstraints(
-              maxWidth: 600,
-              maxHeight: MediaQuery.of(context).size.height * 0.8,
+      builder: (dialog) => SoftCopiesReadyDialog(
+        downloadUrl: downloadUrl,
+        onStartOver: () {
+          Navigator.pop(dialog);
+          _startOver();
+        },
+      ),
+    );
+  }
+
+  Future<void> _startOver() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialog) => AlertDialog(
+        backgroundColor: Colors.white,
+        titleTextStyle: const TextStyle(
+          color: Color(0xff740000),
+          fontSize: 24,
+          fontWeight: FontWeight.w600,
+        ),
+        contentTextStyle: const TextStyle(
+          color: Color(0xff740000),
+          fontSize: 16,
+        ),
+        title: const Text('Cancel and start over?'),
+        content: const Text(
+          'Current photos, motion export and local upload work will be discarded. Already accepted uploads cannot be recalled.',
+        ),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: const Color(0xff740000),
             ),
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.primary.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(50),
-                  ),
-                  child: Icon(
-                    Icons.qr_code_2_rounded,
-                    size: 60,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Soft Copies Ready!',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Scan QR below to download your soft copies, it will be available for 8 hours.',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontSize: 16,
-                    color: Theme.of(
-                      context,
-                    ).colorScheme.onSurface.withOpacity(0.7),
-                  ),
-                ),
-                const SizedBox(height: 32),
-
-                // QR Code with fixed size
-                Container(
-                  width: 240,
-                  height: 240,
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Theme.of(context).colorScheme.outline,
-                      width: 2,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: QrImageView(
-                    data: downloadUrl,
-                    version: QrVersions.auto,
-                    size: 200.0,
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    errorStateBuilder: (context, error) {
-                      print('QR Code error: $error');
-                      return Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.error, color: Colors.red, size: 40),
-                            const SizedBox(height: 8),
-                            Text(
-                              'QR generation failed',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Colors.red),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // URL display (as backup)
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.outline.withOpacity(0.5),
-                    ),
-                  ),
-                  child: SelectableText(
-                    downloadUrl,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontFamily: 'monospace',
-                      color: Theme.of(
-                        context,
-                      ).colorScheme.onSurface.withOpacity(0.7),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () {
-                          Navigator.of(dialogContext).pop();
-                        },
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          side: BorderSide(
-                            color: Theme.of(context).colorScheme.outline,
-                            width: 2,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Close',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(dialogContext).pop();
-                          ref.read(photoProvider.notifier).clearAllPhotos();
-                          context.go('/');
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.primary,
-                          foregroundColor: Theme.of(
-                            context,
-                          ).colorScheme.onPrimary,
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          'Start Over',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            onPressed: () => Navigator.pop(dialog, false),
+            child: const Text('Keep session'),
           ),
-        );
-      },
-    ).then((_) {
-      print('Dialog closed');
-    });
+          FilledButton(
+            onPressed: () => Navigator.pop(dialog, true),
+            child: const Text('Cancel and start over'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    _uploadCancellation?.cancel('Start over');
+    final notifier = ref.read(photoProvider.notifier);
+    await notifier.clearAllPhotos();
+    if (mounted) context.go('/');
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Color(0xFF740000).withOpacity(0.5),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Material(
-        color: Colors.transparent,
+    final valid = ref
+        .watch(bouncySessionProvider)
+        .valid(
+          ref.watch(photoProvider).value?.photos.map((p) => p.captureId) ?? [],
+        );
+    return Material(
+      color: const Color(0xff740000),
+      borderRadius: BorderRadius.circular(16),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Choose Action',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontFamily: 'SpaceMono',
-                fontSize: 32,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+            const Text(
+              'Print and soft copies',
+              style: TextStyle(color: Colors.white, fontSize: 24),
             ),
-            const SizedBox(height: 32),
-
-            // Print button
-            Container(
-              width: double.infinity,
-              height: 120,
-              margin: const EdgeInsets.only(bottom: 24),
-              child: ElevatedButton(
-                onPressed: (widget.isPrinting || _isProcessingSoftCopies)
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 64,
+              child: FilledButton.icon(
+                onPressed: widget.isPrinting || !valid || !widget.printReady
                     ? null
                     : () => widget.onPrint(_copies),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.isPrinting
-                      ? Colors.white.withOpacity(0.5)
-                      : Colors.white,
-                  foregroundColor: widget.isPrinting
-                      ? Color(0xFF740000).withOpacity(0.5)
-                      : Color(0xFF740000),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                icon: const Icon(Icons.print),
+                label: Text(widget.isPrinting ? 'Printing...' : 'Print Photos'),
+              ),
+            ),
+            if (!valid)
+              const Text(
+                'Retake incomplete shots before printing.',
+                style: TextStyle(color: Colors.white),
+              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  tooltip: 'Fewer copies',
+                  onPressed: _copies > 1
+                      ? () => setState(() => _copies--)
+                      : null,
+                  icon: const Icon(Icons.remove, color: Colors.white),
                 ),
-                child: widget.isPrinting
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SizedBox(
-                            width: 40,
-                            height: 40,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 4,
-                              color: Color(0xFF740000).withOpacity(0.5),
-                            ),
-                          ),
-                          const SizedBox(width: 24),
-                          Text(
-                            'Printing...',
-                            style: TextStyle(
-                              fontFamily: 'SpaceMono',
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.print_rounded, size: 48),
-                          const SizedBox(width: 20),
-                          Text(
-                            'Print Photos',
-                            style: TextStyle(
-                              fontFamily: 'SpaceMono',
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-              ),
+                Text(
+                  '$_copies copies',
+                  style: const TextStyle(color: Colors.white, fontSize: 18),
+                ),
+                IconButton(
+                  tooltip: 'More copies',
+                  onPressed: _copies < 10
+                      ? () => setState(() => _copies++)
+                      : null,
+                  icon: const Icon(Icons.add, color: Colors.white),
+                ),
+              ],
             ),
-
-            // Number of copies
-            Container(
-              margin: const EdgeInsets.only(bottom: 24),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: Color(0xFF740000).withOpacity(0.7),
-                border: Border.all(color: Colors.white, width: 2),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(
+                widget.cutControlTitle,
+                style: const TextStyle(color: Colors.white),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Number of Copies',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      fontFamily: 'SpaceMono',
-                      fontWeight: FontWeight.bold,
-                      fontSize: 20,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Row(
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color:
-                              (widget.isPrinting ||
-                                  _isProcessingSoftCopies ||
-                                  _copies <= 1)
-                              ? Color(0xFF740000).withOpacity(0.5)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.remove_circle_outline_rounded,
-                            color:
-                                (widget.isPrinting ||
-                                    _isProcessingSoftCopies ||
-                                    _copies <= 1)
-                                ? Colors.white.withOpacity(0.5)
-                                : Color(0xFF740000),
-                          ),
-                          onPressed:
-                              (widget.isPrinting ||
-                                  _isProcessingSoftCopies ||
-                                  _copies <= 1)
-                              ? null
-                              : () => setState(() => _copies--),
-                          iconSize: 32,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '$_copies',
-                        style: Theme.of(context).textTheme.headlineSmall
-                            ?.copyWith(
-                              fontFamily: 'SpaceMono',
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: (widget.isPrinting || _isProcessingSoftCopies)
-                              ? Color(0xFF740000).withOpacity(0.5)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: IconButton(
-                          icon: Icon(
-                            Icons.add_circle_outline_rounded,
-                            color:
-                                (widget.isPrinting || _isProcessingSoftCopies)
-                                ? Colors.white.withOpacity(0.5)
-                                : Color(0xFF740000),
-                          ),
-                          onPressed:
-                              (widget.isPrinting || _isProcessingSoftCopies)
-                              ? null
-                              : () => setState(() => _copies++),
-                          iconSize: 32,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              subtitle: Text(
+                widget.cutControlDescription,
+                style: const TextStyle(color: Colors.white70),
               ),
+              value: widget.splitStrips,
+              onChanged: widget.onSplitStripsChanged,
             ),
-
-            // Split strips toggle
-            Container(
-              margin: const EdgeInsets.only(bottom: 24),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: Color(0xFF740000).withOpacity(0.7),
-                border: Border.all(color: Colors.white, width: 2),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text(
+                'Allow social media posting',
+                style: TextStyle(color: Colors.white),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.cutControlTitle,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                fontFamily: 'SpaceMono',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                                color: Colors.white,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.cutControlDescription,
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontFamily: 'SpaceMono',
-                                fontSize: 16,
-                                color: Colors.white.withOpacity(0.7),
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Switch(
-                    value: widget.splitStrips,
-                    onChanged: (widget.isPrinting || _isProcessingSoftCopies)
-                        ? null
-                        : widget.onSplitStripsChanged,
-                    activeColor: Colors.white,
-                    activeTrackColor: Colors.white.withOpacity(0.5),
-                    inactiveThumbColor: Colors.white.withOpacity(0.7),
-                    inactiveTrackColor: Colors.white.withOpacity(0.3),
-                  ),
-                ],
-              ),
+              value: _allowSocialMediaPosting,
+              onChanged: (value) {
+                if (value) {
+                  _showSocialMediaConsentDialog();
+                } else {
+                  setState(() => _allowSocialMediaPosting = false);
+                }
+              },
             ),
-
-            // Social media consent toggle
-            Container(
-              margin: const EdgeInsets.only(bottom: 24),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
-                color: _allowSocialMediaPosting
-                    ? const Color(0xFF2E7D32).withOpacity(0.7)
-                    : Color(0xFF740000).withOpacity(0.7),
-                border: Border.all(color: Colors.white, width: 2),
+            if (BouncyFixture.enabled)
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text(
+                  'QA encoder failure',
+                  style: TextStyle(color: Colors.white),
+                ),
+                value: ref.read(bouncyMediaProvider).failEncoder,
+                onChanged: (value) => setState(
+                  () => ref.read(bouncyMediaProvider).failEncoder = value,
+                ),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Allow Social Media Posting',
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(
-                                fontFamily: 'SpaceMono',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                                color: Colors.white,
-                              ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _allowSocialMediaPosting
-                              ? 'Consent given for promotional use'
-                              : 'Allow photos to be used on social media',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                fontFamily: 'SpaceMono',
-                                fontSize: 16,
-                                color: Colors.white.withOpacity(0.7),
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Switch(
-                    value: _allowSocialMediaPosting,
-                    onChanged: (widget.isPrinting || _isProcessingSoftCopies)
-                        ? null
-                        : (value) {
-                            if (value) {
-                              // Show consent modal when trying to enable
-                              _showSocialMediaConsentDialog();
-                            } else {
-                              // Directly disable without confirmation
-                              setState(() {
-                                _allowSocialMediaPosting = false;
-                              });
-                            }
-                          },
-                    activeColor: Colors.white,
-                    activeTrackColor: Colors.white.withOpacity(0.5),
-                    inactiveThumbColor: Colors.white.withOpacity(0.7),
-                    inactiveTrackColor: Colors.white.withOpacity(0.3),
-                  ),
-                ],
-              ),
-            ),
-
-            // Soft copies button with progress
-            Container(
-              width: double.infinity,
-              constraints: BoxConstraints(
-                minHeight: 100,
-                maxHeight: _isProcessingSoftCopies ? 160 : 100,
-              ),
-              margin: const EdgeInsets.only(bottom: 24),
-              child: OutlinedButton(
-                onPressed: (widget.isPrinting || _isProcessingSoftCopies)
+            SizedBox(
+              height: 56,
+              child: OutlinedButton.icon(
+                onPressed:
+                    _isProcessingSoftCopies || !valid || !widget.printReady
                     ? null
                     : _handleSoftCopies,
                 style: OutlinedButton.styleFrom(
-                  backgroundColor: Color(0xFF740000).withOpacity(0.7),
-                  side: BorderSide(color: Colors.white, width: 2),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white),
                 ),
-                child: _isProcessingSoftCopies
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SizedBox(
-                                  width: 32,
-                                  height: 32,
-                                  child: CircularProgressIndicator(
-                                    value: _processingProgress,
-                                    strokeWidth: 4,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Text(
-                                  'Processing...',
-                                  style: TextStyle(
-                                    fontFamily: 'SpaceMono',
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            Flexible(
-                              child: Text(
-                                _processingStatus,
-                                style: TextStyle(
-                                  fontFamily: 'SpaceMono',
-                                  fontSize: 16,
-                                  color: Colors.white.withOpacity(0.7),
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '${(_processingProgress * 100).toInt()}%',
-                              style: TextStyle(
-                                fontFamily: 'SpaceMono',
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.download_rounded,
-                            size: 40,
-                            color: Colors.white,
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Get Soft Copies',
-                            style: TextStyle(
-                              fontFamily: 'SpaceMono',
-                              fontSize: 24,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
+                icon: const Icon(Icons.download),
+                label: Text(
+                  _isProcessingSoftCopies
+                      ? _processingStatus
+                      : 'Get Soft Copies',
+                ),
               ),
             ),
-
-            const Spacer(),
-
-            // Start over button
-            Container(
-              width: double.infinity,
-              height: 100,
-              child: TextButton(
-                onPressed: (widget.isPrinting || _isProcessingSoftCopies)
-                    ? null
-                    : () {
-                        ref.read(photoProvider.notifier).clearAllPhotos();
-                        context.go('/');
-                      },
-                style: TextButton.styleFrom(
-                  backgroundColor: Color(0xFF740000).withOpacity(0.7),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  side: BorderSide(color: Colors.white, width: 2),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      Icons.refresh_rounded,
-                      size: 36,
-                      color: Colors.white.withOpacity(0.7),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      'Start Over',
-                      style: TextStyle(
-                        fontFamily: 'SpaceMono',
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
-                ),
+            if (_isProcessingSoftCopies)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: LinearProgressIndicator(value: _processingProgress),
               ),
+            const Spacer(),
+            TextButton.icon(
+              onPressed: widget.isPrinting ? null : _startOver,
+              style: TextButton.styleFrom(foregroundColor: Colors.white),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Start Over'),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class SoftCopiesReadyDialog extends StatelessWidget {
+  final String downloadUrl;
+  final VoidCallback onStartOver;
+  const SoftCopiesReadyDialog({
+    super.key,
+    required this.downloadUrl,
+    required this.onStartOver,
+  });
+  @override
+  Widget build(BuildContext context) {
+    final availableHeight = MediaQuery.sizeOf(context).height * 0.84;
+    return Dialog(
+      backgroundColor: Colors.white,
+      child: SizedBox(
+        width: 520,
+        height: availableHeight > 600 ? 600 : availableHeight,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            children: [
+              const Text(
+                'Soft Copies Ready!',
+                style: TextStyle(
+                  color: Color(0xff740000),
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Scan to download your photos and Bouncy Preview. Available for 8 hours.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Color(0xff740000), fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: QrImageView(
+                      data: downloadUrl,
+                      version: QrVersions.auto,
+                      backgroundColor: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 36,
+                child: SelectableText(
+                  downloadUrl,
+                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xff740000),
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: const Color(0xff740000),
+                      ),
+                      child: const Text('Close'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: onStartOver,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xff740000),
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text('Start Over'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

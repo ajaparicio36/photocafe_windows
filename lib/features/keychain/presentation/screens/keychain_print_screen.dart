@@ -1,3 +1,6 @@
+import 'package:photocafe_windows/widgets/bouncy_preview.dart';
+import 'package:photocafe_windows/services/bouncy_session.dart';
+import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -42,7 +45,14 @@ class _KeychainPrintScreenState extends ConsumerState<KeychainPrintScreen> {
 
   Future<void> _print(int copies) async {
     final arguments = _arguments;
-    if (arguments == null) return;
+    if (arguments == null ||
+        !ref
+            .read(bouncySessionProvider)
+            .valid(
+              ref.read(photoProvider).value?.photos.map((p) => p.captureId) ??
+                  [],
+            ))
+      return;
     setState(() {
       _isPrinting = true;
     });
@@ -144,6 +154,7 @@ class _KeychainPrintScreenState extends ConsumerState<KeychainPrintScreen> {
                         flex: 2,
                         child: PrintActionPanel(
                           isPrinting: _isPrinting,
+                          printReady: arguments.output.sheetPdf.isNotEmpty,
                           splitStrips: _cut,
                           cutControlTitle: KeychainPrintScreen.cutControlTitle,
                           cutControlDescription:
@@ -188,9 +199,13 @@ class _KeychainPrintScreenState extends ConsumerState<KeychainPrintScreen> {
                               Expanded(
                                 child: Container(
                                   color: Colors.white,
-                                  child: Image.memory(
-                                    arguments.output.sheetPng,
-                                    fit: BoxFit.contain,
+                                  child: BouncyPreview(
+                                    archive: true,
+                                    photos: ref
+                                        .watch(photoProvider)
+                                        .requireValue
+                                        .photos,
+                                    selections: arguments.output.selections,
                                   ),
                                 ),
                               ),

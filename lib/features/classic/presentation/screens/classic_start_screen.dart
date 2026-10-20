@@ -1,3 +1,5 @@
+import 'package:photocafe_windows/widgets/confirm_discard_session.dart';
+import 'package:photocafe_windows/services/bouncy_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -115,6 +117,12 @@ class ClassicStartScreen extends ConsumerWidget {
     return Expanded(
       child: GestureDetector(
         onTap: () async {
+          if ((ref.read(photoProvider).value?.photos.isNotEmpty ?? false) ||
+              ref.read(bouncySessionProvider).hasWork) {
+            if (!await confirmDiscardSession(context) || !context.mounted) {
+              return;
+            }
+          }
           try {
             // Show loading indicator
             showDialog(

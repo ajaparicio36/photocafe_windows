@@ -1,4 +1,5 @@
-import 'dart:typed_data';
+import 'package:photocafe_windows/widgets/bouncy_preview.dart';
+import 'package:photocafe_windows/services/bouncy_session.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,7 +9,6 @@ import 'package:photocafe_windows/features/classic/presentation/constants/frame_
 import 'package:photocafe_windows/features/keychain/domain/data/models/keychain_models.dart';
 import 'package:photocafe_windows/features/keychain/domain/data/providers/keychain_session_notifier.dart';
 import 'package:photocafe_windows/features/keychain/domain/services/keychain_composition_service.dart';
-import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 
 class KeychainDesignScreen extends ConsumerStatefulWidget {
@@ -22,8 +22,7 @@ class KeychainDesignScreen extends ConsumerStatefulWidget {
 class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
   final KeychainCompositionService _compositionService =
       KeychainCompositionService();
-  Future<Uint8List>? _previewFuture;
-  String? _previewKey;
+
   KeychainRenderOutput? _reviewOutput;
   String? _reviewSelectionKey;
   bool _isRendering = false;
@@ -34,34 +33,16 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
         .join('|');
   }
 
-  void _ensurePreview({
-    required KeychainSessionState session,
-    required List<PhotoModel>? photos,
-  }) {
-    if (session.isReview) return;
-    final selection = session.variants[session.designIndex];
-    final photosKey = photos
-        ?.map((photo) => '${photo.index}:${photo.imagePath}')
-        .join('|');
-    final key =
-        '${session.designIndex}:${selection.frameId}:${selection.filterId}:$photosKey';
-    if (key == _previewKey) return;
-
-    _previewKey = key;
-    if (photos == null || photos.length != keychainVariantCount) {
-      _previewFuture = Future<Uint8List>.error(
-        StateError('Capture exactly four photos before designing.'),
-      );
-      return;
-    }
-    _previewFuture = _compositionService.renderVariantPreview(
-      selection: selection,
-      photos: photos,
-    );
-  }
-
   Future<void> _showReview() async {
     if (_isRendering) return;
+    if (!ref
+        .read(bouncySessionProvider)
+        .valid(
+          ref.read(photoProvider).value?.photos.map((p) => p.captureId) ?? [],
+        )) {
+      _showError('Retake incomplete shots before continuing.');
+      return;
+    }
     final photoState = ref.read(photoProvider).value;
     if (photoState == null ||
         photoState.photos.length != keychainVariantCount) {
@@ -69,14 +50,15 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
       return;
     }
 
+    final bouncy = ref.read(bouncySessionProvider);
+    final generation = bouncy.generation;
     setState(() => _isRendering = true);
     try {
       final session = ref.read(keychainSessionProvider);
-      final output = await _compositionService.render(
-        session: session,
-        photos: photoState.photos,
+      final output = await bouncy.track(
+        _compositionService.render(session: session, photos: photoState.photos),
       );
-      if (!mounted) return;
+      if (!mounted || generation != bouncy.generation) return;
       setState(() {
         _reviewOutput = output;
         _reviewSelectionKey = _selectionKey(session);
@@ -91,6 +73,14 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
 
   Future<void> _continueToPrint() async {
     if (_isRendering) return;
+    if (!ref
+        .read(bouncySessionProvider)
+        .valid(
+          ref.read(photoProvider).value?.photos.map((p) => p.captureId) ?? [],
+        )) {
+      _showError('Retake incomplete shots before continuing.');
+      return;
+    }
     final output = _reviewOutput;
     final photoState = ref.read(photoProvider).value;
     if (output == null || photoState == null) {
@@ -98,10 +88,14 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
       return;
     }
 
+    final bouncy = ref.read(bouncySessionProvider);
+    final generation = bouncy.generation;
     setState(() => _isRendering = true);
     try {
-      final mediaBundle = await output.persist(photoState.tempPath);
-      if (mounted) {
+      final mediaBundle = await bouncy.track(
+        output.persist(photoState.tempPath),
+      );
+      if (mounted && generation == bouncy.generation) {
         context.go(
           '/keychain/print',
           extra: KeychainPrintArguments(
@@ -120,8 +114,7 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
   void _backToDesignFour() {
     _reviewOutput = null;
     _reviewSelectionKey = null;
-    _previewFuture = null;
-    _previewKey = null;
+
     ref.read(keychainSessionProvider.notifier).returnToDesignFour();
   }
 
@@ -141,9 +134,6 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(keychainSessionProvider);
-    final photoState = ref.watch(photoProvider).value;
-    final photos = photoState?.photos;
-    _ensurePreview(session: session, photos: photos);
 
     if (_reviewOutput != null &&
         _reviewSelectionKey != _selectionKey(session)) {
@@ -240,52 +230,23 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
     );
   }
 
-  Widget _buildVariantPreview(int index) {
-    return _previewCard(
-      title: 'KEYCHAIN ${index + 1}',
-      child: FutureBuilder<Uint8List>(
-        future: _previewFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF740000)),
-            );
-          }
-          if (snapshot.error is KeychainPreviewCancelledException) {
-            return const Center(
-              child: CircularProgressIndicator(color: Color(0xFF740000)),
-            );
-          }
-          if (snapshot.hasError || snapshot.data == null) {
-            return _renderError(snapshot.error);
-          }
-          return Image.memory(
-            snapshot.data!,
-            fit: BoxFit.contain,
-            filterQuality: FilterQuality.high,
-          );
-        },
-      ),
-      footer: 'Live 600 × 900 PNG composition from the captured originals.',
-    );
-  }
+  Widget _buildVariantPreview(int index) => _previewCard(
+    title: 'Bouncy Preview',
+    child: BouncyPreview(
+      photos: ref.watch(photoProvider).requireValue.photos,
+      selections: [ref.watch(keychainSessionProvider).variants[index]],
+    ),
+    footer: 'Print uses your original still photos',
+  );
 
-  Widget _buildReviewPreview() {
-    final output = _reviewOutput;
-    return _previewCard(
-      title: 'FINAL FOUR-UP REVIEW',
-      child: output == null
-          ? _renderError(
-              'The review is unavailable. Return to Design 4 and try again.',
-            )
-          : Image.memory(
-              output.sheetPng,
-              fit: BoxFit.contain,
-              filterQuality: FilterQuality.high,
-            ),
-      footer: 'Actual 1200 × 1800 PNG sheet • TL • TR • BL • BR',
-    );
-  }
+  Widget _buildReviewPreview() => _previewCard(
+    title: 'Complete four-design sheet',
+    child: BouncyPreview(
+      photos: ref.watch(photoProvider).requireValue.photos,
+      selections: ref.watch(keychainSessionProvider).variants,
+    ),
+    footer: 'Motion preview • still print is separate',
+  );
 
   Widget _previewCard({
     required String title,
@@ -334,34 +295,6 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
     );
   }
 
-  Widget _renderError(Object? error) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.broken_image_outlined,
-              size: 64,
-              color: Color(0xFF740000),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              error?.toString() ?? 'Unable to render this composition.',
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontFamily: 'SpaceMono',
-                color: Color(0xFF740000),
-                fontSize: 14,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _buildReviewDetails() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -393,7 +326,7 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
           ),
           Spacer(),
           Text(
-            'The exact sheet shown here is the one sent to the printer.',
+            'The selected frames and filters are used for the still print.',
             style: TextStyle(
               fontFamily: 'SpaceMono',
               color: Colors.white70,

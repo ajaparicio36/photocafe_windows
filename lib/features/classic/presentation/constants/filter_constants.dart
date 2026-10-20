@@ -141,7 +141,15 @@ class FilterConstants {
 
   // Photobooth: classic photobooth film aesthetic
   // Warm near-monochrome, lifted matte blacks, punchy midtone contrast, cream highlights
-  static img.Image applyPhotoboothFilter(img.Image image) {
+  static img.Image applyPhotoboothFilter(
+    img.Image image, {
+    int? sourceWidth,
+    int? sourceHeight,
+    int cropX = 0,
+    int cropY = 0,
+    double scaleX = 1,
+    double scaleY = 1,
+  }) {
     // Step 1: Desaturate heavily but keep a ghost of color for warmth
     var filtered = img.adjustColor(
       image,
@@ -151,8 +159,8 @@ class FilterConstants {
     );
 
     var result = img.Image.from(filtered);
-    final cx = result.width / 2.0;
-    final cy = result.height / 2.0;
+    final cx = (sourceWidth ?? result.width) / 2.0;
+    final cy = (sourceHeight ?? result.height) / 2.0;
     final maxDist = (cx * cx + cy * cy);
 
     for (var y = 0; y < result.height; y++) {
@@ -190,8 +198,8 @@ class FilterConstants {
         b = _sCurve(b);
 
         // Step 5: Subtle vignette — darken edges naturally
-        final dx = x - cx;
-        final dy = y - cy;
+        final dx = cropX + (x * scaleX).toInt() - cx;
+        final dy = cropY + (y * scaleY).toInt() - cy;
         final distSq = dx * dx + dy * dy;
         final vignette = 1.0 - (distSq / maxDist) * 0.35;
 
@@ -208,7 +216,13 @@ class FilterConstants {
   /// S-curve tone mapping for midtone contrast punch.
   /// Uses a true sigmoid function that is mathematically bounded to [0, 1],
   /// so it can never overshoot into overflow territory.
-  static int _sCurve(int value) {
+  static final List<int> _sCurveLut = List<int>.generate(
+    256,
+    _calculateSCurve,
+    growable: false,
+  );
+  static int _sCurve(int value) => _sCurveLut[value];
+  static int _calculateSCurve(int value) {
     final n = value / 255.0;
     // True sigmoid: 1 / (1 + e^(-k*(x-0.5)))
     // k controls steepness; k=5.5 gives a natural film-like midtone punch

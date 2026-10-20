@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:photocafe_windows/services/bouncy_session.dart';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -99,14 +100,21 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
   void initState() {
     super.initState();
     // Set "No Filter" as default selection
-    _selectedFilter = FilterConstants.availableFilters.first;
+    final currentFilter = ref.read(bouncySessionProvider).classicFilterId;
+    _selectedFilter = FilterConstants.filterDefinitions
+        .firstWhere((filter) => filter.id == currentFilter)
+        .name;
     _generateFilterPreview(_selectedFilter!);
   }
 
   /// Generates downscaled preview thumbnails in background isolates.
   /// Each photo is processed in its own isolate so the main UI thread stays
   /// responsive.
-  Future<void> _generateFilterPreview(String filterName) async {
+  Future<void> _generateFilterPreview(String filterName) =>
+      ref.read(bouncySessionProvider).track(_filterPreviewWork(filterName));
+  Future<void> _filterPreviewWork(String filterName) async {
+    final session = ref.read(bouncySessionProvider);
+    final generation = session.generation;
     if (!mounted) return;
 
     setState(() {
@@ -125,7 +133,7 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
       final photoPaths = <String>[];
       final photoBytesList = <Uint8List>[];
       for (final photo in photoState.photos) {
-        final file = File(photo.imagePath);
+        final file = File(photo.originalPath ?? photo.imagePath);
         if (await file.exists()) {
           photoPaths.add(photo.imagePath);
           photoBytesList.add(await file.readAsBytes());
@@ -145,7 +153,10 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
 
       // Only update state if the selected filter hasn't changed while
       // we were processing (user may have tapped another filter).
-      if (!mounted || _selectedFilter != filterName) return;
+      if (!mounted ||
+          generation != session.generation ||
+          _selectedFilter != filterName)
+        return;
 
       setState(() {
         _previewImages = previewImages
@@ -167,8 +178,13 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
   Future<void> _applySelectedFilter() async {
     if (_selectedFilter == null) return;
 
+    ref.read(bouncySessionProvider).classicFilterId = FilterConstants
+        .filterDefinitions
+        .firstWhere((f) => f.name == _selectedFilter)
+        .id;
     // If "No Filter" is selected, just navigate
     if (_selectedFilter == FilterConstants.noFilterName) {
+      ref.read(photoProvider.notifier).restoreOriginalPhotos();
       context.go('/classic/organize');
       return;
     }
@@ -305,7 +321,7 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
                     borderRadius: BorderRadius.circular(12),
                     child: Image.memory(
                       _previewImages[index],
-                      fit: BoxFit.cover,
+                      fit: BoxFit.contain,
                       width: double.infinity,
                     ),
                   ),
@@ -359,561 +375,100 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final photoStateAsync = ref.watch(photoProvider);
-
-    return Stack(
-      children: [
-        Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/design/background.png'),
-              fit: BoxFit.fill,
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(40),
-              child: photoStateAsync.when(
-                data: (photoState) {
-                  if (photoState.photos.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.photo_library_outlined,
-                            size: 100,
-                            color: Colors.white.withOpacity(0.4),
-                          ),
-                          const SizedBox(height: 30),
-                          Text(
-                            'No photos available',
-                            style: TextStyle(
-                              fontFamily: 'SpaceMono',
-                              fontSize: 36,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 40),
-                          SizedBox(
-                            width: 300,
-                            height: 80,
-                            child: ElevatedButton(
-                              onPressed: () => context.go('/classic/capture'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Color(0xFF740000),
-                              ),
-                              child: Text(
-                                'Take Photos',
-                                style: TextStyle(
-                                  fontFamily: 'SpaceMono',
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return Column(
-                    children: [
-                      // Header with back button, title, and skip button
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // Back button
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: IconButton(
-                              onPressed: () => context.go('/classic/capture'),
-                              icon: Icon(
-                                Icons.arrow_back_rounded,
-                                color: Color(0xFF740000),
-                                size: 28,
-                              ),
-                            ),
-                          ),
-
-                          Spacer(),
-
-                          // Title image
-                          Image.asset(
-                            'assets/design/flipbook-filters/filters_title.png',
-                            height: 80,
-                            fit: BoxFit.contain,
-                          ),
-
-                          Spacer(),
-
-                          // Skip button
-                          Container(
-                            width: 200,
-                            height: 60,
-                            child: ElevatedButton(
-                              onPressed: () => context.go('/classic/organize'),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.white,
-                                foregroundColor: Color(0xFF740000),
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                              ),
-                              child: Text(
-                                'SKIP FILTERS',
-                                style: TextStyle(
-                                  fontFamily: 'SpaceMono',
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Main content area
-                      Expanded(
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Left panel - Filter selection with doll and preview box
-                            Expanded(
-                              flex: 2,
-                              child: Column(
-                                children: [
-                                  // Doll image (includes "Choose Filters" text)
-                                  Row(
-                                    children: [
-                                      Image.asset(
-                                        'assets/design/flipbook-filters/filters_doll.png',
-                                        height: 120,
-                                        fit: BoxFit.contain,
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Text(
-                                        'CHOOSE FILTERS',
-                                        style: TextStyle(
-                                          fontFamily: 'SpaceMono',
-                                          fontSize: 39,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-
-                                  // Filter selection panel - no gap between doll and filters
-                                  Expanded(
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(top: 0),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          // Filter list with radio buttons
-                                          Expanded(
-                                            child: Material(
-                                              color: Colors.transparent,
-                                              child: ListView.separated(
-                                                padding: EdgeInsets.zero,
-                                                itemCount: FilterConstants
-                                                    .filterDefinitions
-                                                    .length,
-                                                separatorBuilder:
-                                                    (context, index) =>
-                                                        const SizedBox(
-                                                          height: 16,
-                                                        ),
-                                                itemBuilder: (context, index) {
-                                                  final filterDef = FilterConstants
-                                                      .filterDefinitions[index];
-                                                  final isSelected =
-                                                      _selectedFilter ==
-                                                      filterDef.name;
-
-                                                  return Container(
-                                                    decoration: BoxDecoration(
-                                                      color: isSelected
-                                                          ? Colors.white
-                                                          : Color(
-                                                              0xFF740000,
-                                                            ).withOpacity(0.5),
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            16,
-                                                          ),
-                                                      border: Border.all(
-                                                        color: Colors.white,
-                                                        width: 2,
-                                                      ),
-                                                      boxShadow: isSelected
-                                                          ? [
-                                                              BoxShadow(
-                                                                color: Colors
-                                                                    .black
-                                                                    .withOpacity(
-                                                                      0.1,
-                                                                    ),
-                                                                blurRadius: 8,
-                                                                offset:
-                                                                    const Offset(
-                                                                      0,
-                                                                      2,
-                                                                    ),
-                                                              ),
-                                                            ]
-                                                          : null,
-                                                    ),
-                                                    child: Material(
-                                                      color: Colors.transparent,
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                            16,
-                                                          ),
-                                                      child: ListTile(
-                                                        contentPadding:
-                                                            const EdgeInsets.all(
-                                                              20,
-                                                            ),
-                                                        leading: Container(
-                                                          width: 24,
-                                                          height: 24,
-                                                          decoration: BoxDecoration(
-                                                            shape:
-                                                                BoxShape.circle,
-                                                            color: isSelected
-                                                                ? Colors.white
-                                                                : Colors
-                                                                      .transparent,
-                                                            border: Border.all(
-                                                              color: isSelected
-                                                                  ? Color(
-                                                                      0xFF740000,
-                                                                    )
-                                                                  : Colors
-                                                                        .white,
-                                                              width: 2,
-                                                            ),
-                                                          ),
-                                                          child: isSelected
-                                                              ? Icon(
-                                                                  Icons.check,
-                                                                  size: 16,
-                                                                  color: Color(
-                                                                    0xFF740000,
-                                                                  ),
-                                                                )
-                                                              : null,
-                                                        ),
-                                                        title: Text(
-                                                          filterDef.name,
-                                                          style: TextStyle(
-                                                            fontFamily:
-                                                                'SpaceMono',
-                                                            fontSize: 22,
-                                                            fontWeight:
-                                                                FontWeight.w600,
-                                                            color: isSelected
-                                                                ? Color(
-                                                                    0xFF740000,
-                                                                  )
-                                                                : Colors.white,
-                                                          ),
-                                                        ),
-                                                        subtitle: Text(
-                                                          filterDef.description,
-                                                          style: TextStyle(
-                                                            fontFamily:
-                                                                'SpaceMono',
-                                                            fontSize: 16,
-                                                            color: isSelected
-                                                                ? Color(
-                                                                    0xFF740000,
-                                                                  ).withOpacity(
-                                                                    0.8,
-                                                                  )
-                                                                : Colors.white
-                                                                      .withOpacity(
-                                                                        0.8,
-                                                                      ),
-                                                          ),
-                                                        ),
-                                                        onTap: () {
-                                                          setState(() {
-                                                            _selectedFilter =
-                                                                filterDef.name;
-                                                          });
-                                                          _generateFilterPreview(
-                                                            filterDef.name,
-                                                          );
-                                                        },
-                                                      ),
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                            ),
-                                          ),
-
-                                          const SizedBox(height: 24),
-
-                                          // Apply button
-                                          SizedBox(
-                                            width: double.infinity,
-                                            height: 96,
-                                            child: ElevatedButton(
-                                              onPressed: _isApplyingFilter
-                                                  ? null
-                                                  : _applySelectedFilter,
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    _isApplyingFilter
-                                                    ? Colors.grey
-                                                    : Colors.white,
-                                                foregroundColor: Color(
-                                                  0xFF740000,
-                                                ),
-                                                elevation: 0,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(16),
-                                                ),
-                                              ),
-                                              child: _isApplyingFilter
-                                                  ? Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        SizedBox(
-                                                          width: 20,
-                                                          height: 20,
-                                                          child:
-                                                              CircularProgressIndicator(
-                                                                strokeWidth: 2,
-                                                                color: Color(
-                                                                  0xFF740000,
-                                                                ),
-                                                              ),
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 12,
-                                                        ),
-                                                        Text(
-                                                          'Applying...',
-                                                          style: TextStyle(
-                                                            fontFamily:
-                                                                'SpaceMono',
-                                                            fontSize: 16,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    )
-                                                  : Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        // Magic wand icon
-                                                        Icon(
-                                                          Icons.auto_fix_high,
-                                                          size: 32,
-                                                          color: Color(
-                                                            0xFF740000,
-                                                          ),
-                                                        ),
-
-                                                        const SizedBox(
-                                                          width: 16,
-                                                        ),
-
-                                                        Text(
-                                                          _selectedFilter ==
-                                                                  FilterConstants
-                                                                      .noFilterName
-                                                              ? 'APPLY NO FILTER'
-                                                              : 'APPLY FILTER',
-                                                          style: TextStyle(
-                                                            fontFamily:
-                                                                'SpaceMono',
-                                                            fontSize: 20,
-                                                            fontWeight:
-                                                                FontWeight
-                                                                    .normal,
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            const SizedBox(width: 40),
-
-                            // Right panel - Photo preview
-                            Expanded(
-                              flex: 3,
-                              child: AspectRatio(
-                                aspectRatio:
-                                    1.0, // Changed from 0.72 to make it shorter
-                                child: Stack(
-                                  children: [
-                                    // Preview background image
-                                    Positioned.fill(
-                                      child: Image.asset(
-                                        'assets/design/flipbook-filters/classic-preview.png',
-                                        fit: BoxFit
-                                            .contain, // Changed from cover to contain
-                                      ),
-                                    ),
-                                    // Preview content
-                                    Padding(
-                                      padding: const EdgeInsets.only(
-                                        left: 220,
-                                        right: 220,
-                                        top: 180,
-                                        bottom: 40,
-                                      ),
-                                      child: _buildPreviewCarousel(),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                },
-                loading: () => Center(
-                  child: CircularProgressIndicator(color: Colors.white),
-                ),
-                error: (error, stack) => Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.error, size: 80, color: Colors.white),
-                      const SizedBox(height: 24),
-                      Text(
-                        'Error: $error',
-                        style: TextStyle(
-                          fontFamily: 'SpaceMono',
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      SizedBox(
-                        width: 300,
-                        height: 80,
-                        child: ElevatedButton(
-                          onPressed: () => context.go('/classic/organize'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Color(0xFF740000),
-                          ),
-                          child: Text(
-                            'Skip to Organize',
-                            style: TextStyle(
-                              fontFamily: 'SpaceMono',
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+  Widget build(BuildContext context) => Scaffold(
+    body: Container(
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/design/background.png'),
+          fit: BoxFit.cover,
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  IconButton(
+                    tooltip: 'Back',
+                    onPressed: _isApplyingFilter
+                        ? null
+                        : () => context.go('/classic/capture'),
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
                   ),
+                  const Expanded(
+                    child: Text(
+                      'Choose your filter',
+                      style: TextStyle(color: Colors.white, fontSize: 26),
+                    ),
+                  ),
+                  FilledButton(
+                    onPressed: _isApplyingFilter ? null : _applySelectedFilter,
+                    child: Text(
+                      _isApplyingFilter ? 'Applying filter…' : 'Arrange photos',
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Expanded(
+                child: Row(
+                  children: [
+                    Expanded(
+                      flex: 3,
+                      child: Container(
+                        color: Colors.white,
+                        padding: const EdgeInsets.all(12),
+                        child: _buildPreviewCarousel(),
+                      ),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final filter in FilterConstants.availableFilters)
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 5,
+                                ),
+                                child: FilledButton.tonal(
+                                  onPressed: _isApplyingFilter
+                                      ? null
+                                      : () {
+                                          setState(
+                                            () => _selectedFilter = filter,
+                                          );
+                                          _generateFilterPreview(filter);
+                                        },
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: _selectedFilter == filter
+                                        ? Colors.white
+                                        : const Color(0xff740000),
+                                    foregroundColor: _selectedFilter == filter
+                                        ? const Color(0xff740000)
+                                        : Colors.white,
+                                  ),
+                                  child: Text(
+                                    filter,
+                                    style: const TextStyle(fontSize: 20),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+            ],
           ),
         ),
-
-        // Full-screen loading overlay when applying filter
-        if (_isApplyingFilter)
-          Container(
-            color: Colors.black.withOpacity(0.6),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 48,
-                  vertical: 32,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SizedBox(
-                      width: 48,
-                      height: 48,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 4,
-                        color: Color(0xFF740000),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      'Applying filter to all photos...',
-                      style: TextStyle(
-                        fontFamily: 'SpaceMono',
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF740000),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'This may take a moment',
-                      style: TextStyle(
-                        fontFamily: 'SpaceMono',
-                        fontSize: 14,
-                        color: Color(0xFF740000).withOpacity(0.6),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
+      ),
+    ),
+  );
 }
