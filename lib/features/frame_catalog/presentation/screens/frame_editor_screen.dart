@@ -111,22 +111,24 @@ class _FrameEditorScreenState extends ConsumerState<FrameEditorScreen> {
     if (!_dirty) return true;
     return await showDialog<bool>(
           context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Discard unsaved changes?'),
-            content: const Text(
-              'Your saved frame will stay as it is. Changes in this editor '
-              'will be lost.',
+          builder: (context) => CatalogTheme(
+            child: AlertDialog(
+              title: const Text('Discard unsaved changes?'),
+              content: const Text(
+                'Your saved frame will stay as it is. Changes in this editor '
+                'will be lost.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: const Text('Keep editing'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Discard changes'),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: const Text('Keep editing'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Discard changes'),
-              ),
-            ],
           ),
         ) ??
         false;

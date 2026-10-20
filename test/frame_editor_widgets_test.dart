@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
+import 'package:photocafe_windows/core/colors/app_theme.dart';
 import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_models.dart';
 import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_provider.dart';
 import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_repository.dart';
@@ -101,7 +102,10 @@ void main() {
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
-        child: const MaterialApp(home: FrameCatalogScreen()),
+        child: MaterialApp(
+          theme: AppTheme.lightTheme,
+          home: const FrameCatalogScreen(),
+        ),
       ),
     );
     await settle(tester);
@@ -174,6 +178,41 @@ void main() {
     await tester.tap(find.text('Cancel'));
     await settle(tester);
     expect(find.text('Discard unsaved changes?'), findsOneWidget);
+    for (final label in [
+      'Discard unsaved changes?',
+      'Your saved frame will stay as it is. Changes in this editor will be lost.',
+      'Keep editing',
+      'Discard changes',
+    ]) {
+      final text = find.text(label);
+      final foreground = tester
+          .widget<RichText>(
+            find.descendant(of: text, matching: find.byType(RichText)),
+          )
+          .text
+          .style!
+          .color!;
+      final background = tester
+          .widgetList<Material>(
+            find.ancestor(of: text, matching: find.byType(Material)),
+          )
+          .map((material) => material.color)
+          .whereType<Color>()
+          .firstWhere((color) => color.a == 1);
+      final light = math.max(
+        foreground.computeLuminance(),
+        background.computeLuminance(),
+      );
+      final dark = math.min(
+        foreground.computeLuminance(),
+        background.computeLuminance(),
+      );
+      expect(
+        (light + 0.05) / (dark + 0.05),
+        greaterThanOrEqualTo(4.5),
+        reason: '$label must be readable on its rendered surface.',
+      );
+    }
     await tester.tap(find.text('Keep editing'));
     await settle(tester);
     expect(find.byType(FrameEditorScreen), findsOneWidget);
