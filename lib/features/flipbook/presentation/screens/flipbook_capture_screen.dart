@@ -229,100 +229,6 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     }
   }
 
-  Widget _buildVideoPreview() {
-    final videoState = ref.watch(videoProvider).value;
-    final currentTakeNumber = videoState?.videoTakes.length ?? 0;
-    final allTakesComplete = currentTakeNumber >= 4;
-
-    return Column(
-      children: [
-        // Take counter
-        Padding(
-          padding: const EdgeInsets.only(top: 40, bottom: 20),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withOpacity(0.3)),
-            ),
-            child: Text(
-              'Take $currentTakeNumber of 4',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 4,
-          child: Center(
-            child: AspectRatio(
-              aspectRatio: 16 / 9, // 16:9 aspect ratio for flipbook
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 40),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(color: Colors.white, width: 4),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(28),
-                  child: VideoPlayer(_videoPlayerController!),
-                ),
-              ),
-            ),
-          ),
-        ),
-        Expanded(
-          flex: 1,
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 40.0,
-                vertical: 10.0,
-              ),
-              child: SizedBox(
-                width: 300,
-                height: 80,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    if (allTakesComplete) {
-                      // Go to takes selection screen
-                      context.go('/flipbook/takes');
-                    } else {
-                      // Reset for next take
-                      _prepareForNextTake();
-                    }
-                  },
-                  icon: Icon(
-                    allTakesComplete ? Icons.check_circle : Icons.navigate_next,
-                    size: 32,
-                  ),
-                  label: Text(
-                    allTakesComplete ? 'Proceed' : 'Next Take',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    foregroundColor: Colors.black,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(32),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
   Future<void> _prepareForNextTake() async {
     await _videoPlayerController?.dispose();
     _videoPlayerController = null;
@@ -409,109 +315,138 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     final hasVideo = videoState.value?.videoPath != null;
     final currentTakeNumber = videoState.value?.videoTakes.length ?? 0;
     final canRecordMore = currentTakeNumber < 4;
-
     final showVideoPreview =
-        _videoPlayerController != null &&
-        _videoPlayerController!.value.isInitialized &&
+        _videoPlayerController?.value.isInitialized == true &&
         !_isRecording &&
         !_isCountingDown &&
-        !_isProcessingVideo; // Also check processing flag
-
-    // Show countdown overlay only during actual countdown/recording or processing
-    final showCountdownOverlay =
-        _isCountingDown ||
-        _isRecording ||
-        _isProcessingVideo; // Simplified condition
-
-    // Show start recording button when camera is ready and not showing video preview
-    final showStartButton =
-        !showCountdownOverlay && !showVideoPreview && canRecordMore;
-
+        !_isProcessingVideo;
+    final busy = _isCountingDown || _isRecording || _isProcessingVideo;
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Stack(
-        children: [
-          // Canon EDSDK live-view preview for flipbook recording
-          if (!showVideoPreview)
-            Container(
-              color: Colors.black,
-              child: Center(
-                child: AspectRatio(
-                  aspectRatio: 16 / 9, // 16:9 aspect ratio for flipbook
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 40),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(32),
-                      border: Border.all(color: Colors.white, width: 4),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(28),
-                      child: const CanonLiveViewPreview(aspectRatio: 16 / 9),
-                    ),
-                  ),
-                ),
-              ),
-            )
-          else
-            Center(child: _buildVideoPreview()),
-
-          if (showCountdownOverlay) _buildRecordingOverlay(),
-
-          // Start recording button
-          if (showStartButton)
-            Positioned(
-              bottom: 60,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: SizedBox(
-                  width: 300,
-                  height: 100,
-                  child: ElevatedButton.icon(
-                    onPressed: _startRecording,
-                    icon: const Icon(Icons.videocam, size: 40),
-                    label: Text(
-                      currentTakeNumber == 0
-                          ? 'Start Recording'
-                          : 'Record Take ${currentTakeNumber + 1}',
-                      style: const TextStyle(fontSize: 24),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: Colors.black,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(32),
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 44,
+                child: Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        'Flipbook',
+                        style: TextStyle(color: Colors.white, fontSize: 22),
                       ),
                     ),
-                  ),
-                ),
-              ),
-            ),
-
-          // Back button removed - users must complete all 4 takes
-
-          // Loading indicator
-          if (videoState.isLoading &&
-              !_isRecording &&
-              !hasVideo &&
-              _countdown == 0)
-            Container(
-              color: Colors.black.withOpacity(0.7),
-              child: const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(color: Colors.white),
-                    SizedBox(height: 20),
                     Text(
-                      'Initializing...',
-                      style: TextStyle(color: Colors.white, fontSize: 18),
+                      'Take ${showVideoPreview ? currentTakeNumber : (currentTakeNumber + 1).clamp(1, 4)} of 4',
+                      style: const TextStyle(color: Colors.white, fontSize: 18),
                     ),
                   ],
                 ),
               ),
-            ),
-        ],
+              Expanded(
+                child: Center(
+                  child: AspectRatio(
+                    aspectRatio: 16 / 9,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        if (showVideoPreview)
+                          VideoPlayer(_videoPlayerController!)
+                        else
+                          const CanonLiveViewPreview(aspectRatio: 16 / 9),
+                        if (busy) _buildRecordingOverlay(),
+                        if (videoState.isLoading &&
+                            !_isRecording &&
+                            !hasVideo &&
+                            _countdown == 0)
+                          const ColoredBox(
+                            color: Colors.black54,
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 58,
+                child: Row(
+                  children: [
+                    for (var i = 0; i < 4; i++)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: Icon(
+                          i < currentTakeNumber
+                              ? Icons.check_circle
+                              : Icons.circle_outlined,
+                          color: i < currentTakeNumber
+                              ? Colors.greenAccent
+                              : Colors.white54,
+                        ),
+                      ),
+                    Expanded(
+                      child: Semantics(
+                        liveRegion: true,
+                        child: Text(
+                          _isProcessingVideo
+                              ? 'Preparing your take…'
+                              : _isCountingDown
+                              ? 'Get ready in $_countdown seconds'
+                              : _isRecording
+                              ? 'Recording…'
+                              : showVideoPreview
+                              ? 'Review your take'
+                              : 'Ready when you are',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (showVideoPreview)
+                      FilledButton(
+                        onPressed: () {
+                          if (canRecordMore) {
+                            _prepareForNextTake();
+                          } else {
+                            context.go('/flipbook/takes');
+                          }
+                        },
+                        child: Text(canRecordMore ? 'Next Take' : 'Proceed'),
+                      )
+                    else
+                      FilledButton(
+                        onPressed:
+                            busy || !canRecordMore || videoState.isLoading
+                            ? null
+                            : _startRecording,
+                        child: Text(
+                          currentTakeNumber == 0
+                              ? 'Start Recording'
+                              : 'Record Take ${currentTakeNumber + 1}',
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              LinearProgressIndicator(
+                value: _isRecording ? (1 - _countdown / 7).clamp(0.0, 1.0) : 0,
+                color: Colors.white,
+                backgroundColor: Colors.white24,
+                minHeight: 6,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

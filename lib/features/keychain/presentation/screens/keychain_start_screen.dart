@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/widgets/event_design.dart';
 import 'package:photocafe_windows/widgets/confirm_discard_session.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
 import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_models.dart';
@@ -38,105 +39,98 @@ class KeychainStartScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/design/start/start_bg.png'),
-            fit: BoxFit.fill,
+  Widget build(BuildContext context, WidgetRef ref) => EventCanvas(
+    child: Stack(
+      children: [
+        Positioned(
+          top: 56,
+          left: 44,
+          child: EventBackButton(onPressed: () => context.go('/')),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 46,
+          child: Center(
+            child: Image.asset(
+              'assets/event/clickclick_logo_white.png',
+              width: 155,
+              height: 155,
+              semanticLabel: 'Click Click',
+            ),
           ),
         ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(60),
-            child: Column(
+        const Positioned(
+          left: 435,
+          right: 435,
+          top: 225,
+          child: EventPlaque(
+            title: 'Keychain',
+            subtitle: 'Capture and keep a memory',
+          ),
+        ),
+        Positioned(
+          left: 250,
+          right: 250,
+          top: 349,
+          height: 260,
+          child: Container(
+            padding: const EdgeInsets.all(34),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(36),
+              border: Border.all(color: EventDesign.red, width: 7),
+            ),
+            child: const Column(
               children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: IconButton(
-                    onPressed: () => context.go('/'),
-                    icon: const Icon(
-                      Icons.arrow_back_rounded,
-                      color: Color(0xFF740000),
-                      size: 36,
-                    ),
-                    style: IconButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      padding: const EdgeInsets.all(12),
-                    ),
+                Text(
+                  'FOUR LITTLE MEMORIES',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: EventDesign.display,
+                    fontSize: 28,
+                    color: EventDesign.red,
                   ),
                 ),
-                const Spacer(),
-                Container(
-                  constraints: const BoxConstraints(maxWidth: 680),
-                  padding: const EdgeInsets.all(36),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.94),
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  child: Column(
-                    children: [
-                      const Icon(
-                        Icons.key_rounded,
-                        color: Color(0xFF740000),
-                        size: 72,
-                      ),
-                      const SizedBox(height: 18),
-                      const Text(
-                        'KEYCHAIN MODE',
-                        style: TextStyle(
-                          fontFamily: 'SpaceMono',
-                          fontSize: 34,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF740000),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      const Text(
-                        'Capture four photos, then design four unique mini strips from the same originals.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'SpaceMono',
-                          fontSize: 18,
-                          color: Color(0xFF740000),
-                        ),
-                      ),
-                      const SizedBox(height: 28),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 78,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _start(context, ref),
-                          icon: const Icon(Icons.camera_alt_rounded, size: 30),
-                          label: const Text(
-                            'START KEYCHAIN',
-                            style: TextStyle(
-                              fontFamily: 'SpaceMono',
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF740000),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
+                SizedBox(height: 28),
+                Text(
+                  'Capture four photos, then design four unique mini strips from the same originals.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: EventDesign.body,
+                    fontSize: 21,
+                    height: 1.5,
+                    color: EventDesign.red,
                   ),
                 ),
-                const Spacer(),
               ],
             ),
           ),
         ),
-      ),
-    );
-  }
+        Positioned(
+          left: 278,
+          top: 260,
+          child: Image.asset(
+            'assets/event/home_screen_figure2.png',
+            width: 165,
+            height: 100,
+            fit: BoxFit.contain,
+            excludeFromSemantics: true,
+          ),
+        ),
+        Positioned(
+          left: 455,
+          right: 455,
+          top: 645,
+          child: EventButton(
+            label: 'START KEYCHAIN',
+            icon: Icons.arrow_forward_rounded,
+            glossy: true,
+            height: 72,
+            onPressed: () => _start(context, ref),
+          ),
+        ),
+      ],
+    ),
+  );
 }

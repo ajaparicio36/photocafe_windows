@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/widgets/event_design.dart';
 import 'package:photocafe_windows/widgets/bouncy_preview.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
@@ -80,11 +81,15 @@ class _KeychainPrintScreenState extends ConsumerState<KeychainPrintScreen> {
   Widget build(BuildContext context) {
     final arguments = _arguments;
     if (arguments == null) {
-      return Scaffold(
-        body: Center(
-          child: ElevatedButton(
+      return EventPage(
+        title: 'Keychain print',
+        subtitle: 'Your four little memories, ready to keep',
+        onBack: () => context.go('/keychain/design'),
+        child: EventMessage(
+          message: 'Prepare your final review before printing.',
+          action: EventButton(
+            label: 'RETURN TO DESIGN',
             onPressed: () => context.go('/keychain/design'),
-            child: const Text('Return to Keychain design'),
           ),
         ),
       );
@@ -104,131 +109,49 @@ class _KeychainPrintScreenState extends ConsumerState<KeychainPrintScreen> {
       'keychain_sheet.png',
     ];
 
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/design/background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(36),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => context.go('/keychain/design'),
-                      icon: const Icon(
-                        Icons.arrow_back_rounded,
-                        color: Color(0xFF740000),
-                        size: 32,
-                      ),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.white,
-                      ),
-                    ),
-                    const Spacer(),
-                    const Text(
-                      'KEYCHAIN PRINT PREVIEW',
-                      style: TextStyle(
-                        fontFamily: 'SpaceMono',
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: PrintActionPanel(
-                          isPrinting: _isPrinting,
-                          printReady: arguments.output.sheetPdf.isNotEmpty,
-                          splitStrips: _cut,
-                          cutControlTitle: KeychainPrintScreen.cutControlTitle,
-                          cutControlDescription:
-                              KeychainPrintScreen.cutControlDescription,
-                          // The printable PDF is sent by [_print]. Soft-copy
-                          // upload uses the exact 600×900 variants and the
-                          // 1200×1800 sheet PNG below, so it must not add a
-                          // second rasterized copy of the PDF.
-                          pdfBytes: null,
-                          additionalMediaFiles: additionalFiles,
-                          additionalFileNames: additionalNames,
-                          onSplitStripsChanged: (value) {
-                            setState(() => _cut = value);
-                          },
-                          onPrint: _print,
-                        ),
-                      ),
-                      const SizedBox(width: 28),
-                      Expanded(
-                        flex: 3,
-                        child: Container(
-                          padding: const EdgeInsets.all(26),
-                          decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF740000,
-                            ).withValues(alpha: 0.78),
-                            borderRadius: BorderRadius.circular(24),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'FOUR-UP SHEET',
-                                style: TextStyle(
-                                  fontFamily: 'SpaceMono',
-                                  color: Colors.white,
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              Expanded(
-                                child: Container(
-                                  color: Colors.white,
-                                  child: BouncyPreview(
-                                    archive: true,
-                                    photos: ref
-                                        .watch(photoProvider)
-                                        .requireValue
-                                        .photos,
-                                    selections: arguments.output.selections,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                'TL • TR • BL • BR  |  1200 × 1800 PNG',
-                                style: TextStyle(
-                                  fontFamily: 'SpaceMono',
-                                  color: Colors.white.withValues(alpha: 0.9),
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return EventPage(
+      title: 'Keychain print',
+      subtitle: 'Your four little memories, ready to keep',
+      onBack: () => context.go('/keychain/design'),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: EventSection(
+              title: 'Your keychain sheet',
+              child: PrintActionPanel(
+                isPrinting: _isPrinting,
+                printReady: arguments.output.sheetPdf.isNotEmpty,
+                splitStrips: _cut,
+                cutControlTitle: KeychainPrintScreen.cutControlTitle,
+                cutControlDescription:
+                    KeychainPrintScreen.cutControlDescription,
+                pdfBytes: null,
+                additionalMediaFiles: additionalFiles,
+                additionalFileNames: additionalNames,
+                onSplitStripsChanged: (value) => setState(() => _cut = value),
+                onPrint: _print,
+              ),
             ),
           ),
-        ),
+          const SizedBox(width: 60),
+          Expanded(
+            flex: 6,
+            child: EventSection(
+              title: 'Complete sheet',
+              figure: 'assets/event/frames_figure1.png',
+              figureWidth: 180,
+              child: EventPanel(
+                child: BouncyPreview(
+                  foregroundColor: Colors.white,
+                  archive: true,
+                  photos: ref.watch(photoProvider).requireValue.photos,
+                  selections: arguments.output.selections,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -77,6 +77,7 @@ dev_dependencies:
   riverpod_generator: ^2.6.5
   build_runner: ^2.4.14
   json_serializable: ^6.9.5
+  path_provider_platform_interface: ^2.1.2
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -89,6 +90,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
+    - assets/event/
     - .env
     - assets/design/background.png
     - assets/design/clicking.png
@@ -192,6 +194,9 @@ flutter:
   #       - asset: fonts/TrajanPro_Bold.ttf
   #         weight: 700
   fonts:
+    - family: RubikMonoOne
+      fonts:
+        - asset: assets/fonts/RubikMonoOne-Regular.ttf
     - family: LeagueSpartan
       fonts:
         - asset: assets/fonts/LeagueSpartan-VariableFont_wght.ttf

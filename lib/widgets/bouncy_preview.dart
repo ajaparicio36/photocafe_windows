@@ -13,12 +13,14 @@ class BouncyPreview extends ConsumerStatefulWidget {
   final List<KeychainVariantSelection> selections;
   final FrameLayoutType? classicLayout;
   final bool archive;
+  final Color foregroundColor;
   const BouncyPreview({
     super.key,
     required this.photos,
     required this.selections,
     this.classicLayout,
     this.archive = false,
+    this.foregroundColor = const Color(0xff740000),
   });
   @override
   ConsumerState<BouncyPreview> createState() => _BouncyPreviewState();
@@ -119,21 +121,23 @@ class _BouncyPreviewState extends ConsumerState<BouncyPreview> {
         child: _frames == null
             ? Center(
                 child: _error == null
-                    ? const Column(
+                    ? Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          CircularProgressIndicator(color: Color(0xff740000)),
+                          CircularProgressIndicator(
+                            color: widget.foregroundColor,
+                          ),
                           SizedBox(height: 12),
                           Text(
                             'Preparing Bouncy Preview…',
-                            style: TextStyle(color: Color(0xff740000)),
+                            style: TextStyle(color: widget.foregroundColor),
                           ),
                         ],
                       )
                     : Text(
                         _error!,
                         textAlign: TextAlign.center,
-                        style: const TextStyle(color: Color(0xff740000)),
+                        style: TextStyle(color: widget.foregroundColor),
                       ),
               )
             : Image.memory(
@@ -144,7 +148,7 @@ class _BouncyPreviewState extends ConsumerState<BouncyPreview> {
       ),
       if (_frames != null)
         TextButton.icon(
-          style: TextButton.styleFrom(foregroundColor: const Color(0xff740000)),
+          style: TextButton.styleFrom(foregroundColor: widget.foregroundColor),
           onPressed: () => setState(() => _paused = !_paused),
           icon: Icon(_paused ? Icons.play_arrow : Icons.pause),
           label: Text(_paused ? 'Play Bouncy Preview' : 'Pause Bouncy Preview'),
@@ -153,7 +157,7 @@ class _BouncyPreviewState extends ConsumerState<BouncyPreview> {
         Text(
           _error!,
           textAlign: TextAlign.center,
-          style: const TextStyle(color: Color(0xff740000)),
+          style: TextStyle(color: widget.foregroundColor),
         ),
     ],
   );
