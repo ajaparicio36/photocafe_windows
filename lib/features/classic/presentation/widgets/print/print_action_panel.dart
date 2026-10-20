@@ -444,6 +444,11 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
               ],
             ),
             SwitchListTile(
+              activeTrackColor: Colors.white,
+              activeThumbColor: EventDesign.red,
+              inactiveTrackColor: Colors.white24,
+              inactiveThumbColor: Colors.white70,
+              trackOutlineColor: const WidgetStatePropertyAll(Colors.white70),
               contentPadding: EdgeInsets.zero,
               title: Text(
                 widget.cutControlTitle,
@@ -457,6 +462,11 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
               onChanged: widget.onSplitStripsChanged,
             ),
             SwitchListTile(
+              activeTrackColor: Colors.white,
+              activeThumbColor: EventDesign.red,
+              inactiveTrackColor: Colors.white24,
+              inactiveThumbColor: Colors.white70,
+              trackOutlineColor: const WidgetStatePropertyAll(Colors.white70),
               contentPadding: EdgeInsets.zero,
               title: const Text(
                 'Allow social media posting',
@@ -473,6 +483,11 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
             ),
             if (BouncyFixture.enabled)
               SwitchListTile(
+                activeTrackColor: Colors.white,
+                activeThumbColor: EventDesign.red,
+                inactiveTrackColor: Colors.white24,
+                inactiveThumbColor: Colors.white70,
+                trackOutlineColor: const WidgetStatePropertyAll(Colors.white70),
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
                   'QA encoder failure',
