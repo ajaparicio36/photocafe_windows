@@ -33,7 +33,18 @@ FrameDefinition classicDefinition(FrameTemplate template) {
   return FrameDefinition(
     id: template.id,
     name: template.name,
-    description: 'Revision ${template.revision}',
+    description:
+        FrameConstants.allBundledFrames
+            .where((frame) => frame.id == template.id)
+            .firstOrNull
+            ?.description ??
+        switch (template.kind) {
+          FrameTemplateKind.classicLandscape =>
+            'A landscape photo layout with your selected frame.',
+          FrameTemplateKind.classicPhotobox =>
+            'A photobox layout with your selected frame.',
+          _ => 'A portrait photo layout with your selected frame.',
+        },
     supportedLayouts: List.unmodifiable([type]),
     layouts: Map.unmodifiable({type: layout}),
     previewWidgetName: switch (type) {
@@ -48,7 +59,12 @@ FlipbookFrameDefinition flipbookDefinition(FrameTemplate template) =>
     FlipbookFrameDefinition(
       id: template.id,
       name: template.name,
-      description: 'Revision ${template.revision}',
+      description:
+          FlipbookFrameConstants.bundledFrames
+              .where((frame) => 'flipbook-${frame.id}' == template.id)
+              .firstOrNull
+              ?.description ??
+          'A flipbook layout with your selected frame.',
       previewWidgetName: 'StandardFlipbookFrame',
       layout: FlipbookFrameLayout(
         pageWidth: template.canvasWidth,
