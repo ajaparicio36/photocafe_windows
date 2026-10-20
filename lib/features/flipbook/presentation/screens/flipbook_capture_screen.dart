@@ -244,71 +244,6 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
     _countdownTimer = null;
   }
 
-  Widget _buildRecordingOverlay() {
-    String overlayText;
-    String subText;
-
-    if (_isCountingDown) {
-      overlayText = '$_countdown';
-      subText = 'Get Ready!';
-    } else if (_isRecording) {
-      overlayText = _countdown > 0 ? '$_countdown' : 'Processing...';
-      subText = _countdown > 0 ? 'Recording...' : 'Almost done...';
-    } else {
-      overlayText = 'Processing...';
-      subText = 'Almost done...';
-    }
-
-    return Positioned(
-      bottom: 100,
-      left: 0,
-      right: 0,
-      child: Center(
-        child: Container(
-          width: 180, // Reduced from 200
-          height: 180, // Reduced from 200
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.black.withOpacity(0.8),
-            border: Border.all(color: Colors.white, width: 3),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                overlayText,
-                style: const TextStyle(
-                  fontSize: 50, // Reduced from 60
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 6), // Reduced from 8
-              Text(
-                subText,
-                style: const TextStyle(
-                  fontSize: 14, // Reduced from 16
-                  color: Colors.white,
-                ),
-              ),
-              if (_countdown == 0 && _isRecording) ...[
-                const SizedBox(height: 10), // Reduced from 12
-                const SizedBox(
-                  width: 24, // Reduced from 30
-                  height: 24, // Reduced from 30
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2.5, // Reduced from 3
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final videoState = ref.watch(videoProvider);
@@ -356,7 +291,6 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
                           VideoPlayer(_videoPlayerController!)
                         else
                           const CanonLiveViewPreview(aspectRatio: 16 / 9),
-                        if (busy) _buildRecordingOverlay(),
                         if (videoState.isLoading &&
                             !_isRecording &&
                             !hasVideo &&
@@ -400,7 +334,7 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
                               : _isCountingDown
                               ? 'Get ready in $_countdown seconds'
                               : _isRecording
-                              ? 'Recording…'
+                              ? 'Recording… $_countdown seconds remaining'
                               : showVideoPreview
                               ? 'Review your take'
                               : 'Ready when you are',
@@ -439,7 +373,11 @@ class _FlipbookCaptureScreenState extends ConsumerState<FlipbookCaptureScreen> {
               ),
               const SizedBox(height: 8),
               LinearProgressIndicator(
-                value: _isRecording ? (1 - _countdown / 7).clamp(0.0, 1.0) : 0,
+                value: _isProcessingVideo
+                    ? null
+                    : _isRecording
+                    ? (1 - _countdown / 7).clamp(0.0, 1.0)
+                    : 0,
                 color: Colors.white,
                 backgroundColor: Colors.white24,
                 minHeight: 6,
