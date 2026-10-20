@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photocafe_windows/core/colors/app_theme.dart';
 import 'package:photocafe_windows/core/router/router.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_provider.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
@@ -183,6 +184,7 @@ class App extends ConsumerWidget {
   }
 
   Future<void> _initializeProviders(WidgetRef ref) async {
+    await ref.read(frameCatalogProvider.future);
     print('Initializing providers...');
 
     try {

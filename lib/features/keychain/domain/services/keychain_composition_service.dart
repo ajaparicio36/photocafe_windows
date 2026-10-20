@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_artwork_loader.dart';
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
@@ -133,7 +134,7 @@ class KeychainCompositionService {
   bool _disposed = false;
 
   KeychainCompositionService({FrameAssetLoader? loadAsset})
-    : _loadAsset = loadAsset ?? rootBundle.load;
+    : _loadAsset = loadAsset ?? FrameArtworkLoader.load;
 
   /// Releases cached preview data and cancels a request that has not started.
   ///
@@ -565,6 +566,7 @@ List<List<double>> _positionDto(List<FramePhotoPosition> positions) {
         position.width,
         position.height,
         position.rotationDegrees,
+        (position.photoIndex ?? -1).toDouble(),
       ],
   ];
 }
@@ -684,6 +686,9 @@ List<FramePhotoPosition> _positionsFromDto(List<List<double>> positions) {
         width: position[2],
         height: position[3],
         rotationDegrees: position[4],
+        photoIndex: position.length > 5 && position[5] >= 0
+            ? position[5].toInt()
+            : null,
       ),
   ];
 }

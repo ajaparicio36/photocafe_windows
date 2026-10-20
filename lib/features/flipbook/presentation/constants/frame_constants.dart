@@ -5,12 +5,14 @@ class FlipbookFramePosition {
   final double top;
   final double width;
   final double height;
+  final double rotationDegrees;
 
   const FlipbookFramePosition({
     required this.left,
     required this.top,
     required this.width,
     required this.height,
+    this.rotationDegrees = 0,
   });
 }
 
@@ -47,6 +49,7 @@ class FlipbookFrameDefinition {
 }
 
 class FlipbookFrameConstants {
+  static List<FlipbookFrameDefinition>? sessionFrames;
   // 4x6 inch dimensions in points (1 point = 1/72 inch)
   // 4x6 inches = 288 × 432 points
   static const double a6LandscapeWidth = 432.0;
@@ -168,7 +171,9 @@ class FlipbookFrameConstants {
     layout: flipbookFrameSix,
   );
 
-  static List<FlipbookFrameDefinition> get availableFrames => [
+  static List<FlipbookFrameDefinition> get availableFrames =>
+      sessionFrames ?? bundledFrames;
+  static List<FlipbookFrameDefinition> get bundledFrames => [
     frameOne,
     frameTwo,
     frameThree,

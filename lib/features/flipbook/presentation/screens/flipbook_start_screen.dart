@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_models.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
@@ -168,6 +170,9 @@ class FlipbookStartScreen extends ConsumerWidget {
                         );
 
                         // Clear any existing video state to start fresh
+                        FrameCatalogRuntime.instance.beginSession(
+                          KioskMode.flipbook,
+                        );
                         await ref.read(videoProvider.notifier).clearVideo();
 
                         // Small delay for visual feedback
@@ -296,6 +301,9 @@ class FlipbookStartScreen extends ConsumerWidget {
                   GestureDetector(
                     onTap: () async {
                       // Clear existing video state before navigating
+                      FrameCatalogRuntime.instance.beginSession(
+                        KioskMode.flipbook,
+                      );
                       await ref.read(videoProvider.notifier).clearVideo();
                       if (context.mounted) {
                         context.go('/flipbook/upload');

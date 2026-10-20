@@ -1,5 +1,8 @@
 import 'package:photocafe_windows/widgets/confirm_discard_session.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_provider.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_models.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +15,7 @@ class ClassicStartScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final catalog = ref.watch(frameCatalogProvider).value;
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -65,35 +69,41 @@ class ClassicStartScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       // Portrait Strips button (left)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_strips.png',
-                        layoutMode: 4,
-                        isLandscape: false,
-                      ),
+                      if (catalog?.isModeUsable(KioskMode.classicPortrait) ??
+                          false)
+                        _buildPhotoOption(
+                          context,
+                          ref,
+                          assetPath: 'assets/design/start/start_strips.png',
+                          layoutMode: 4,
+                          isLandscape: false,
+                        ),
 
                       const SizedBox(width: 40),
 
                       // Photo Box button (middle)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_box.png',
-                        layoutMode: 2,
-                        isLandscape: false,
-                      ),
+                      if (catalog?.isModeUsable(KioskMode.classicPhotobox) ??
+                          false)
+                        _buildPhotoOption(
+                          context,
+                          ref,
+                          assetPath: 'assets/design/start/start_box.png',
+                          layoutMode: 2,
+                          isLandscape: false,
+                        ),
 
                       const SizedBox(width: 40),
 
                       // Landscape Strips button (right)
-                      _buildPhotoOption(
-                        context,
-                        ref,
-                        assetPath: 'assets/design/start/start_landscape.png',
-                        layoutMode: 4,
-                        isLandscape: true,
-                      ),
+                      if (catalog?.isModeUsable(KioskMode.classicLandscape) ??
+                          false)
+                        _buildPhotoOption(
+                          context,
+                          ref,
+                          assetPath: 'assets/design/start/start_landscape.png',
+                          layoutMode: 4,
+                          isLandscape: true,
+                        ),
                     ],
                   ),
                 ),
@@ -124,6 +134,13 @@ class ClassicStartScreen extends ConsumerWidget {
             }
           }
           try {
+            FrameCatalogRuntime.instance.beginSession(
+              layoutMode == 2
+                  ? KioskMode.classicPhotobox
+                  : isLandscape
+                  ? KioskMode.classicLandscape
+                  : KioskMode.classicPortrait,
+            );
             // Show loading indicator
             showDialog(
               context: context,

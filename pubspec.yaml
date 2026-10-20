@@ -59,6 +59,7 @@ dependencies:
   flutter_launcher_icons: ^0.14.4
   canon_edsdk:
     path: ../canon_edsdk
+  file_selector: ^1.1.0
 
 dev_dependencies:
   flutter_test:

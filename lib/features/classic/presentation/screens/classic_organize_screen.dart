@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_artwork_loader.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -269,14 +270,28 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                             Expanded(
                               child: frames.isEmpty
                                   ? const Text('No supported frames')
-                                  : Image.asset(
-                                      frames
-                                          .firstWhere(
-                                            (f) => f.id == _selectedFrame,
-                                          )
-                                          .layouts[layout]!
-                                          .frameAssetPath,
-                                      fit: BoxFit.contain,
+                                  : FutureBuilder<ByteData>(
+                                      future: FrameArtworkLoader.load(
+                                        frames
+                                            .firstWhere(
+                                              (f) => f.id == _selectedFrame,
+                                            )
+                                            .layouts[layout]!
+                                            .frameAssetPath,
+                                      ),
+                                      builder: (context, snapshot) =>
+                                          snapshot.hasData
+                                          ? Image.memory(
+                                              snapshot.data!.buffer.asUint8List(
+                                                snapshot.data!.offsetInBytes,
+                                                snapshot.data!.lengthInBytes,
+                                              ),
+                                              fit: BoxFit.contain,
+                                            )
+                                          : const Center(
+                                              child:
+                                                  CircularProgressIndicator(),
+                                            ),
                                     ),
                             ),
                           ],

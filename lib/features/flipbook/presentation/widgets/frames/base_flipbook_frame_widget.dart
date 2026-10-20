@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_artwork_loader.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -31,16 +32,6 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
   ) {
     final halfPageHeight = layout.pageHeight / 2;
     final yOffset = positionIndex * halfPageHeight;
-    final framePosition =
-        layout.framePositions[0]; // Use first position as template
-
-    // Scale frame position for half-page height
-    final scaledFramePosition = FlipbookFramePosition(
-      left: framePosition.left,
-      top: framePosition.top * 0.5, // Scale for half page
-      width: framePosition.width,
-      height: framePosition.height * 0.5, // Scale for half page
-    );
 
     return pw.Positioned(
       left: 0,
@@ -54,15 +45,16 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
             pw.Positioned.fill(child: pw.Container(color: PdfColors.white)),
 
             // Frame content (behind frame background) - uses BoxFit.cover to maintain aspect ratio
-            pw.Positioned(
-              left: scaledFramePosition.left,
-              top: scaledFramePosition.top,
-              child: pw.Container(
-                width: scaledFramePosition.width,
-                height: scaledFramePosition.height,
-                child: pw.Image(frameImage, fit: pw.BoxFit.cover),
+            for (final position in layout.framePositions)
+              pw.Positioned(
+                left: position.left,
+                top: position.top * 0.5,
+                child: pw.SizedBox(
+                  width: position.width,
+                  height: position.height * 0.5,
+                  child: _leafPhoto(frameImage, position),
+                ),
               ),
-            ),
 
             // Frame background/border (on top of content)
             if (frameBackgroundImage != null)
@@ -96,6 +88,25 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
     );
   }
 
+  pw.Widget _leafPhoto(pw.MemoryImage image, FlipbookFramePosition position) {
+    if (position.rotationDegrees == 0) {
+      return pw.Image(image, fit: pw.BoxFit.cover);
+    }
+    // Conjugate the logical center rotation by the existing half-height leaf
+    // transform (S R S^-1). Slot/artwork geometry follows the editor while
+    // source photos keep the original physical-leaf cover crop.
+    final matrix = pw.Transform.rotate(
+      angle: position.rotationDegrees * 3.141592653589793 / 180,
+    ).transform;
+    matrix.setEntry(0, 1, matrix.entry(0, 1) * 2);
+    matrix.setEntry(1, 0, matrix.entry(1, 0) * 0.5);
+    return pw.Transform(
+      transform: matrix,
+      alignment: pw.Alignment.center,
+      child: pw.Image(image, fit: pw.BoxFit.cover),
+    );
+  }
+
   // Common PDF generation logic using the frame layout
   Future<Uint8List> generatePdfFromLayout(
     List<FrameModel> frames,
@@ -106,6 +117,9 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
     // Sort frames by index to ensure correct order
     final sortedFrames = List<FrameModel>.from(frames)
       ..sort((a, b) => a.index.compareTo(b.index));
+    if (sortedFrames.isEmpty) {
+      throw StateError('A Flipbook needs at least one sequence image.');
+    }
 
     print('Generating PDF with ${sortedFrames.length} frames for flipbook');
 
@@ -135,16 +149,15 @@ abstract class BaseFlipbookFrameWidget extends ConsumerWidget {
     }
 
     // Load the frame background image once
-    pw.MemoryImage? frameBackgroundImage;
-    try {
-      final frameImageBytes = await rootBundle.load(layout.frameAssetPath);
-      frameBackgroundImage = pw.MemoryImage(
-        frameImageBytes.buffer.asUint8List(),
-      );
-      print('Successfully loaded frame background: ${layout.frameAssetPath}');
-    } catch (e) {
-      print('Warning: Could not load frame asset ${layout.frameAssetPath}: $e');
-    }
+    final frameImageBytes = await FrameArtworkLoader.load(
+      layout.frameAssetPath,
+    );
+    final frameBackgroundImage = pw.MemoryImage(
+      frameImageBytes.buffer.asUint8List(
+        frameImageBytes.offsetInBytes,
+        frameImageBytes.lengthInBytes,
+      ),
+    );
 
     // Load frame images
     final frameImages = <pw.MemoryImage>[];
