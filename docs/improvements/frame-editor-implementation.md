@@ -3,8 +3,8 @@
 Feature branch: `codex/frame-editor-modes`, based on production `master` at
 `9122c57dfed078004789ac42df908fe3cda308b2`. The existing Canon EDSDK production
 camera, capture aspect ratio, print geometry, and Bouncy completion rules remain
-the baseline. The user has authorized native desktop and real Iriun camera QA;
-that pass is in progress on the stacked design implementation. Physical printing
+the baseline. The authorized bounded native desktop and real Iriun camera QA pass is complete
+on the stacked design implementation. Physical printing
 and public-upload QA were not performed and remain outside this checkpoint.
 
 ## Staff workflow and event choices
@@ -137,14 +137,14 @@ editor widget tests. The 16:10 customer design is stacked on this feature.
 - Current `57207b0` normal production release passed in **62.8 seconds** without
   QA defines. The separate Iriun QA release passed in **63.5 seconds** with
   `BOUNCY_CANON=false` and `BOUNCY_QA=false`.
-- Rebuilt native colored-filter source-preservation retest remains pending.
+- Native colored-filter source-preservation retest passed on `57207b0`; details below.
 
 Renderer regressions cover all 25 catalog adapters against their original
 definitions, unchanged production fingerprints for six unaffected templates,
 intentional off-page crop differences, rotated-edge clipping, managed artwork
 through both Classic PDF entry points, Keychain preview/final isolate, Classic
 and Keychain Bouncy, and Flipbook current-image/repeated/rotated slots.
-## Native QA checkpoint — partial, 2026-10-21
+## Native QA checkpoint — bounded pass complete, 2026-10-21
 
 The authorized native pass uses the real Iriun Webcam through a temporary local
 QA override. Production Canon startup and camera selection remain unchanged.
@@ -161,8 +161,7 @@ proof applies to revision 2. Native controls reject disabling the last usable
 product or Classic variant, and Classic off/on retains variant choices.
 On native `57207b0`, hiding the final Landscape frame is refused with a readable
 explanation to keep a frame enabled or disable that variant. All six Landscape
-frames and every product/variant were restored enabled. Customer hidden-frame
-selector verification remains pending.
+frames and every product/variant were restored enabled. Customer hidden-frame selector verification passed in Landscape below.
 
 Classic Portrait completed four real stills, Sepia, reorder, bundled-frame
 selection, Bouncy pause/play, print review and local soft-copy delivery. All four
@@ -214,15 +213,41 @@ existing `clearVideo` cleans retained derivatives. Three real-FFmpeg regressions
 failed against the old behavior and pass with the fix. Feature full suite:
 71 passed; targeted analyzer: zero errors/warnings, 49 inherited `avoid_print`
 infos; custom lint retains four inherited INFO findings. Current design has
-77 passing tests and verified production/QA releases. The rebuilt native colored
-Apply→Back→reselect→No Filter proof remains pending. The successful native pass used the previous binary.
+77 passing tests and verified production/QA releases.
 
-Remaining native coverage: rebuilt colored-filter source-preservation retest;
-Classic Landscape and Photobox; custom frame in Classic; CUT on/off contrast;
-customer hidden-frame visibility and broader keyboard/failure coverage.
-Broader destructive cleanup cases remain incomplete. No private capture media
-or local evidence paths are published here.
+On native `57207b0`, four fresh real Iriun takes fully decode at 3840×2160
+(6.980633 / 7.004817 / 6.999867 / 6.948667 seconds; 210 / 210 / 210 / 204
+distinct decoded frames). Vintage Apply on Take 2 produced 210 distinct filtered
+frames and 50 distinct decoded JPEGs. Back loaded all four takes; Take 1 and
+reselected Take 2 played their originals. No Filter then produced 50 new distinct
+decoded JPEGs and reached the uncolored frame preview, page 1/25. All four
+sources and four accepted copies remained byte-for-byte unchanged through every
+stage. No fixture, import or media restoration was used.
 
+Classic Landscape completed four live 1280×720 stills with full decode and
+byte-identical camera-source/accepted copies. Frame One was hidden before the
+session; the customer picker showed only Frames Two–Six. Frame Two's Bouncy
+preview and print review fit completely. The local printable PNG is 1240×1843
+(existing raster rounding); silent Bouncy is 310×462, six seconds, six fps and
+36 distinct decoded frames. Original and accepted-copy bytes remain unchanged.
+CUT ON/OFF states are visually distinct and CUT was restored ON; consent stayed
+OFF. No print or upload was dispatched. Legacy Frame Two's “Library / 143 Items /
+4 Photos Selected” text and blue checkmarks are baked into its bundled artwork,
+not leaked application UI; staff can hide or replace that artwork.
+
+Classic Photobox completed four distinct real 1280×720 stills, all fully decoded
+and byte-identical to their camera sources. No Filter, Frame One→Frame Two artwork
+change, complete 2×2 Bouncy and print review passed. The local printable PNG is
+1240×1843 (existing raster rounding); silent Bouncy is 310×462, six seconds,
+six fps and 36 distinct decoded frames. All originals and accepted copies
+remained byte-for-byte unchanged. No print or upload was dispatched.
+
+Landscape Frame One was restored enabled at revision 5; all six Landscape frames
+and every product/variant are enabled. Slot geometry and artwork remain equivalent
+to the prior baseline. All planned bounded native cases are complete. Custom
+Classic and Flipbook editor/render coverage is automated real-PDF parity; native
+custom artwork was exercised in the staff editor and Keychain. No private camera
+media or local evidence paths are published here.
 The five-second end-to-end media target remains unproven. Earlier exact-compositor
 24 MP synthetic runs took approximately eight to ten seconds on the measured
 workstation. The Iriun captures do not establish Canon performance.

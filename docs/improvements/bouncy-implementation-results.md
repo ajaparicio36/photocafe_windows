@@ -15,9 +15,11 @@ for accepted Flipbook source preservation. Combined design `57207b0` passes
 77 tests; the separate full QA suite passes 90 tests without skips, including
 real MP4 acceptance/truncation/payload-corruption boundaries. Production analysis reports zero errors, six warnings and 283 infos.
 Current production release passed in 62.8 seconds without QA defines; the
-separate Iriun QA release passed in 63.5 seconds. The rebuilt native colored-filter
-retest remains pending.
-The current native checkpoint and remaining scope are recorded in
+separate Iriun QA release passed in 63.5 seconds. The rebuilt native colored-filter source-preservation retest passed: Vintage Apply,
+Back/reselection and No Filter preserved all four original sources and accepted copies. The bounded
+native pass also completed Classic Portrait/Landscape/Photobox, Keychain, Flipbook,
+hidden-frame visibility, last-usable guards, CUT contrast and final restoration.
+The completed bounded native checkpoint and explicit hardware/performance limits are recorded in
 `frame-editor-implementation.md`. The earlier fixture/build records below are
 historical. The five-second target remains unmet by the measured 24 MP synthetic
 runs and is not established by Iriun capture.
