@@ -71,13 +71,16 @@ void main() {
     );
   });
 
-  test('Keychain catalog exposes every Classic frame layout', () {
+  test('Keychain catalog exposes compatible Classic portrait frames', () {
     final frames = KeychainFrameCatalog.allClassicFrames;
+    final compatible = FrameConstants.availableFrames.where(
+      (frame) => frame.supportedLayouts.contains(FrameLayoutType.fourPhotos),
+    );
     expect(frames, isNotEmpty);
-    expect(frames, hasLength(FrameConstants.availableFrames.length));
+    expect(frames, hasLength(compatible.length));
     expect(
       frames.map((frame) => frame.id),
-      orderedEquals(FrameConstants.availableFrames.map((frame) => frame.id)),
+      orderedEquals(compatible.map((frame) => frame.id)),
     );
     expect(frames.first.id, FrameConstants.availableFrames.first.id);
     expect(frames.every((frame) => frame.layouts.isNotEmpty), isTrue);

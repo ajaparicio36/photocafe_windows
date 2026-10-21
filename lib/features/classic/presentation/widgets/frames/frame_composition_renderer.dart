@@ -193,21 +193,21 @@ class FrameCompositionRenderer {
     for (var index = 0; index < layout.leftColumnPositions.length; index++) {
       positions.add((
         position: layout.leftColumnPositions[index],
-        photoIndex: photoIndexForSlot(
-          layout.type,
-          rightColumn: false,
-          slotIndex: index,
-        ),
+        photoIndex:
+            layout.leftColumnPositions[index].photoIndex ??
+            photoIndexForSlot(
+              layout.type,
+              rightColumn: false,
+              slotIndex: index,
+            ),
       ));
     }
     for (var index = 0; index < layout.rightColumnPositions.length; index++) {
       positions.add((
         position: layout.rightColumnPositions[index],
-        photoIndex: photoIndexForSlot(
-          layout.type,
-          rightColumn: true,
-          slotIndex: index,
-        ),
+        photoIndex:
+            layout.rightColumnPositions[index].photoIndex ??
+            photoIndexForSlot(layout.type, rightColumn: true, slotIndex: index),
       ));
     }
 
@@ -217,29 +217,64 @@ class FrameCompositionRenderer {
       final scaledTop = (position.top * scale).round();
       final scaledRight = ((position.left + position.width) * scale).round();
       final scaledBottom = ((position.top + position.height) * scale).round();
-      final dstX = math.max(0, math.min(canvas.width - 1, scaledLeft));
-      final dstY = math.max(0, math.min(canvas.height - 1, scaledTop));
-      final right = math.max(dstX + 1, math.min(canvas.width, scaledRight));
-      final bottom = math.max(dstY + 1, math.min(canvas.height, scaledBottom));
-      final width = right - dstX;
-      final height = bottom - dstY;
-      var photo = _fitPhoto(photos[slot.photoIndex], width, height, filterId);
       if (position.rotationDegrees != 0) {
-        // package:image uses screen coordinates, so its positive rotation
-        // direction is opposite the PDF transform used by Classic.
-        photo = img.copyRotate(photo, angle: -position.rotationDegrees);
-        // Rotation expands the raster bounds. Crop that expansion instead of
-        // resizing it, which would make the visible photo smaller than Classic.
-        photo = img.copyCrop(
-          photo,
-          x: (photo.width - width) ~/ 2,
-          y: (photo.height - height) ~/ 2,
-          width: width,
-          height: height,
+        final fullWidth = math.max(1, scaledRight - scaledLeft);
+        final fullHeight = math.max(1, scaledBottom - scaledTop);
+        // Match Classic PDF/editor: fit the full unrotated rectangle, rotate
+        // about its center, and clip only at the page boundary. Transparent
+        // expanded corners must not erase neighbouring photo slots.
+        final fitted = _fitPhoto(
+          photos[slot.photoIndex],
+          fullWidth,
+          fullHeight,
+          filterId,
+        ).convert(numChannels: 4);
+        final rotated = img.copyRotate(
+          fitted,
+          angle: -position.rotationDegrees,
         );
+        _compositeClipped(
+          canvas,
+          rotated,
+          scaledLeft + ((fullWidth - rotated.width) / 2).round(),
+          scaledTop + ((fullHeight - rotated.height) / 2).round(),
+        );
+        continue;
       }
-      img.compositeImage(canvas, photo, dstX: dstX, dstY: dstY);
+      // Cover the entire authored slot before page clipping. Refitting to its
+      // visible fragment would change the source crop at a negative/page edge.
+      final width = math.max(1, scaledRight - scaledLeft);
+      final height = math.max(1, scaledBottom - scaledTop);
+      final photo = _fitPhoto(photos[slot.photoIndex], width, height, filterId);
+      _compositeClipped(canvas, photo, scaledLeft, scaledTop);
     }
+  }
+
+  static void _compositeClipped(
+    img.Image canvas,
+    img.Image photo,
+    int left,
+    int top,
+  ) {
+    final dstX = math.max(0, left), dstY = math.max(0, top);
+    final srcX = math.max(0, -left), srcY = math.max(0, -top);
+    final width = math.min(canvas.width - dstX, photo.width - srcX);
+    final height = math.min(canvas.height - dstY, photo.height - srcY);
+    if (width <= 0 || height <= 0) {
+      return;
+    }
+    img.compositeImage(
+      canvas,
+      photo,
+      dstX: dstX,
+      dstY: dstY,
+      dstW: width,
+      dstH: height,
+      srcX: srcX,
+      srcY: srcY,
+      srcW: width,
+      srcH: height,
+    );
   }
 
   static img.Image _fitPhoto(

@@ -17,7 +17,8 @@ class FlipbookFrameScreen extends ConsumerStatefulWidget {
 }
 
 class _FlipbookFrameScreenState extends ConsumerState<FlipbookFrameScreen> {
-  String _selectedFrame = 'standard_frame';
+  String _selectedFrame =
+      FlipbookFrameConstants.availableFrames.firstOrNull?.id ?? '';
   bool _isGeneratingPdf = false;
   bool _isPrinting = false;
 

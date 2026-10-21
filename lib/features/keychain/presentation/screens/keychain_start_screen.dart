@@ -1,5 +1,7 @@
 import 'package:photocafe_windows/widgets/confirm_discard_session.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_models.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,6 +19,7 @@ class KeychainStartScreen extends ConsumerWidget {
     }
 
     try {
+      FrameCatalogRuntime.instance.beginSession(KioskMode.keychain);
       await ref.read(photoProvider.notifier).clearAllPhotos();
       await ref.read(photoProvider.notifier).setCaptureCount(4);
       await ref.read(printerProvider.notifier).setLayoutMode(4);

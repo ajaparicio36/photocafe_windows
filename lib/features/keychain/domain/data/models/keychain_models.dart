@@ -88,14 +88,18 @@ class KeychainSessionState {
   }
 }
 
-/// The active Classic frame definitions. Keychain intentionally shares this
-/// list so narrowing the Classic picker also narrows Keychain without a
-/// second catalog drifting out of sync.
+/// Keychain shares compatible portrait artwork with Classic. Landscape and
+/// Photobox templates retain their own physical layout contracts.
 class KeychainFrameCatalog {
   const KeychainFrameCatalog._();
 
   static List<FrameDefinition> get allClassicFrames {
-    final frames = FrameConstants.availableFrames;
+    final frames = FrameConstants.availableFrames
+        .where(
+          (frame) =>
+              frame.supportedLayouts.contains(FrameLayoutType.fourPhotos),
+        )
+        .toList();
     if (frames.isEmpty) {
       throw StateError('Keychain requires at least one active Classic frame.');
     }

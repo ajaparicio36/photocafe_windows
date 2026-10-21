@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_artwork_loader.dart';
 import 'dart:io';
 import 'package:camera/camera.dart';
 import 'package:flutter/services.dart';
@@ -343,7 +344,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
 
     // Use the first 4x4 frame for testing
     const frameAssetPath = 'assets/frames/frame1.png';
-    final frameImageBytes = await rootBundle.load(frameAssetPath);
+    final frameImageBytes = await FrameArtworkLoader.load(frameAssetPath);
     final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
 
     pdf.addPage(
@@ -601,7 +602,7 @@ class PrinterNotifier extends AsyncNotifier<PrinterState> {
 
     pw.MemoryImage? frameImage;
     try {
-      final frameImageBytes = await rootBundle.load(frameAssetPath);
+      final frameImageBytes = await FrameArtworkLoader.load(frameAssetPath);
       frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
     } catch (e) {
       print('Warning: Could not load flipbook frame asset: $e');

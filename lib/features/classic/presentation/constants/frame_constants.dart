@@ -1,4 +1,4 @@
-﻿enum FrameLayoutType { twoPhotos, fourPhotos, fourLandscapePhotos }
+enum FrameLayoutType { twoPhotos, fourPhotos, fourLandscapePhotos }
 
 class FramePhotoPosition {
   final double left;
@@ -6,6 +6,7 @@ class FramePhotoPosition {
   final double width;
   final double height;
   final double rotationDegrees;
+  final int? photoIndex;
 
   const FramePhotoPosition({
     required this.left,
@@ -13,6 +14,7 @@ class FramePhotoPosition {
     required this.width,
     required this.height,
     this.rotationDegrees = 0.0,
+    this.photoIndex,
   });
 }
 
@@ -51,6 +53,9 @@ class FrameDefinition {
 }
 
 class FrameConstants {
+  /// Installed only when a customer accepts a session; staff saves never
+  /// replace these immutable definitions halfway through a composition.
+  static List<FrameDefinition>? sessionFrames;
   // Classic Frame Layouts (for 4x4 mode)
   static const classicFourPhotoLayout = FrameLayout(
     type: FrameLayoutType.fourPhotos,
@@ -2489,7 +2494,24 @@ class FrameConstants {
     previewWidgetName: 'LandscapeFramePreview',
   );
 
-  static List<FrameDefinition> get availableFrames => [
+  static List<FrameDefinition> get availableFrames =>
+      sessionFrames ?? bundledFrames;
+
+  static List<FrameDefinition> get allBundledFrames => [
+    ...bundledFrames,
+    fourByFourFrame,
+    fourByFourFrameTwo,
+    fourByFourFrameFour,
+    fourByFourFrameFive,
+    fourByFourFrameSeven,
+    fourByFourFrameEight,
+    fourByFourFrameNine,
+    fourByFourFrameTen,
+    fourByFourFrameEleven,
+    fourByFourFrameDinagyang,
+  ];
+
+  static List<FrameDefinition> get bundledFrames => [
     fourByFourFrameThree,
     fourByFourFrameSix,
     fourByFourFrameTwelve,

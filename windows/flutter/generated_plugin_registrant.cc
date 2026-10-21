@@ -8,6 +8,7 @@
 
 #include <camera_windows/camera_windows.h>
 #include <canon_edsdk/canon_edsdk_plugin_c_api.h>
+#include <file_selector_windows/file_selector_windows.h>
 #include <printing/printing_plugin.h>
 #include <screen_retriever_windows/screen_retriever_windows_plugin_c_api.h>
 #include <video_player_win/video_player_win_plugin_c_api.h>
@@ -19,6 +20,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("CameraWindows"));
   CanonEdsdkPluginCApiRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("CanonEdsdkPluginCApi"));
+  FileSelectorWindowsRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FileSelectorWindows"));
   PrintingPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("PrintingPlugin"));
   ScreenRetrieverWindowsPluginCApiRegisterWithRegistrar(

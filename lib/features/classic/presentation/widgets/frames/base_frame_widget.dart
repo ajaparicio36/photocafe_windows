@@ -1,6 +1,7 @@
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_artwork_loader.dart';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pdf/pdf.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_composition_renderer.dart';
@@ -31,7 +32,9 @@ abstract class BaseFrameWidget extends ConsumerWidget {
   ) async {
     final pdf = pw.Document();
 
-    final frameImageBytes = await rootBundle.load(layout.frameAssetPath);
+    final frameImageBytes = await FrameArtworkLoader.load(
+      layout.frameAssetPath,
+    );
     final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
 
     final sortedPhotos = List.from(photos)
@@ -70,7 +73,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                     width: leftPositions[i].width,
                     height: leftPositions[i].height,
                     child: _buildPhotoWidget(
-                      i,
+                      leftPositions[i].photoIndex ?? i,
                       photoImages,
                       testImage,
                       leftPositions[i].rotationDegrees,
@@ -86,7 +89,9 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                     width: rightPositions[i].width,
                     height: rightPositions[i].height,
                     child: _buildPhotoWidget(
-                      layoutMode == 2
+                      rightPositions[i].photoIndex != null
+                          ? rightPositions[i].photoIndex!
+                          : layoutMode == 2
                           ? i + 2
                           : i, // For 2x2 use photos 3,4; for 4x4 use duplicates
                       photoImages,
@@ -150,7 +155,9 @@ abstract class BaseFrameWidget extends ConsumerWidget {
   ) async {
     final pdf = pw.Document();
 
-    final frameImageBytes = await rootBundle.load(layout.frameAssetPath);
+    final frameImageBytes = await FrameArtworkLoader.load(
+      layout.frameAssetPath,
+    );
     final frameImage = pw.MemoryImage(frameImageBytes.buffer.asUint8List());
 
     final sortedPhotos = List.from(photos)
@@ -178,7 +185,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
         build: (pw.Context context) {
           return pw.Stack(
             children: [
-              pw.Positioned.fill(child: pw.Container(color: PdfColors.green)),
+              pw.Positioned.fill(child: pw.Container(color: PdfColors.white)),
               // Left column images
               for (int i = 0; i < leftPositions.length; i++)
                 pw.Positioned(
@@ -188,10 +195,10 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                     width: leftPositions[i].width,
                     height: leftPositions[i].height,
                     child: _buildPhotoWidget(
-                      i,
+                      leftPositions[i].photoIndex ?? i,
                       photoImages,
                       testImage,
-                      i < rotationsDegrees.length ? rotationsDegrees[i] : 0.0,
+                      _slotRotation(leftPositions[i], i, rotationsDegrees),
                     ),
                   ),
                 ),
@@ -204,12 +211,18 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                     width: rightPositions[i].width,
                     height: rightPositions[i].height,
                     child: _buildPhotoWidget(
-                      layoutMode == 2 ? i + 2 : i,
+                      rightPositions[i].photoIndex != null
+                          ? rightPositions[i].photoIndex!
+                          : layoutMode == 2
+                          ? i + 2
+                          : i,
                       photoImages,
                       testImage,
-                      (layoutMode == 2 ? i + 2 : i) < rotationsDegrees.length
-                          ? rotationsDegrees[layoutMode == 2 ? i + 2 : i]
-                          : 0.0,
+                      _slotRotation(
+                        rightPositions[i],
+                        layoutMode == 2 ? i + 2 : i,
+                        rotationsDegrees,
+                      ),
                     ),
                   ),
                 ),
@@ -224,6 +237,16 @@ abstract class BaseFrameWidget extends ConsumerWidget {
     );
 
     return pdf.save();
+  }
+
+  double _slotRotation(
+    FramePhotoPosition slot,
+    int fallbackIndex,
+    List<double> rotations,
+  ) {
+    final index = slot.photoIndex ?? fallbackIndex;
+    return slot.rotationDegrees +
+        (index < rotations.length ? rotations[index] : 0);
   }
 
   // Common build method for all frames

@@ -14,6 +14,7 @@ import 'package:windows_printer/windows_printer.dart';
 import 'dart:typed_data';
 import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
 import 'package:photocafe_windows/features/flipbook/presentation/constants/frame_constants.dart';
+import 'package:photocafe_windows/features/frame_catalog/presentation/screens/frame_catalog_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -819,6 +820,16 @@ printing functionality is working.
             title: 'Settings',
             subtitle: 'Configure application settings',
             backRoute: '/',
+            trailingWidget: FilledButton.icon(
+              key: const ValueKey('open-frame-catalog'),
+              onPressed: () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (context) => const FrameCatalogScreen(),
+                ),
+              ),
+              icon: const Icon(Icons.dashboard_customize_outlined),
+              label: const Text('Frames & modes'),
+            ),
           ),
           const SizedBox(height: 40),
           Expanded(
