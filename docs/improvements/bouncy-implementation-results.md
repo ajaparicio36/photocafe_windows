@@ -2,6 +2,25 @@
 
 Implementation branch: `codex/bouncy-previews`, forked from `popup_sanag_keychain` at `e4b6c18ae6e0fa3385b493decd9e6b8a528214fe`. Only the Flutter application is changed here. Archive integration is implemented independently in the allowed server repository. The historical `edsdk` discovery checkout is read-only; the frame editor is excluded.
 
+## Production checkpoint - 2026-10-21
+
+The development override and fixture results below are historical. Current
+production startup initializes Canon normally, and Classic/Keychain capture uses
+`BOUNCY_CANON` with `defaultValue: true`; a normal release does not need a camera
+define. Temporary Iriun overrides used for authorized local QA remain outside the
+production source. Iriun evidence does not establish Canon quality or timing.
+
+Current feature `99858f9` passes 71 tests, including three real-FFmpeg regressions
+for accepted Flipbook source preservation. Combined design `57207b0` passes
+77 tests; the separate full QA suite passes 90 tests without skips, including
+real MP4 acceptance/truncation/payload-corruption boundaries. Production analysis reports zero errors, six warnings and 283 infos.
+Current production release passed in 62.8 seconds without QA defines; the
+separate Iriun QA release passed in 63.5 seconds. The rebuilt native colored-filter
+retest remains pending.
+The current native checkpoint and remaining scope are recorded in
+`frame-editor-implementation.md`. The earlier fixture/build records below are
+historical. The five-second target remains unmet by the measured 24 MP synthetic
+runs and is not established by Iriun capture.
 ## Capture and identity
 
 `BouncySession` receives compressed JPEGs from the existing single Canon EVF subscription. A monotonic stopwatch timestamps arrival. The ring samples at at most 12.5 fps, keeps at most three seconds / 48 frames / 12 MiB, and freezes immediately before the actual single Canon shutter command. Strict Bouncy capture deliberately does not retry internally or accept contingency preview-quality stills. Staff trigger a new attempt after a failure.
