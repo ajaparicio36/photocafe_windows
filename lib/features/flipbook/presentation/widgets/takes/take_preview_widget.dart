@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/widgets/event_design.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -23,6 +24,7 @@ class TakePreviewWidget extends StatefulWidget {
 class _TakePreviewWidgetState extends State<TakePreviewWidget> {
   VideoPlayerController? _controller;
   bool _isInitialized = false;
+  String? _error;
 
   @override
   void initState() {
@@ -50,7 +52,7 @@ class _TakePreviewWidgetState extends State<TakePreviewWidget> {
     try {
       final videoFile = File(widget.videoPath);
       if (!await videoFile.exists()) {
-        print('Video file does not exist: ${widget.videoPath}');
+        if (mounted) setState(() => _error = 'This take is unavailable.');
         return;
       }
 
@@ -70,7 +72,7 @@ class _TakePreviewWidgetState extends State<TakePreviewWidget> {
         }
       }
     } catch (e) {
-      print('Error initializing video player: $e');
+      if (mounted) setState(() => _error = 'This take could not play.');
     }
   }
 
@@ -87,114 +89,90 @@ class _TakePreviewWidgetState extends State<TakePreviewWidget> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: widget.isSelected
-                ? Colors.yellow
-                : Colors.white.withOpacity(0.5),
-            width: widget.isSelected ? 4 : 2,
+  Widget build(BuildContext context) => Semantics(
+    label: 'Take ${widget.takeNumber}',
+    selected: widget.isSelected,
+    button: true,
+    child: Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: widget.onTap,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: widget.isSelected ? const Color(0xffc32121) : Colors.white,
+              width: widget.isSelected ? 5 : 2,
+            ),
           ),
-          boxShadow: widget.isSelected
-              ? [
-                  BoxShadow(
-                    color: Colors.yellow.withOpacity(0.5),
-                    blurRadius: 20,
-                    spreadRadius: 2,
-                  ),
-                ]
-              : null,
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
           child: Stack(
             fit: StackFit.expand,
             children: [
-              // Video preview
-              if (_isInitialized && _controller != null)
-                FittedBox(
-                  fit: BoxFit.cover,
-                  child: SizedBox(
-                    width: _controller!.value.size.width,
-                    height: _controller!.value.size.height,
-                    child: VideoPlayer(_controller!),
-                  ),
-                )
-              else
-                Container(
-                  color: Colors.black,
-                  child: const Center(
-                    child: CircularProgressIndicator(color: Colors.white),
-                  ),
-                ),
-
-              // Take number badge
+              Padding(
+                padding: const EdgeInsets.all(7),
+                child: _isInitialized && _controller != null
+                    ? Center(
+                        child: AspectRatio(
+                          aspectRatio: _controller!.value.aspectRatio,
+                          child: VideoPlayer(_controller!),
+                        ),
+                      )
+                    : Center(
+                        child: _error == null
+                            ? const CircularProgressIndicator()
+                            : Text(
+                                _error!,
+                                style: const TextStyle(color: EventDesign.red),
+                              ),
+                      ),
+              ),
               Positioned(
-                top: 12,
-                left: 12,
+                top: 10,
+                left: 16,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
+                    horizontal: 14,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(12),
+                    color: EventDesign.red,
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
-                    'Take ${widget.takeNumber}',
+                    '${widget.takeNumber}',
                     style: const TextStyle(
+                      fontFamily: EventDesign.body,
                       color: Colors.white,
-                      fontSize: 14,
                       fontWeight: FontWeight.bold,
+                      fontSize: 20,
                     ),
                   ),
                 ),
               ),
-
-              // Selected indicator
               if (widget.isSelected)
-                Positioned(
+                const Positioned(
                   top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.yellow,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      color: Colors.black,
-                      size: 24,
-                    ),
+                  right: 16,
+                  child: Icon(
+                    Icons.check_circle,
+                    color: EventDesign.red,
+                    size: 30,
                   ),
                 ),
-
-              // Play icon overlay when not selected
-              if (!widget.isSelected)
-                Center(
-                  child: Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.play_arrow,
-                      color: Colors.white,
-                      size: 40,
-                    ),
+              if (!widget.isSelected && _isInitialized)
+                const Center(
+                  child: Icon(
+                    Icons.play_circle_fill,
+                    size: 48,
+                    color: Colors.white,
                   ),
                 ),
             ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
 }

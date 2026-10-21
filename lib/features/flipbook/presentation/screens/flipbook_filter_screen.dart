@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/widgets/event_design.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -19,13 +20,19 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
   bool _isProcessing = false;
   bool _isGeneratingPreview = false;
   VideoPlayerController? _videoPlayerController;
+  String? _previewError;
 
   @override
   void initState() {
     super.initState();
     // Initialize with original video
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeVideoPlayer();
+      _initializeVideoPlayer().catchError((Object error) {
+        if (mounted)
+          setState(
+            () => _previewError = 'Video preview could not load. Please retry.',
+          );
+      });
     });
   }
 
@@ -152,551 +159,192 @@ class _FlipbookFilterScreenState extends ConsumerState<FlipbookFilterScreen> {
   @override
   Widget build(BuildContext context) {
     final videoState = ref.watch(videoProvider);
-
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/design/background.png'),
-          fit: BoxFit.fill,
+    final busy = _isProcessing || _isGeneratingPreview;
+    return EventPage(
+      title: 'Filters',
+      subtitle: 'Choose your own filter to enhance your video',
+      onBack: busy ? null : () => context.go('/flipbook/takes'),
+      trailing: SizedBox(
+        width: 170,
+        child: EventButton(
+          label: 'SKIP FILTERS',
+          height: 48,
+          onPressed: busy || videoState.value?.videoPath == null
+              ? null
+              : () {
+                  setState(
+                    () => _selectedFilter = VideoFilterConstants.noFilterName,
+                  );
+                  _applySelectedFilter();
+                },
         ),
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: videoState.when(
-            data: (data) {
-              if (data.videoPath == null) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.videocam_off_outlined,
-
-                        color: Colors.white.withOpacity(0.4),
-                      ),
-                      const SizedBox(height: 30),
-                      Text(
-                        'No video available',
-                        style: TextStyle(
-                          fontFamily: 'SpaceMono',
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      SizedBox(
-                        width: 300,
-                        height: 80,
-                        child: ElevatedButton(
-                          onPressed: () => context.go('/flipbook/home'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Color(0xFF740000),
-                          ),
-                          child: Text(
-                            'Record Video',
-                            style: TextStyle(
-                              fontFamily: 'SpaceMono',
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }
-
-              return Column(
-                children: [
-                  // Header with back button, title, and skip button
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Back button
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: IconButton(
-                          onPressed: () => context.go('/flipbook/takes'),
-                          icon: Icon(
-                            Icons.arrow_back_rounded,
-                            color: Color(0xFF740000),
-                            size: 28,
-                          ),
-                        ),
-                      ),
-
-                      Spacer(),
-
-                      // Title image
-                      Image.asset(
-                        'assets/design/flipbook-filters/filters_title.png',
-                        height: 80,
-                        fit: BoxFit.contain,
-                      ),
-
-                      Spacer(),
-
-                      // Skip button
-                      Container(
-                        width: 200,
-                        height: 60,
-                        child: ElevatedButton(
-                          onPressed: _isProcessing || _isGeneratingPreview
-                              ? null
-                              : () async {
-                                  setState(() {
-                                    _isProcessing = true;
-                                  });
-
-                                  try {
-                                    final videoNotifier = ref.read(
-                                      videoProvider.notifier,
-                                    );
-                                    await videoNotifier.splitVideoIntoFrames();
-
-                                    if (mounted) {
-                                      context.go('/flipbook/frame');
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Error processing video: $e',
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  } finally {
-                                    if (mounted) {
-                                      setState(() {
-                                        _isProcessing = false;
-                                      });
-                                    }
-                                  }
-                                },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Color(0xFF740000),
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                          ),
-                          child: Text(
-                            'SKIP FILTERS',
-                            style: TextStyle(
-                              fontFamily: 'SpaceMono',
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Main content area
-                  Expanded(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Left panel - Filter selection with doll
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            children: [
-                              // Doll image with text
-                              Row(
-                                children: [
-                                  Image.asset(
-                                    'assets/design/flipbook-filters/filters_doll.png',
-                                    height: 120,
-                                    fit: BoxFit.contain,
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Text(
-                                    'CHOOSE FILTERS',
-                                    style: TextStyle(
-                                      fontFamily: 'SpaceMono',
-                                      fontSize: 39,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-
-                              // Filter selection panel
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.only(top: 0),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Filter list with radio buttons
-                                      Expanded(
-                                        child: Material(
-                                          color: Colors.transparent,
-                                          child: ListView.separated(
-                                            padding: EdgeInsets.zero,
-                                            itemCount: VideoFilterConstants
-                                                .availableFilters
-                                                .length,
-                                            separatorBuilder:
-                                                (context, index) =>
-                                                    const SizedBox(height: 24),
-                                            itemBuilder: (context, index) {
-                                              final filterName =
-                                                  VideoFilterConstants
-                                                      .availableFilters[index];
-                                              final isSelected =
-                                                  _selectedFilter == filterName;
-
-                                              return Container(
-                                                decoration: BoxDecoration(
-                                                  color: isSelected
-                                                      ? Colors.white
-                                                      : Colors.transparent,
-                                                  borderRadius:
-                                                      BorderRadius.circular(36),
-                                                  border: Border.all(
-                                                    color: Colors.white,
-                                                    width: 2,
-                                                  ),
-                                                ),
-                                                child: InkWell(
-                                                  onTap: () =>
-                                                      _applyFilterPreview(
-                                                        filterName,
-                                                      ),
-                                                  child: Padding(
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                          vertical: 48,
-                                                          horizontal: 16,
-                                                        ),
-                                                    child: Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .center,
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .center,
-                                                      children: [
-                                                        // Radio button
-                                                        Container(
-                                                          width: 24,
-                                                          height: 24,
-                                                          decoration: BoxDecoration(
-                                                            shape:
-                                                                BoxShape.circle,
-                                                            border: Border.all(
-                                                              color: isSelected
-                                                                  ? Color(
-                                                                      0xFF740000,
-                                                                    )
-                                                                  : Colors
-                                                                        .white,
-                                                              width: 2,
-                                                            ),
-                                                            color: Colors
-                                                                .transparent,
-                                                          ),
-                                                          child: isSelected
-                                                              ? Center(
-                                                                  child: Container(
-                                                                    width: 12,
-                                                                    height: 12,
-                                                                    decoration: BoxDecoration(
-                                                                      shape: BoxShape
-                                                                          .circle,
-                                                                      color: Color(
-                                                                        0xFF740000,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                )
-                                                              : null,
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 32,
-                                                        ),
-                                                        // Filter name
-                                                        Expanded(
-                                                          child: Text(
-                                                            filterName,
-                                                            style: TextStyle(
-                                                              fontFamily:
-                                                                  'SpaceMono',
-                                                              fontSize: 20,
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .normal,
-                                                              color: isSelected
-                                                                  ? Color(
-                                                                      0xFF740000,
-                                                                    )
-                                                                  : Colors
-                                                                        .white,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              );
-                                            },
-                                          ),
-                                        ),
-                                      ),
-
-                                      const SizedBox(height: 24),
-
-                                      // Apply button
-                                      SizedBox(
-                                        width: double.infinity,
-                                        height: 96,
-                                        child: ElevatedButton(
-                                          onPressed:
-                                              _isProcessing ||
-                                                  _isGeneratingPreview
-                                              ? null
-                                              : _applySelectedFilter,
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                (_isProcessing ||
-                                                    _isGeneratingPreview)
-                                                ? Colors.grey
-                                                : Colors.white,
-                                            foregroundColor: Color(0xFF740000),
-                                            elevation: 0,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(16),
-                                            ),
-                                          ),
-                                          child: _isProcessing
-                                              ? Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  children: [
-                                                    SizedBox(
-                                                      width: 20,
-                                                      height: 20,
-                                                      child:
-                                                          CircularProgressIndicator(
-                                                            strokeWidth: 2,
-                                                            color: Color(
-                                                              0xFF740000,
-                                                            ),
-                                                          ),
-                                                    ),
-                                                    const SizedBox(width: 12),
-                                                    Text(
-                                                      'Applying...',
-                                                      style: TextStyle(
-                                                        fontFamily: 'SpaceMono',
-                                                        fontSize: 16,
-                                                        fontWeight:
-                                                            FontWeight.bold,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                )
-                                              : Row(
-                                                  mainAxisAlignment:
-                                                      MainAxisAlignment.center,
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.center,
-                                                  children: [
-                                                    Icon(
-                                                      Icons.auto_fix_high,
-                                                      size: 32,
-                                                      color: Color(0xFF740000),
-                                                    ),
-                                                    const SizedBox(width: 16),
-                                                    Text(
-                                                      _selectedFilter ==
-                                                              VideoFilterConstants
-                                                                  .noFilterName
-                                                          ? 'APPLY NO FILTER'
-                                                          : 'APPLY FILTER',
-                                                      style: TextStyle(
-                                                        fontFamily: 'SpaceMono',
-                                                        fontSize: 20,
-                                                        fontWeight:
-                                                            FontWeight.normal,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        const SizedBox(width: 40),
-
-                        // Right panel - Video preview
-                        Expanded(
-                          flex: 3,
-                          child: AspectRatio(
-                            aspectRatio: 1.0,
-                            child: Stack(
-                              children: [
-                                // Preview background image
-                                Positioned.fill(
-                                  bottom: 320,
-                                  child: Image.asset(
-                                    'assets/design/flipbook-filters/filters_preview.png',
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                                // Video preview content
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    left: 170,
-                                    right: 170,
-                                    top: 180,
-                                    bottom: 340,
-                                  ),
-                                  child: _buildVideoPreview(),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-            loading: () =>
-                Center(child: CircularProgressIndicator(color: Colors.white)),
-            error: (error, stack) => Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error, size: 80, color: Colors.white),
-                  const SizedBox(height: 24),
-                  Text(
-                    'Error: $error',
-                    style: TextStyle(
-                      fontFamily: 'SpaceMono',
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  SizedBox(
-                    width: 300,
-                    height: 80,
-                    child: ElevatedButton(
-                      onPressed: () => context.go('/flipbook/frame'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Color(0xFF740000),
-                      ),
-                      child: Text(
-                        'Skip to Frame Selection',
-                        style: TextStyle(
-                          fontFamily: 'SpaceMono',
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      child: videoState.when(
+        loading: () =>
+            const EventMessage(message: 'Loading your video…', loading: true),
+        error: (error, stack) => EventMessage(
+          message: 'Video could not load: $error',
+          action: EventButton(
+            label: 'RETURN TO TAKES',
+            onPressed: () => context.go('/flipbook/takes'),
           ),
         ),
+        data: (data) => data.videoPath == null
+            ? EventMessage(
+                message: 'Record a video before choosing a filter.',
+                action: EventButton(
+                  label: 'RECORD VIDEO',
+                  onPressed: () => context.go('/flipbook/start'),
+                ),
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    flex: 5,
+                    child: EventSection(
+                      title: 'Choose filters',
+                      figure: 'assets/event/filters_figure1.png',
+                      figureWidth: 62,
+                      figureAtStart: true,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(
+                            child: ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(2, 2, 12, 2),
+                              itemCount:
+                                  VideoFilterConstants.availableFilters.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                final filter = VideoFilterConstants
+                                    .availableFilters[index];
+                                return EventChoice(
+                                  title: filter,
+                                  description: _description(filter),
+                                  selected: filter == _selectedFilter,
+                                  onTap: busy
+                                      ? null
+                                      : () => _applyFilterPreview(filter),
+                                );
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          EventButton(
+                            label: _isProcessing
+                                ? 'PROCESSING…'
+                                : 'APPLY ${_selectedFilter.toUpperCase()}',
+                            icon: Icons.auto_fix_high,
+                            onPressed: busy ? null : _applySelectedFilter,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 60),
+                  Expanded(
+                    flex: 6,
+                    child: EventSection(
+                      title: 'Preview',
+                      figure: 'assets/event/filters_figure2.png',
+                      child: Column(
+                        children: [
+                          SizedBox(
+                            height: 365,
+                            child: EventPanel(
+                              child: _previewError != null
+                                  ? EventMessage(
+                                      message: _previewError!,
+                                      action: EventButton(
+                                        label: 'RETRY PREVIEW',
+                                        onPressed: () {
+                                          setState(() => _previewError = null);
+                                          _initializeVideoPlayer().catchError((
+                                            Object error,
+                                          ) {
+                                            if (mounted)
+                                              setState(
+                                                () => _previewError =
+                                                    'Video preview could not load. Please retry.',
+                                              );
+                                          });
+                                        },
+                                      ),
+                                    )
+                                  : _videoPlayerController
+                                            ?.value
+                                            .isInitialized ==
+                                        true
+                                  ? Center(
+                                      child: AspectRatio(
+                                        aspectRatio: _videoPlayerController!
+                                            .value
+                                            .aspectRatio,
+                                        child: VideoPlayer(
+                                          _videoPlayerController!,
+                                        ),
+                                      ),
+                                    )
+                                  : const Center(
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                          if (busy) ...[
+                            const SizedBox(height: 20),
+                            Text(
+                              _isGeneratingPreview
+                                  ? 'Generating filter preview…'
+                                  : 'Preparing your flipbook…',
+                              style: const TextStyle(
+                                fontFamily: EventDesign.body,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                          if (_videoPlayerController?.value.isInitialized ==
+                              true)
+                            TextButton.icon(
+                              onPressed: () => setState(() {
+                                _videoPlayerController!.value.isPlaying
+                                    ? _videoPlayerController!.pause()
+                                    : _videoPlayerController!.play();
+                              }),
+                              icon: Icon(
+                                _videoPlayerController!.value.isPlaying
+                                    ? Icons.pause
+                                    : Icons.play_arrow,
+                                color: Colors.white,
+                              ),
+                              label: Text(
+                                _videoPlayerController!.value.isPlaying
+                                    ? 'Pause preview'
+                                    : 'Play preview',
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
       ),
     );
   }
 
-  Widget _buildVideoPreview() {
-    if (_isGeneratingPreview) {
-      return Container(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              padding: const EdgeInsets.all(15),
-              child: CircularProgressIndicator(
-                strokeWidth: 3,
-                color: Color(0xFF740000),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Generating preview...',
-              style: TextStyle(
-                fontFamily: 'SpaceMono',
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF740000),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (_videoPlayerController == null ||
-        !_videoPlayerController!.value.isInitialized) {
-      return Container(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.videocam_outlined,
-              size: 60,
-              color: Color(0xFF740000).withOpacity(0.4),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Loading video...',
-              style: TextStyle(
-                fontFamily: 'SpaceMono',
-                fontSize: 14,
-                color: Color(0xFF740000).withOpacity(0.6),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
-      child: VideoPlayer(_videoPlayerController!),
-    );
-  }
+  String _description(String filter) => switch (filter) {
+    VideoFilterConstants.noFilterName => 'Keep your video as it is',
+    VideoFilterConstants.vintageFilterName => 'Warm tones with a vintage feel',
+    VideoFilterConstants.blackAndWhiteFilterName =>
+      'A timeless monochrome finish',
+    VideoFilterConstants.sepiaFilterName => 'Classic sepia tones',
+    VideoFilterConstants.brightnessFilterName => 'Brighten your video',
+    VideoFilterConstants.contrastFilterName => 'Bring out contrast and detail',
+    _ => '',
+  };
 }

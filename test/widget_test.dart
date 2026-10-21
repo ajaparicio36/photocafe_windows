@@ -41,52 +41,27 @@ void main() {
     );
     await tester.pump();
 
-    expect(
-      find.byWidgetPredicate(
-        (widget) =>
-            widget is Image &&
-            widget.image is AssetImage &&
-            (widget.image as AssetImage).assetName ==
-                'assets/design/start/start_keychain.png',
-      ),
-      findsOneWidget,
-    );
-    expect(find.byType(Image), findsAtLeastNWidgets(3));
-    for (final product in [
-      'assets/design/home/home_classic.png',
-      'assets/design/home/home_flipbook.png',
-      'assets/design/start/start_keychain.png',
-    ]) {
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is Image &&
-              widget.image is AssetImage &&
-              (widget.image as AssetImage).assetName == product,
-        ),
-        findsOneWidget,
-      );
+    for (final label in ['CLASSIC MODE', 'KEYCHAIN MODE', 'FLIPBOOK MODE']) {
+      expect(find.text(label), findsOneWidget);
     }
+    expect(
+      tester.getCenter(find.text('CLASSIC MODE')).dx,
+      lessThan(tester.getCenter(find.text('KEYCHAIN MODE')).dx),
+    );
+    expect(
+      tester.getCenter(find.text('KEYCHAIN MODE')).dx,
+      lessThan(tester.getCenter(find.text('FLIPBOOK MODE')).dx),
+    );
     await tester.runAsync(() async {
       final notifier = container.read(frameCatalogProvider.notifier);
       await notifier.setProductEnabled(KioskProduct.classic, false);
       await notifier.setProductEnabled(KioskProduct.flipbook, false);
     });
     await tester.pump();
-    for (final hidden in [
-      'assets/design/home/home_classic.png',
-      'assets/design/home/home_flipbook.png',
-    ]) {
-      expect(
-        find.byWidgetPredicate(
-          (widget) =>
-              widget is Image &&
-              widget.image is AssetImage &&
-              (widget.image as AssetImage).assetName == hidden,
-        ),
-        findsNothing,
-      );
-    }
-    expect(find.byIcon(Icons.settings_rounded), findsOneWidget);
+    expect(find.text('CLASSIC MODE'), findsNothing);
+    expect(find.text('FLIPBOOK MODE'), findsNothing);
+    expect(find.text('KEYCHAIN MODE'), findsOneWidget);
+    expect(find.byTooltip('Settings'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
