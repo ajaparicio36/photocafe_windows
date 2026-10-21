@@ -3,9 +3,9 @@
 Feature branch: `codex/frame-editor-modes`, based on production `master` at
 `9122c57dfed078004789ac42df908fe3cda308b2`. The existing Canon EDSDK production
 camera, capture aspect ratio, print geometry, and Bouncy completion rules remain
-the baseline. Interactive camera and desktop QA awaits user continuation.
-Physical printing and public-upload QA were not performed and are not requested
-for this feature checkpoint.
+the baseline. The user has authorized native desktop and real Iriun camera QA;
+that pass is in progress on the stacked design implementation. Physical printing
+and public-upload QA were not performed and remain outside this checkpoint.
 
 ## Staff workflow and event choices
 
@@ -119,45 +119,110 @@ the existing Keychain compatibility assertion; this implementation record.
 
 Presentation worker: new `frame_catalog/presentation/` screens/canvas/styles,
 Settings entry, native PNG picker dependency and generated registration, and
-editor widget tests. The separate design phase will start from this feature.
+editor widget tests. The 16:10 customer design is stacked on this feature.
 
-## Automated evidence
+## Automated evidence — current feature `99858f9`
 
-- `fvm flutter test test/frame_catalog_test.dart --reporter expanded`: 11 passed.
-  Covers all product defaults and signed seed geometry, persistence round trip,
-  concurrent mutations, stale revisions, failed writes, artwork preservation,
-  corrupt recovery, future-schema preservation, last-product/frame rejection,
-  unavailable-storage fallback, OS writer locking, cross-instance stale writes,
-  and session/route policy.
-- `fvm flutter test test/frame_catalog_rendering_test.dart --reporter expanded`:
-  exercises all 25 migrated definitions against their original definitions using
-  the unified renderer; their raster pixels agree exactly. Separate production
-  pixel fingerprints prove that unaffected Portrait/Photobox cases stay exact,
-  while the eight/five off-page cases intentionally change. Signed crop and
-  rotated-edge probes verify the corrected page-clipping contract;
-  imported artwork reaches both Classic PDF paths, Keychain preview/final isolate,
-  all Classic Bouncy variants and four-design Keychain Bouncy; Flipbook PDF has
-  25 pages with rotated repeated slots using distinct current sequence images.
-- `fvm flutter test --reporter expanded`: **66 passed**, including the 12 final
-  editor/catalog widget tests and the existing home test updated to initialize
-  the real bundled catalog and verify all three defaults, persisted hiding, and
-  continued Settings access. Full run completed in 28 seconds.
-- `fvm flutter analyze --no-fatal-infos --no-fatal-warnings`: exit 0, **0 errors,
-  8 existing warnings and 318 infos**. No diagnostics in the new catalog code.
-- `fvm dart run custom_lint`: exit 1 with **4 existing INFO findings**, all
-  `avoid_public_notifier_properties`, in `photo_notifier.dart:236` and
-  `classic_print_feedback_test.dart:123–125`. No new catalog findings. The
-  project's default command treats INFO as fatal; this was not reported as a
-  clean exit. Standalone targeted `dart analyze` previously encountered a
-  Windows analyzer-plugin startup error, but the final Flutter analyzer and
-  standalone custom-lint command completed and produced the findings above.
-- Final local logs are `.dart_tool/frame-editor-tests.log`,
-  `.dart_tool/frame-editor-analyze.log`, `.dart_tool/frame-editor-custom-lint.log`,
-  and `.dart_tool/frame-editor-build.log` in the feature worktree.
-- `fvm flutter build windows --release`: exit 0, **production Windows build
-  passed** in 43 seconds. Output:
-  `build/windows/x64/runner/Release/photocafe_windows.exe`. No QA or camera
-  override defines were supplied; Canon retains its production default.
+- Full feature suite: **71 passed**, including catalog publication/recovery,
+  concurrency, availability/session routing, editor widgets and render parity.
+- Three real-FFmpeg filter regressions fail against the old implementation and
+  pass with source preservation, owned-derivative replacement and cleanup.
+- Filter-change targeted analyzer: zero errors/warnings, 49 inherited
+  `avoid_print` infos. Custom lint retains four inherited INFO findings and
+  exits 1; this is not a clean default lint exit.
+- Current combined design `57207b0`: **77 tests passed**; full production
+  analyzer exits 0 with zero errors, six warnings and 283 infos.
+- Full separate QA suite: **90 passed**, including real MP4 acceptance,
+  truncation and payload-corruption boundaries with no skips.
+- Current `57207b0` normal production release passed in **62.8 seconds** without
+  QA defines. The separate Iriun QA release passed in **63.5 seconds** with
+  `BOUNCY_CANON=false` and `BOUNCY_QA=false`.
+- Rebuilt native colored-filter source-preservation retest remains pending.
 
-No interactive QA, production capture, physical print, or user-media fixture was
-used for this feature's automated checks.
+Renderer regressions cover all 25 catalog adapters against their original
+definitions, unchanged production fingerprints for six unaffected templates,
+intentional off-page crop differences, rotated-edge clipping, managed artwork
+through both Classic PDF entry points, Keychain preview/final isolate, Classic
+and Keychain Bouncy, and Flipbook current-image/repeated/rotated slots.
+## Native QA checkpoint — partial, 2026-10-21
+
+The authorized native pass uses the real Iriun Webcam through a temporary local
+QA override. Production Canon startup and camera selection remain unchanged.
+These observations establish local application behavior, not Canon image quality
+or timing. Physical printing and public uploads were not tested.
+
+Staff PNG import, move/resize/rotation, duplication to eight slots, source mapping
+0,0,1,1,2,2,3,3, Save hidden, enabling and ordinary keyboard input passed. An
+approved name-only Cancel preserved the manifest and artwork byte for byte.
+Normal restart restored the enabled revision-2 frame and all slot geometry.
+The corrected discard dialog has readable text and actions; Keep editing retains
+the draft. A later intentional name change saved revision 3. The earlier restart
+proof applies to revision 2. Native controls reject disabling the last usable
+product or Classic variant, and Classic off/on retains variant choices.
+On native `57207b0`, hiding the final Landscape frame is refused with a readable
+explanation to keep a frame enabled or disable that variant. All six Landscape
+frames and every product/variant were restored enabled. Customer hidden-frame
+selector verification remains pending.
+
+Classic Portrait completed four real stills, Sepia, reorder, bundled-frame
+selection, Bouncy pause/play, print review and local soft-copy delivery. All four
+1280×720 originals fully decode and match camera-source bytes. Its silent H.264
+Bouncy is 310×462, six seconds, six fps and 36 decoded distinct frames. The six
+ZIP entries match server files byte for byte. The actual printable PNG is
+1240×1843; this existing PDFium float-truncation observation does not alter the
+logical print geometry. Native PDF equivalence was not established. The archive
+lightbox correction contains the complete photostrip with all rows and both
+strips visible; attachment hashes remain unchanged.
+
+Keychain completed four independent custom/bundled frame and filter choices,
+retained Design 1 on return, whole-sheet preview and print review. All four
+1280×720 original/source JPEG pairs are byte-identical. Each 620×922 quadrant of
+the 1240×1844 sheet is pixel-identical to its variant. The silent whole-sheet
+H.264 is 620×922, six seconds, six fps and 36 decoded distinct frames. All ten
+uploads match local files; the 5,786,819-byte ZIP contains ten byte-identical
+entries. Chrome contains the complete PNG/MP4 and playback was observed through
+0:05/0:06. Media remained retained after normal close/relaunch.
+
+A controlled local-server outage retained the Keychain sheet and consent OFF,
+re-enabled Get Soft Copies and showed no QR. Restoring the server and retrying
+succeeded with a fitted QR dialog. The four-second network-error snackbar was
+not visually captured; source confirms its message, so no missing-feedback
+defect is claimed.
+
+Flipbook completed four fresh accepted Iriun takes. All source/accepted copies
+are byte-identical and strictly decode at 3840×2160: durations
+6.965533 / 6.9818 / 7.0114 / 6.9977 seconds, with 209 / 209 / 210 / 204 decoded
+frames respectively. No Filter produced 50 distinct, fully decoded 1920×1080
+frames and the actual 25-page staff PDF (5,247,471 bytes; SHA-256
+`399F285D2BACC91FE7627011E0579BD2084EF8CA8BC66BC701D567AD53AD728C`).
+All 25 pages rendered successfully through Poppler; pages 1 and 25 contain
+complete numbered leaves 1/2 and 49/50. The gray binding region is intentional
+stock artwork. Native Frame 1→4, Next/Previous page navigation and print review
+passed without printing. The earlier temporary QA-only DTS-precision rejection
+was corrected locally; original media remained unchanged.
+
+All eight supplied references have now been visually compared. At a 626×393
+shell, takes/filter/review remain fitted; Tab to Take 2 and Enter activation
+were observed. Pillar bars in the Iriun source are present before app playback,
+so they do not establish an application aspect-ratio defect.
+
+Before colored Apply, QA found a production ownership bug: `applyVideoFilter`
+deleted an accepted take still referenced by `videoTakes`. Feature `99858f9`,
+inherited by design `57207b0`, tracks successful filter derivatives and replaces
+only owned, unreferenced outputs. Accepted/imported/unknown sources are retained;
+existing `clearVideo` cleans retained derivatives. Three real-FFmpeg regressions
+failed against the old behavior and pass with the fix. Feature full suite:
+71 passed; targeted analyzer: zero errors/warnings, 49 inherited `avoid_print`
+infos; custom lint retains four inherited INFO findings. Current design has
+77 passing tests and verified production/QA releases. The rebuilt native colored
+Apply→Back→reselect→No Filter proof remains pending. The successful native pass used the previous binary.
+
+Remaining native coverage: rebuilt colored-filter source-preservation retest;
+Classic Landscape and Photobox; custom frame in Classic; CUT on/off contrast;
+customer hidden-frame visibility and broader keyboard/failure coverage.
+Broader destructive cleanup cases remain incomplete. No private capture media
+or local evidence paths are published here.
+
+The five-second end-to-end media target remains unproven. Earlier exact-compositor
+24 MP synthetic runs took approximately eight to ten seconds on the measured
+workstation. The Iriun captures do not establish Canon performance.
