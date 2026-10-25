@@ -52,33 +52,51 @@ void main() {
       lessThanOrEqualTo(BouncySession.retainedByteLimit),
     );
   });
-  test(
-    'coverage, gaps, stale, missing, corrupt and future clips cannot complete',
-    () {
-      expect(BouncyClip([], 3000000).problem, isNotNull);
-      final valid = clip();
-      expect(valid.problem, isNull);
-      expect(BouncyClip(valid.frames.sublist(20), 3000000).problem, isNotNull);
-      expect(BouncyClip(valid.frames, 4000000).problem, isNotNull);
-      expect(
-        BouncyClip([
-          ...valid.frames.take(5),
-          ...valid.frames.skip(12),
-        ], 3000000).problem,
-        isNotNull,
-      );
-      expect(
-        BouncyClip(valid.frames.reversed.toList(), 3000000).problem,
-        isNotNull,
-      );
-      expect(BouncyClip(valid.frames, 2800000).problem, isNotNull);
-      final corrupt = BouncyClip([
-        for (var i = 0; i <= 30; i++)
-          BouncyFrame(i * 100000, Uint8List.fromList([1, 2])),
-      ], 3000000);
-      expect(() => validateBouncyImages(corrupt), throwsStateError);
-    },
-  );
+  test('gaps, stale, missing, corrupt and future clips cannot complete', () {
+    expect(BouncyClip([], 3000000).problem, isNotNull);
+    final valid = clip();
+    expect(valid.problem, isNull);
+    expect(BouncyClip(valid.frames, 4000000).problem, isNotNull);
+    expect(
+      BouncyClip([
+        ...valid.frames.take(5),
+        ...valid.frames.skip(12),
+      ], 3000000).problem,
+      isNotNull,
+    );
+    expect(
+      BouncyClip(valid.frames.reversed.toList(), 3000000).problem,
+      isNotNull,
+    );
+    expect(BouncyClip(valid.frames, 2800000).problem, isNotNull);
+    final corrupt = BouncyClip([
+      for (var i = 0; i <= 30; i++)
+        BouncyFrame(i * 100000, Uint8List.fromList([1, 2])),
+    ], 3000000);
+    expect(() => validateBouncyImages(corrupt), throwsStateError);
+  });
+  test('short live view history and a single fresh frame can complete', () {
+    final valid = clip();
+    for (final frames in [
+      valid.frames.sublist(20),
+      [valid.frames.last],
+    ]) {
+      final short = validateBouncyImages(BouncyClip(frames, 3000000));
+      expect(short.problem, isNull);
+      expect(short.verified, isTrue);
+      for (final elapsed in [
+        Duration.zero,
+        const Duration(seconds: 3),
+        const Duration(microseconds: 5999999),
+      ]) {
+        expect(short.at(elapsed), orderedEquals(jpeg));
+      }
+      final session = BouncySession();
+      addTearDown(session.dispose);
+      session.accept(session.attempt('short'), short);
+      expect(session.pairCount, 1);
+    }
+  });
   test(
     'stable IDs, atomic retake, superseded attempts and session fencing',
     () {

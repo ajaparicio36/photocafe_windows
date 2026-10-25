@@ -2,6 +2,15 @@
 
 Implementation branch: `codex/bouncy-previews`, forked from `popup_sanag_keychain` at `e4b6c18ae6e0fa3385b493decd9e6b8a528214fe`. Only the Flutter application is changed here. Archive integration is implemented independently in the allowed server repository. The historical `edsdk` discovery checkout is read-only; the frame editor is excluded.
 
+## Event compatibility patch - 2026-10-26
+
+Removed the minimum 16-frame and 2.8-second history requirements for Classic and
+Keychain Bouncy capture. A short clip, including a single fresh decoded frame,
+can now complete. Empty, corrupt, stale, interrupted and invalid-timestamp clips
+still fail validation; memory limits and the original Canon still capture remain
+unchanged. Short histories can produce less motion in the existing six-second
+loop. No Canon hardware or interactive QA was available for this event patch.
+
 ## Production checkpoint - 2026-10-21
 
 The development override and fixture results below are historical. Current
@@ -27,7 +36,7 @@ runs and is not established by Iriun capture.
 
 `BouncySession` receives compressed JPEGs from the existing single Canon EVF subscription. A monotonic stopwatch timestamps arrival. The ring samples at at most 12.5 fps, keeps at most three seconds / 48 frames / 12 MiB, and freezes immediately before the actual single Canon shutter command. Strict Bouncy capture deliberately does not retry internally or accept contingency preview-quality stills. Staff trigger a new attempt after a failure.
 
-Technical coverage thresholds: at least 16 frames, at least 2.8 seconds from first sample to command, latest sample within 250 ms, and no gap above 350 ms. These tolerances accommodate a sampled three-second interval; they never pad, synthesize, or include post-shutter footage. Every retained JPEG must decode, be at least 16 pixels on each axis and at most 1920×1080 pixels. Oversized, malformed, interrupted, missing and short clips require a retake. The active session holds at most four compressed shot clips / 48 MiB. One running and one latest queued render may transiently retain earlier bounded snapshots (at most two further four-clip sets) until cancelled work drains; there is no unbounded render queue. The full-quality camera original is decoded at a bounded validation size, copied byte-for-byte separately, and remains the printable source.
+Capture validation requires at least one frame, the latest sample within 250 ms, and no gap above 350 ms. Minimum frame-count and history-duration thresholds were removed for the event patch above. Every retained JPEG must decode, be at least 16 pixels on each axis and at most 1920×1080 pixels. Oversized, malformed, interrupted and missing clips require a retake. The active session holds at most four compressed shot clips / 48 MiB. One running and one latest queued render may transiently retain earlier bounded snapshots (at most two further four-clip sets) until cancelled work drains; there is no unbounded render queue. The full-quality camera original is decoded at a bounded validation size, copied byte-for-byte separately, and remains the printable source.
 
 `PhotoModel.captureId` survives reorder/filter operations. A session generation and consumed per-shot attempt token fence late results. A retake validates the target first, then replaces its copied still and clip synchronously after all asynchronous validation. Other pairs remain intact. The next automatic shot is the first missing placement, never the next accepted pair. The first attempt counts down ten seconds; every later attempt and staff retake counts down three seconds. The old two-second inter-shot delay is removed. Countdown progress and controls occupy a reserved bottom dock under a fitted 16:9 preview.
 

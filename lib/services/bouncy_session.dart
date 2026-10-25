@@ -27,12 +27,10 @@ class BouncyClip {
     if (frames.any((f) => f.micros < 0 || f.micros > shutterMicros)) {
       return 'Invalid live view timestamp.';
     }
-    if (frames.length < 16) return 'Live view clip is missing or too short.';
+    // Accept the history the camera supplied, even if it is short or sparse.
+    if (frames.isEmpty) return 'Live view clip is missing.';
     if (shutterMicros - frames.last.micros > 250000) {
       return 'Live view stopped before the shutter.';
-    }
-    if (shutterMicros - frames.first.micros < 2800000) {
-      return 'Three seconds of live view are required.';
     }
     for (var i = 1; i < frames.length; i++) {
       if (frames[i].micros <= frames[i - 1].micros ||
