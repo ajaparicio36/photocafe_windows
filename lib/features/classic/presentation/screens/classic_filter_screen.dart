@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/widgets/event_design.dart';
 import 'dart:io';
 import 'package:photocafe_windows/services/bouncy_session.dart';
 import 'dart:typed_data';
@@ -234,6 +235,12 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
       }
     } catch (e) {
       debugPrint('Error applying filter: $e');
+      if (mounted)
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Filter could not be applied: $e. Please try again.'),
+          ),
+        );
     } finally {
       if (mounted) {
         setState(() {
@@ -255,7 +262,7 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
               padding: const EdgeInsets.all(15),
               child: CircularProgressIndicator(
                 strokeWidth: 3,
-                color: Color(0xFF740000),
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 16),
@@ -265,7 +272,7 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
                 fontFamily: 'SpaceMono',
                 fontSize: 14,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF740000),
+                color: Colors.white,
               ),
             ),
           ],
@@ -281,7 +288,7 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
             Icon(
               Icons.photo_library_outlined,
               size: 60,
-              color: Color(0xFF740000).withOpacity(0.4),
+              color: Colors.white.withOpacity(0.4),
             ),
             const SizedBox(height: 16),
             Text(
@@ -289,7 +296,7 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
               style: TextStyle(
                 fontFamily: 'SpaceMono',
                 fontSize: 14,
-                color: Color(0xFF740000).withOpacity(0.6),
+                color: Colors.white.withOpacity(0.6),
               ),
             ),
           ],
@@ -375,100 +382,85 @@ class _ClassicFilterScreenState extends ConsumerState<ClassicFilterScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    body: Container(
-      decoration: const BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage('assets/design/background.png'),
-          fit: BoxFit.cover,
+  Widget build(BuildContext context) {
+    final busy = _isApplyingFilter;
+    final hasPhotos =
+        ref.watch(photoProvider).value?.photos.isNotEmpty ?? false;
+    return EventPage(
+      title: 'Filters',
+      subtitle: 'Choose your own filter to enhance your photos',
+      onBack: busy ? null : () => context.go('/classic/capture'),
+      trailing: SizedBox(
+        width: 170,
+        child: EventButton(
+          label: 'SKIP FILTERS',
+          height: 48,
+          onPressed: busy || !hasPhotos
+              ? null
+              : () {
+                  setState(
+                    () => _selectedFilter = FilterConstants.noFilterName,
+                  );
+                  _applySelectedFilter();
+                },
         ),
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            children: [
-              Row(
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: EventSection(
+              title: 'Choose filters',
+              figure: 'assets/event/filters_figure1.png',
+              figureWidth: 62,
+              figureAtStart: true,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  IconButton(
-                    tooltip: 'Back',
-                    onPressed: _isApplyingFilter
-                        ? null
-                        : () => context.go('/classic/capture'),
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Choose your filter',
-                      style: TextStyle(color: Colors.white, fontSize: 26),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(2, 2, 12, 2),
+                      itemCount: FilterConstants.filterDefinitions.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 16),
+                      itemBuilder: (context, index) {
+                        final filter = FilterConstants.filterDefinitions[index];
+                        return EventChoice(
+                          title: filter.name,
+                          description: filter.description,
+                          selected: _selectedFilter == filter.name,
+                          onTap: busy
+                              ? null
+                              : () {
+                                  setState(() => _selectedFilter = filter.name);
+                                  _generateFilterPreview(filter.name);
+                                },
+                        );
+                      },
                     ),
                   ),
-                  FilledButton(
-                    onPressed: _isApplyingFilter ? null : _applySelectedFilter,
-                    child: Text(
-                      _isApplyingFilter ? 'Applying filter…' : 'Arrange photos',
-                    ),
+                  const SizedBox(height: 16),
+                  EventButton(
+                    label: busy
+                        ? 'APPLYING FILTER…'
+                        : 'APPLY ${(_selectedFilter ?? 'FILTER').toUpperCase()}',
+                    icon: Icons.auto_fix_high,
+                    onPressed: busy || !hasPhotos ? null : _applySelectedFilter,
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Container(
-                        color: Colors.white,
-                        padding: const EdgeInsets.all(12),
-                        child: _buildPreviewCarousel(),
-                      ),
-                    ),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          for (final filter in FilterConstants.availableFilters)
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 5,
-                                ),
-                                child: FilledButton.tonal(
-                                  onPressed: _isApplyingFilter
-                                      ? null
-                                      : () {
-                                          setState(
-                                            () => _selectedFilter = filter,
-                                          );
-                                          _generateFilterPreview(filter);
-                                        },
-                                  style: FilledButton.styleFrom(
-                                    backgroundColor: _selectedFilter == filter
-                                        ? Colors.white
-                                        : const Color(0xff740000),
-                                    foregroundColor: _selectedFilter == filter
-                                        ? const Color(0xff740000)
-                                        : Colors.white,
-                                  ),
-                                  child: Text(
-                                    filter,
-                                    style: const TextStyle(fontSize: 20),
-                                  ),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(width: 60),
+          Expanded(
+            flex: 5,
+            child: EventSection(
+              title: 'Preview',
+              figure: 'assets/event/filters_figure2.png',
+              child: EventPanel(child: _buildPreviewCarousel()),
+            ),
+          ),
+        ],
       ),
-    ),
-  );
+    );
+  }
 }

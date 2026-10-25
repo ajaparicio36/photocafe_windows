@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_artwork_loader.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -79,14 +80,18 @@ class BouncyMediaService {
     final clips = ordered.map((p) => session.clip(p.captureId)!).toList();
     final designs = <BouncyDesign>[];
     for (final selection in selections) {
-      final frame = KeychainFrameCatalog.byId(selection.frameId);
+      final frame = classicLayout == null
+          ? KeychainFrameCatalog.byId(selection.frameId)
+          : FrameConstants.availableFrames.firstWhere(
+              (frame) => frame.id == selection.frameId,
+            );
       final layout = classicLayout == null
           ? frame.layouts.values.first
           : frame.layouts[classicLayout];
       if (layout == null) {
         throw StateError('Frame does not support this layout.');
       }
-      final data = await rootBundle.load(layout.frameAssetPath);
+      final data = await FrameArtworkLoader.load(layout.frameAssetPath);
       _check(generation, revision);
       designs.add(
         BouncyDesign(

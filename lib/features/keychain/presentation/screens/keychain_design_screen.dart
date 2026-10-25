@@ -1,11 +1,10 @@
+import 'package:photocafe_windows/widgets/event_design.dart';
 import 'package:photocafe_windows/widgets/bouncy_preview.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:photocafe_windows/features/classic/presentation/constants/filter_constants.dart';
-import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
 import 'package:photocafe_windows/features/keychain/domain/data/models/keychain_models.dart';
 import 'package:photocafe_windows/features/keychain/domain/data/providers/keychain_session_notifier.dart';
 import 'package:photocafe_windows/features/keychain/domain/services/keychain_composition_service.dart';
@@ -134,309 +133,226 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(keychainSessionProvider);
-
-    if (_reviewOutput != null &&
-        _reviewSelectionKey != _selectionKey(session)) {
+    if (_reviewOutput != null && _reviewSelectionKey != _selectionKey(session))
       _reviewOutput = null;
-    }
-
     final currentIndex = session.designIndex;
     final selection = session.variants[currentIndex];
     final frames = KeychainFrameCatalog.allClassicFrames;
     final filters = KeychainFilterCatalog.allFilters;
-
-    return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/design/background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(36),
-            child: Column(
+    final photos = ref.watch(photoProvider).value?.photos ?? [];
+    return EventPage(
+      title: session.isReview ? 'Final review' : 'Keychain',
+      subtitle: session.isReview
+          ? 'Your four designs, together on one sheet'
+          : 'Choose a frame and filter for each little memory',
+      onBack: _isRendering ? null : () => context.go('/keychain/capture'),
+      child: Column(
+        children: [
+          SizedBox(
+            height: 36,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => context.go('/keychain/capture'),
-                      icon: const Icon(
-                        Icons.arrow_back_rounded,
-                        color: Colors.white,
-                        size: 32,
+                for (var index = 0; index < keychainVariantCount; index++)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    child: TextButton(
+                      onPressed: _isRendering || session.isReview
+                          ? null
+                          : () => ref
+                                .read(keychainSessionProvider.notifier)
+                                .setDesignIndex(index),
+                      style: TextButton.styleFrom(
+                        backgroundColor:
+                            !session.isReview && currentIndex == index
+                            ? Colors.white
+                            : EventDesign.red,
+                        foregroundColor:
+                            !session.isReview && currentIndex == index
+                            ? EventDesign.red
+                            : Colors.white,
+                        disabledForegroundColor: Colors.white,
                       ),
-                      style: IconButton.styleFrom(
-                        backgroundColor: const Color(0xFF740000),
+                      child: Text(
+                        'Design ${index + 1}',
+                        style: const TextStyle(fontFamily: EventDesign.body),
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      session.isReview
-                          ? 'FINAL FOUR-UP REVIEW'
-                          : 'DESIGN ${currentIndex + 1} OF $keychainVariantCount',
-                      style: const TextStyle(
-                        fontFamily: 'SpaceMono',
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const Spacer(),
-                    const SizedBox(width: 48),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 3,
-                        child: session.isReview
-                            ? _buildReviewPreview()
-                            : _buildVariantPreview(currentIndex),
-                      ),
-                      const SizedBox(width: 28),
-                      Expanded(
-                        flex: 2,
-                        child: session.isReview
-                            ? _buildReviewDetails()
-                            : _buildControls(
-                                frames: frames,
-                                filters: filters,
-                                selection: selection,
-                                currentIndex: currentIndex,
-                              ),
-                      ),
-                    ],
                   ),
-                ),
-                const SizedBox(height: 22),
-                _buildNavigation(session),
               ],
             ),
           ),
-        ),
-      ),
-      floatingActionButton: _isRendering
-          ? const FloatingActionButton(
-              onPressed: null,
-              child: CircularProgressIndicator(color: Colors.white),
-            )
-          : null,
-    );
-  }
-
-  Widget _buildVariantPreview(int index) => _previewCard(
-    title: 'Bouncy Preview',
-    child: BouncyPreview(
-      photos: ref.watch(photoProvider).requireValue.photos,
-      selections: [ref.watch(keychainSessionProvider).variants[index]],
-    ),
-    footer: 'Print uses your original still photos',
-  );
-
-  Widget _buildReviewPreview() => _previewCard(
-    title: 'Complete four-design sheet',
-    child: BouncyPreview(
-      photos: ref.watch(photoProvider).requireValue.photos,
-      selections: ref.watch(keychainSessionProvider).variants,
-    ),
-    footer: 'Motion preview • still print is separate',
-  );
-
-  Widget _previewCard({
-    required String title,
-    required Widget child,
-    required String footer,
-  }) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: const [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 14,
-            offset: Offset(0, 5),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontFamily: 'SpaceMono',
-              color: Color(0xFF740000),
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-          const SizedBox(height: 14),
-          Expanded(child: child),
-          const SizedBox(height: 12),
-          Text(
-            footer,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'SpaceMono',
-              color: const Color(0xFF740000).withValues(alpha: 0.75),
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReviewDetails() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF740000).withValues(alpha: 0.86),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: const Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'READY TO PRINT',
-            style: TextStyle(
-              fontFamily: 'SpaceMono',
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-            ),
-          ),
-          SizedBox(height: 14),
-          Text(
-            'Each quadrant is an independently rendered design. You can go back to Design 4 to change its frame or filter before printing.',
-            style: TextStyle(
-              fontFamily: 'SpaceMono',
-              color: Colors.white,
-              fontSize: 15,
-              height: 1.4,
-            ),
-          ),
-          Spacer(),
-          Text(
-            'The selected frames and filters are used for the still print.',
-            style: TextStyle(
-              fontFamily: 'SpaceMono',
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildControls({
-    required List<FrameDefinition> frames,
-    required List<FilterDefinition> filters,
-    required KeychainVariantSelection selection,
-    required int currentIndex,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: const Color(0xFF740000).withValues(alpha: 0.86),
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'FRAME',
-            style: TextStyle(
-              fontFamily: 'SpaceMono',
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            key: ValueKey<String>('frame-$currentIndex-${selection.frameId}'),
-            initialValue: selection.frameId,
-            isExpanded: true,
-            dropdownColor: Colors.white,
-            decoration: const InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(),
-            ),
-            items: [
-              for (final frame in frames)
-                DropdownMenuItem<String>(
-                  value: frame.id,
-                  child: Text(frame.name, overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 4),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 6,
+                  child: session.isReview
+                      ? EventSection(
+                          title: 'Ready to print',
+                          child: EventPanel(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Four designs. One keepsake.',
+                                  style: TextStyle(
+                                    fontFamily: EventDesign.body,
+                                    fontSize: 23,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 20),
+                                const Text(
+                                  'Each mini strip keeps its own frame and filter. Your still photos will be printed; the Bouncy Preview is included in your soft copies.',
+                                  style: TextStyle(
+                                    fontFamily: EventDesign.body,
+                                    fontSize: 16,
+                                    height: 1.5,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                for (
+                                  var i = 0;
+                                  i < session.variants.length;
+                                  i++
+                                )
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 14),
+                                    child: Text(
+                                      'Design ${i + 1}: ${frames.firstWhere((f) => f.id == session.variants[i].frameId).name}',
+                                      style: const TextStyle(
+                                        fontFamily: EventDesign.body,
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                const Spacer(),
+                                const Text(
+                                  'Go back to Design 4 to make a change before printing.',
+                                  style: TextStyle(
+                                    fontFamily: EventDesign.body,
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Row(
+                          children: [
+                            Expanded(
+                              flex: 6,
+                              child: EventSection(
+                                title: 'Select frame',
+                                child: ListView.separated(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    2,
+                                    2,
+                                    10,
+                                    2,
+                                  ),
+                                  itemCount: frames.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(height: 12),
+                                  itemBuilder: (context, index) => EventChoice(
+                                    title: frames[index].name,
+                                    selected:
+                                        selection.frameId == frames[index].id,
+                                    onTap: _isRendering
+                                        ? null
+                                        : () => ref
+                                              .read(
+                                                keychainSessionProvider
+                                                    .notifier,
+                                              )
+                                              .setVariantFrame(
+                                                currentIndex,
+                                                frames[index].id,
+                                              ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 20),
+                            Expanded(
+                              flex: 5,
+                              child: EventSection(
+                                title: 'Select filter',
+                                child: ListView.separated(
+                                  padding: const EdgeInsets.fromLTRB(
+                                    2,
+                                    2,
+                                    10,
+                                    2,
+                                  ),
+                                  itemCount: filters.length,
+                                  separatorBuilder: (_, _) =>
+                                      const SizedBox(height: 12),
+                                  itemBuilder: (context, index) => EventChoice(
+                                    title: filters[index].name,
+                                    selected:
+                                        selection.filterId == filters[index].id,
+                                    onTap: _isRendering
+                                        ? null
+                                        : () => ref
+                                              .read(
+                                                keychainSessionProvider
+                                                    .notifier,
+                                              )
+                                              .setVariantFilter(
+                                                currentIndex,
+                                                filters[index].id,
+                                              ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
-            ],
-            onChanged: _isRendering
-                ? null
-                : (value) {
-                    if (value != null) {
-                      ref
-                          .read(keychainSessionProvider.notifier)
-                          .setVariantFrame(currentIndex, value);
-                    }
-                  },
-          ),
-          const SizedBox(height: 24),
-          const Text(
-            'FILTER',
-            style: TextStyle(
-              fontFamily: 'SpaceMono',
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-          const SizedBox(height: 8),
-          DropdownButtonFormField<String>(
-            key: ValueKey<String>('filter-$currentIndex-${selection.filterId}'),
-            initialValue: selection.filterId,
-            isExpanded: true,
-            dropdownColor: Colors.white,
-            decoration: const InputDecoration(
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(),
-            ),
-            items: [
-              for (final filter in filters)
-                DropdownMenuItem<String>(
-                  value: filter.id,
-                  child: Text(filter.name, overflow: TextOverflow.ellipsis),
+                const SizedBox(width: 38),
+                Expanded(
+                  flex: 5,
+                  child: EventSection(
+                    title: session.isReview ? 'Complete sheet' : 'Preview',
+                    figure: 'assets/event/frames_figure1.png',
+                    figureWidth: 175,
+                    child: EventPanel(
+                      child: photos.length != 4
+                          ? const Center(
+                              child: Text(
+                                'Capture four photos to design your keychain.',
+                              ),
+                            )
+                          : BouncyPreview(
+                              foregroundColor: Colors.white,
+                              photos: photos,
+                              selections: session.isReview
+                                  ? session.variants
+                                  : [selection],
+                            ),
+                    ),
+                  ),
                 ),
-            ],
-            onChanged: _isRendering
-                ? null
-                : (value) {
-                    if (value != null) {
-                      ref
-                          .read(keychainSessionProvider.notifier)
-                          .setVariantFilter(currentIndex, value);
-                    }
-                  },
-          ),
-          const Spacer(),
-          Text(
-            'You can reuse a frame or filter. Each design keeps its own choices.',
-            style: TextStyle(
-              fontFamily: 'SpaceMono',
-              color: Colors.white.withValues(alpha: 0.86),
-              fontSize: 14,
+              ],
             ),
           ),
+          const SizedBox(height: 18),
+          if (_isRendering)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 10),
+              child: LinearProgressIndicator(
+                color: Colors.white,
+                backgroundColor: EventDesign.red,
+              ),
+            ),
+          _buildNavigation(session),
         ],
       ),
     );
@@ -444,66 +360,66 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
 
   Widget _buildNavigation(KeychainSessionState session) {
     final notifier = ref.read(keychainSessionProvider.notifier);
-    if (session.isReview) {
+    if (session.isReview)
       return Row(
         children: [
-          OutlinedButton.icon(
-            onPressed: _isRendering ? null : _backToDesignFour,
-            icon: const Icon(Icons.arrow_back),
-            label: const Text('BACK TO DESIGN 4'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.white,
-              side: const BorderSide(color: Colors.white),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+          SizedBox(
+            width: 280,
+            child: EventButton(
+              label: 'BACK TO DESIGN 4',
+              icon: Icons.arrow_back,
+              onPressed: _isRendering ? null : _backToDesignFour,
             ),
           ),
           const Spacer(),
-          ElevatedButton.icon(
-            onPressed: _isRendering ? null : _continueToPrint,
-            icon: const Icon(Icons.print_rounded),
-            label: const Text('CONTINUE TO PRINT'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF740000),
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+          SizedBox(
+            width: 325,
+            child: EventButton(
+              label: _isRendering ? 'PREPARING…' : 'CONTINUE TO PRINT',
+              icon: Icons.print_outlined,
+              onPressed: _isRendering ? null : _continueToPrint,
             ),
           ),
         ],
       );
-    }
-
     final currentIndex = session.designIndex;
-    final isFirst = currentIndex == 0;
     final isDesignFour = currentIndex == keychainVariantCount - 1;
     return Row(
       children: [
-        OutlinedButton.icon(
-          onPressed: isFirst
-              ? null
-              : () => notifier.setDesignIndex(currentIndex - 1),
-          icon: const Icon(Icons.arrow_back),
-          label: const Text('PREVIOUS'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.white,
-            side: const BorderSide(color: Colors.white),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        SizedBox(
+          width: 240,
+          child: EventButton(
+            label: 'PREVIOUS',
+            icon: Icons.arrow_back,
+            onPressed: _isRendering || currentIndex == 0
+                ? null
+                : () => notifier.setDesignIndex(currentIndex - 1),
           ),
         ),
         const Spacer(),
-        ElevatedButton.icon(
-          onPressed: _isRendering
-              ? null
-              : isDesignFour
-              ? _showReview
-              : () => notifier.setDesignIndex(currentIndex + 1),
-          icon: Icon(
-            isDesignFour ? Icons.preview_rounded : Icons.arrow_forward,
+        Text(
+          'DESIGN ${currentIndex + 1} OF $keychainVariantCount',
+          style: const TextStyle(
+            fontFamily: EventDesign.body,
+            color: Colors.white,
+            fontSize: 16,
           ),
-          label: Text(isDesignFour ? 'VIEW FINAL REVIEW' : 'NEXT DESIGN'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFF740000),
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+        ),
+        const Spacer(),
+        SizedBox(
+          width: 280,
+          child: EventButton(
+            label: _isRendering
+                ? 'PREPARING…'
+                : isDesignFour
+                ? 'VIEW FINAL REVIEW'
+                : 'NEXT DESIGN',
+            icon: isDesignFour ? Icons.preview_outlined : Icons.arrow_forward,
+            onPressed: _isRendering
+                ? null
+                : isDesignFour
+                ? _showReview
+                : () => notifier.setDesignIndex(currentIndex + 1),
           ),
         ),
       ],

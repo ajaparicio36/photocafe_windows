@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/widgets/event_design.dart';
 import 'package:photocafe_windows/widgets/confirm_discard_session.dart';
 import 'package:photocafe_windows/widgets/bouncy_preview.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
@@ -153,76 +154,53 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
         : printer?.layoutMode == 2
         ? FrameLayoutType.twoPhotos
         : FrameLayoutType.fourPhotos;
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/design/background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      tooltip: 'Back to arrange',
-                      onPressed: () => context.go('/classic/organize'),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    const Text(
-                      'Print preview',
-                      style: TextStyle(color: Colors.white, fontSize: 26),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: PrintActionPanel(
-                          isPrinting: _isPrinting,
-                          printReady: _actualPdfBytes != null,
-                          splitStrips: _splitStrips,
-                          pdfBytes: _actualPdfBytes,
-                          onSplitStripsChanged: (value) =>
-                              setState(() => _splitStrips = value),
-                          onPrint: _printDocument,
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 3,
-                        child: Container(
-                          color: Colors.white,
-                          padding: const EdgeInsets.all(12),
-                          child: BouncyPreview(
-                            archive: true,
-                            photos: photos,
-                            selections: [
-                              KeychainVariantSelection(
-                                frameId: ref.watch(classicBouncyFrameProvider),
-                                filterId: ref
-                                    .watch(bouncySessionProvider)
-                                    .classicFilterId,
-                              ),
-                            ],
-                            classicLayout: layout,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+    return EventPage(
+      title: 'Print preview',
+      subtitle: 'Keep your clicks in print and on your phone',
+      onBack: () => context.go('/classic/organize'),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 5,
+            child: EventSection(
+              title: 'Your photos',
+              child: PrintActionPanel(
+                isPrinting: _isPrinting,
+                printReady: _actualPdfBytes != null,
+                splitStrips: _splitStrips,
+                pdfBytes: _actualPdfBytes,
+                onSplitStripsChanged: (value) =>
+                    setState(() => _splitStrips = value),
+                onPrint: _printDocument,
+              ),
             ),
           ),
-        ),
+          const SizedBox(width: 60),
+          Expanded(
+            flex: 6,
+            child: EventSection(
+              title: 'Preview',
+              figure: 'assets/event/frames_figure1.png',
+              figureWidth: 180,
+              child: EventPanel(
+                child: BouncyPreview(
+                  foregroundColor: Colors.white,
+                  archive: true,
+                  photos: photos,
+                  selections: [
+                    KeychainVariantSelection(
+                      frameId: ref.watch(classicBouncyFrameProvider),
+                      filterId: ref
+                          .watch(bouncySessionProvider)
+                          .classicFilterId,
+                    ),
+                  ],
+                  classicLayout: layout,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'package:photocafe_windows/features/classic/presentation/screens/classic_capture_screen.dart';
 import 'package:photocafe_windows/features/classic/presentation/screens/classic_filter_screen.dart';
 import 'package:photocafe_windows/features/classic/presentation/screens/classic_organize_screen.dart';
@@ -21,6 +22,9 @@ import 'package:photocafe_windows/features/settings/presentation/screens/setting
 import 'package:photocafe_windows/features/start/presentation/screens/start_screen.dart';
 
 final GoRouter router = GoRouter(
+  refreshListenable: FrameCatalogRuntime.instance,
+  redirect: (context, state) =>
+      FrameCatalogRuntime.instance.redirect(state.uri.path),
   initialLocation: '/',
   routes: [
     GoRoute(path: '/', builder: (context, state) => const AppStartScreen()),

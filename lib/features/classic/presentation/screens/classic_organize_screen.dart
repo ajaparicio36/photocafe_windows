@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/widgets/event_design.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -129,192 +130,172 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
         : printer?.layoutMode == 2
         ? FrameLayoutType.twoPhotos
         : FrameLayoutType.fourPhotos;
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage('assets/design/background.png'),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    IconButton(
-                      tooltip: 'Back to filters',
-                      onPressed: () => context.go('/classic/filter'),
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    ),
-                    const Expanded(
-                      child: Text(
-                        'Arrange your photos',
-                        style: TextStyle(color: Colors.white, fontSize: 26),
-                      ),
-                    ),
-                    FilledButton(
-                      onPressed: _isGeneratingPdf || photos.length != 4
-                          ? null
-                          : _proceedToPrint,
-                      child: Text(
-                        _isGeneratingPdf
-                            ? 'Preparing print…'
-                            : 'Proceed to print',
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Drag photos to reorder',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
+    return EventPage(
+      title: 'Frames',
+      subtitle: 'Arrange your photos and choose a frame',
+      onBack: _isGeneratingPdf ? null : () => context.go('/classic/filter'),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 30,
+            child: EventSection(
+              title: 'Drag to reorder photos',
+              child: LayoutBuilder(
+                builder: (context, constraints) => ReorderableListView.builder(
+                  buildDefaultDragHandles: false,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemExtent: constraints.maxHeight / 4,
+                  itemCount: photos.length,
+                  onReorder: (oldIndex, newIndex) {
+                    if (newIndex > oldIndex) newIndex--;
+                    final changed = List<PhotoModel>.from(photos);
+                    changed.insert(newIndex, changed.removeAt(oldIndex));
+                    ref.read(photoProvider.notifier).reorderPhotos(changed);
+                  },
+                  itemBuilder: (context, index) => Padding(
+                    key: ValueKey(photos[index].captureId),
+                    padding: const EdgeInsets.only(bottom: 15),
+                    child: EventPanel(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            flex: 5,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: Image.file(
+                                File(photos[index].imagePath),
+                                fit: BoxFit.contain,
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Expanded(
-                              child: LayoutBuilder(
-                                builder: (context, constraints) =>
-                                    ReorderableListView.builder(
-                                      physics:
-                                          const NeverScrollableScrollPhysics(),
-                                      itemExtent: constraints.maxHeight / 4,
-                                      itemCount: photos.length,
-                                      onReorder: (oldIndex, newIndex) {
-                                        if (newIndex > oldIndex) newIndex--;
-                                        final changed = List<PhotoModel>.from(
-                                          photos,
-                                        );
-                                        changed.insert(
-                                          newIndex,
-                                          changed.removeAt(oldIndex),
-                                        );
-                                        ref
-                                            .read(photoProvider.notifier)
-                                            .reorderPhotos(changed);
-                                      },
-                                      itemBuilder: (context, index) => Padding(
-                                        key: ValueKey(photos[index].captureId),
-                                        padding: const EdgeInsets.symmetric(
-                                          vertical: 4,
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: Image.file(
-                                                File(photos[index].imagePath),
-                                                fit: BoxFit.contain,
-                                              ),
-                                            ),
-                                            Text(
-                                              'Photo ${index + 1}',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 32),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 2,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            const Text(
-                              'Select frame',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                              ),
-                            ),
-                            DropdownButton<String>(
-                              isExpanded: true,
-                              value: frames.isEmpty ? null : _selectedFrame,
-                              dropdownColor: const Color(0xff740000),
-                              style: const TextStyle(color: Colors.white),
-                              items: frames
-                                  .map(
-                                    (frame) => DropdownMenuItem(
-                                      value: frame.id,
-                                      child: Text(frame.name),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: _isGeneratingPdf
-                                  ? null
-                                  : (id) =>
-                                        setState(() => _selectedFrame = id!),
-                            ),
-                            const SizedBox(height: 16),
-                            Expanded(
-                              child: frames.isEmpty
-                                  ? const Text('No supported frames')
-                                  : Image.asset(
-                                      frames
-                                          .firstWhere(
-                                            (f) => f.id == _selectedFrame,
-                                          )
-                                          .layouts[layout]!
-                                          .frameAssetPath,
-                                      fit: BoxFit.contain,
-                                    ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 24),
-                      Expanded(
-                        flex: 3,
-                        child: Container(
-                          color: Colors.white,
-                          padding: const EdgeInsets.all(12),
-                          child: photos.length != 4
-                              ? const Center(
-                                  child: Text(
-                                    'Capture four valid shots first.',
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Click ${index + 1}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: EventDesign.body,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
                                   ),
-                                )
-                              : BouncyPreview(
-                                  photos: photos,
-                                  selections: [
-                                    KeychainVariantSelection(
-                                      frameId: _selectedFrame,
-                                      filterId: ref
-                                          .watch(bouncySessionProvider)
-                                          .classicFilterId,
-                                    ),
-                                  ],
-                                  classicLayout: layout,
                                 ),
-                        ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  'Position: ${index + 1}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontFamily: EventDesign.body,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ReorderableDragStartListener(
+                            index: index,
+                            enabled: !_isGeneratingPdf,
+                            child: const SizedBox(
+                              width: 32,
+                              height: 64,
+                              child: Icon(
+                                Icons.drag_handle,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
+                    ),
                   ),
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+          const SizedBox(width: 28),
+          Expanded(
+            flex: 28,
+            child: EventSection(
+              title: 'Select frame',
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: frames.isEmpty
+                        ? const EventMessage(
+                            message:
+                                'No supported frames. Return to choose another template.',
+                          )
+                        : ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(2, 2, 10, 2),
+                            itemCount: frames.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: 14),
+                            itemBuilder: (context, index) {
+                              final frame = frames[index];
+                              return EventChoice(
+                                title: frame.name,
+                                description: frame.description,
+                                selected: _selectedFrame == frame.id,
+                                onTap: _isGeneratingPdf
+                                    ? null
+                                    : () => setState(
+                                        () => _selectedFrame = frame.id,
+                                      ),
+                              );
+                            },
+                          ),
+                  ),
+                  const SizedBox(height: 16),
+                  EventButton(
+                    label: _isGeneratingPdf ? 'PREPARING…' : 'PROCEED TO PRINT',
+                    icon: Icons.print_outlined,
+                    onPressed:
+                        _isGeneratingPdf || photos.length != 4 || frames.isEmpty
+                        ? null
+                        : _proceedToPrint,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 28),
+          Expanded(
+            flex: 36,
+            child: EventSection(
+              title: 'Preview',
+              figure: 'assets/event/frames_figure1.png',
+              figureWidth: 175,
+              child: EventPanel(
+                child: photos.length != 4 || frames.isEmpty
+                    ? const Center(
+                        child: Text(
+                          'Capture four valid shots first.',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                      )
+                    : BouncyPreview(
+                        foregroundColor: Colors.white,
+                        photos: photos,
+                        selections: [
+                          KeychainVariantSelection(
+                            frameId: _selectedFrame,
+                            filterId: ref
+                                .watch(bouncySessionProvider)
+                                .classicFilterId,
+                          ),
+                        ],
+                        classicLayout: layout,
+                      ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

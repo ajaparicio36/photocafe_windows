@@ -67,7 +67,7 @@ lib/features/<feature>/
 
 ### Windowing
 
-The app forces a **16:9 aspect ratio** with letterboxing. `main.dart` sets the window size to 1280×720 via `window_manager`, locks aspect ratio to `kAspectRatio = 16/9`, and wraps the router in a black-bar `AspectRatio` container. Fullscreen is a persisted user setting applied after `printerProvider` resolves. Do not add top-level widgets that escape this aspect-ratio wrapper.
+The event monitor uses a **16:10 application shell** with letterboxing. `main.dart` sets the window size to 1280×800 via `window_manager`, locks aspect ratio to `kAspectRatio = 16/10`, and wraps the router in a black-bar `AspectRatio` container. Camera/live-view content remains **16:9** and must not be stretched to fill the shell. Fullscreen is a persisted user setting applied after `printerProvider` resolves. Do not add top-level widgets that escape this aspect-ratio wrapper.
 
 ### Printing
 

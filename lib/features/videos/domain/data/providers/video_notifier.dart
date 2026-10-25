@@ -9,6 +9,9 @@ import 'package:photocafe_windows/features/videos/domain/data/models/video_state
 import 'package:photocafe_windows/features/videos/domain/data/constants/filter_constants.dart';
 
 class VideoNotifier extends AsyncNotifier<VideoState> {
+  // Only outputs created by this notifier are replaceable filter derivatives.
+  // Takes and externally supplied sources remain available for Back/reselection.
+  final Set<String> _filterOutputs = {};
 
   @override
   Future<VideoState> build() async {
@@ -215,6 +218,16 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
         }
       }
 
+      // Session reset also owns generated filter outputs left after reselecting
+      // a take. Do not sweep unknown files from the temporary directory.
+      for (final outputPath in _filterOutputs.toList()) {
+        final outputFile = File(outputPath);
+        if (await outputFile.exists()) {
+          await outputFile.delete();
+        }
+        _filterOutputs.remove(outputPath);
+      }
+
       // Delete all frame files and frame directories
       for (final frame in currentState.frames) {
         final frameFile = File(frame.path);
@@ -415,10 +428,15 @@ class VideoNotifier extends AsyncNotifier<VideoState> {
             final fileSize = await outputFile.length();
             print('Filter applied successfully, size: $fileSize bytes');
 
-            // Clean up old video file if it's different from the new one
-            if (currentState.videoPath != outputPath) {
+            _filterOutputs.add(outputPath);
+            // Never infer ownership from a filename or the temporary directory.
+            // The active source can still be referenced by the takes grid.
+            if (currentState.videoPath != outputPath &&
+                !currentState.videoTakes.contains(currentState.videoPath) &&
+                _filterOutputs.contains(currentState.videoPath)) {
               try {
                 await File(currentState.videoPath!).delete();
+                _filterOutputs.remove(currentState.videoPath);
                 print('Cleaned up old video file: ${currentState.videoPath}');
               } catch (e) {
                 print('Warning: Could not clean up old video file: $e');

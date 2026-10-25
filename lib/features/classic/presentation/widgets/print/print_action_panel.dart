@@ -1,3 +1,4 @@
+import 'package:photocafe_windows/widgets/event_design.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
@@ -388,7 +389,10 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
         );
     return Material(
       color: const Color(0xff740000),
-      borderRadius: BorderRadius.circular(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(22),
+        side: const BorderSide(color: Colors.white, width: 2),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -396,18 +400,20 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
           children: [
             const Text(
               'Print and soft copies',
-              style: TextStyle(color: Colors.white, fontSize: 24),
+              style: TextStyle(
+                fontFamily: EventDesign.body,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 24,
+              ),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              height: 64,
-              child: FilledButton.icon(
-                onPressed: widget.isPrinting || !valid || !widget.printReady
-                    ? null
-                    : () => widget.onPrint(_copies),
-                icon: const Icon(Icons.print),
-                label: Text(widget.isPrinting ? 'Printing...' : 'Print Photos'),
-              ),
+            EventButton(
+              label: widget.isPrinting ? 'PRINTING…' : 'PRINT PHOTOS',
+              icon: Icons.print_outlined,
+              onPressed: widget.isPrinting || !valid || !widget.printReady
+                  ? null
+                  : () => widget.onPrint(_copies),
             ),
             if (!valid)
               const Text(
@@ -438,6 +444,11 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
               ],
             ),
             SwitchListTile(
+              activeTrackColor: Colors.white,
+              activeThumbColor: EventDesign.red,
+              inactiveTrackColor: Colors.white24,
+              inactiveThumbColor: Colors.white70,
+              trackOutlineColor: const WidgetStatePropertyAll(Colors.white70),
               contentPadding: EdgeInsets.zero,
               title: Text(
                 widget.cutControlTitle,
@@ -451,6 +462,11 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
               onChanged: widget.onSplitStripsChanged,
             ),
             SwitchListTile(
+              activeTrackColor: Colors.white,
+              activeThumbColor: EventDesign.red,
+              inactiveTrackColor: Colors.white24,
+              inactiveThumbColor: Colors.white70,
+              trackOutlineColor: const WidgetStatePropertyAll(Colors.white70),
               contentPadding: EdgeInsets.zero,
               title: const Text(
                 'Allow social media posting',
@@ -467,6 +483,11 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
             ),
             if (BouncyFixture.enabled)
               SwitchListTile(
+                activeTrackColor: Colors.white,
+                activeThumbColor: EventDesign.red,
+                inactiveTrackColor: Colors.white24,
+                inactiveThumbColor: Colors.white70,
+                trackOutlineColor: const WidgetStatePropertyAll(Colors.white70),
                 contentPadding: EdgeInsets.zero,
                 title: const Text(
                   'QA encoder failure',

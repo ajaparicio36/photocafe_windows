@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:photocafe_windows/core/colors/app_theme.dart';
 import 'package:photocafe_windows/core/router/router.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_provider.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/videos/domain/data/providers/video_notifier.dart';
@@ -10,8 +11,8 @@ import 'package:photocafe_windows/services/canon_camera_service.dart';
 import 'package:flutter_soloud/flutter_soloud.dart';
 import 'package:window_manager/window_manager.dart';
 
-// 16:9 aspect ratio constant
-const double kAspectRatio = 16 / 9;
+// 16:10 aspect ratio constant
+const double kAspectRatio = 16 / 10;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,9 +20,9 @@ void main() async {
   // Initialize window manager
   await windowManager.ensureInitialized();
 
-  // Configure window options with 16:9 aspect ratio (1280x720 is a common 16:9 resolution)
+  // Configure window options with 16:10 aspect ratio (1280x800 is a common 16:10 resolution)
   WindowOptions windowOptions = const WindowOptions(
-    size: Size(1280, 720),
+    size: Size(1280, 800),
     center: true,
     backgroundColor: Colors.black,
     skipTaskbar: false,
@@ -29,7 +30,7 @@ void main() async {
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {
-    // Set aspect ratio to maintain 16:9
+    // Set aspect ratio to maintain 16:10
     await windowManager.setAspectRatio(kAspectRatio);
     await windowManager.show();
     await windowManager.focus();
@@ -162,7 +163,7 @@ class App extends ConsumerWidget {
           routerConfig: router,
           theme: AppTheme.lightTheme,
           builder: (context, child) {
-            // Wrap the entire app in a 16:9 aspect ratio container with black bars
+            // Wrap the entire app in a 16:10 aspect ratio container with black bars
             // Material widget prevents yellow underlines on Text widgets
             return Container(
               color: Colors.black,
@@ -183,6 +184,7 @@ class App extends ConsumerWidget {
   }
 
   Future<void> _initializeProviders(WidgetRef ref) async {
+    await ref.read(frameCatalogProvider.future);
     print('Initializing providers...');
 
     try {
