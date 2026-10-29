@@ -76,6 +76,16 @@ void main() {
       print(
         'BOUNCY_FIXTURE_MP4=${evidence.path}/bouncy_preview.mp4; encoder=${media.encoder}',
       );
+      await captures.drain();
+      captures.reset();
+      captures.setMotionEnabled(false);
+      // OFF must reject a previously cached successful export immediately.
+      await expectLater(media.export(), throwsStateError);
+      await expectLater(
+        media.prepare(photos: photos, selections: selection),
+        throwsStateError,
+      );
+      expect(captures.hasWork, isFalse);
       await media.cancelAndDrain();
       expect(await File(path).exists(), isFalse);
       media.dispose();

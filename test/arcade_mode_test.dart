@@ -135,6 +135,41 @@ void main() {
   );
 
   test(
+    'Classic Bouncy defaults on, persists, and freezes separately from Keychain',
+    () async {
+      final old = seed.toJson()..remove('classicBouncyEnabled');
+      expect(FrameCatalog.fromJson(old).classicBouncyEnabled, isTrue);
+      final notifier = container.read(frameCatalogProvider.notifier);
+      runtime.beginSession(KioskMode.classicPortrait);
+      await notifier.setClassicBouncyEnabled(false);
+      expect(runtime.sessionBouncyEnabled, isTrue);
+      final loaded = await repository.load();
+      expect(loaded.classicBouncyEnabled, isFalse);
+      expect(
+        loaded.copyWith(arcadeEnabled: false).classicBouncyEnabled,
+        isFalse,
+      );
+      for (final mode in [
+        KioskMode.classicPortrait,
+        KioskMode.classicLandscape,
+        KioskMode.classicPhotobox,
+      ]) {
+        runtime.beginSession(mode);
+        expect(runtime.sessionBouncyEnabled, isFalse);
+      }
+      await notifier.setClassicBouncyEnabled(true);
+      expect(runtime.sessionBouncyEnabled, isFalse);
+      await notifier.setClassicBouncyEnabled(false);
+      for (final mode in [KioskMode.keychain, KioskMode.flipbook]) {
+        runtime.beginSession(mode);
+        expect(runtime.sessionBouncyEnabled, isTrue);
+      }
+      runtime.endSession();
+      expect(runtime.sessionBouncyEnabled, isTrue);
+    },
+  );
+
+  test(
     'selection is required; disabling or removing its frame is rejected',
     () async {
       final notifier = container.read(frameCatalogProvider.notifier);
@@ -221,97 +256,109 @@ void main() {
   for (final kind in FrameTemplateKind.values.where(
     (kind) => kind != FrameTemplateKind.flipbook,
   )) {
-    for (final count in [1, 2, 3, 4]) {
-      test(
-        '${kind.name}: $count shots, source order, no filter and native PDF',
-        () async {
-          final template = seed.byId(kind.name);
-          final chosen = template.copyWith(
-            slots: [
-              template.slots.single.copyWith(photoIndex: count - 1),
-              template.slots.single.copyWith(
-                id: 'repeat',
-                photoIndex: 0,
-                top: 110,
-              ),
-            ],
-          );
-          runtime.replaceCatalog(
-            seed.copyWith(
-              templates: [
-                for (final item in seed.templates)
-                  item.id == chosen.id ? chosen : item,
+    for (final motion in [true, false]) {
+      for (final count in [1, 2, 3, 4]) {
+        test(
+          '${kind.name}: Bouncy $motion, $count shots, source order, no filter and native PDF',
+          () async {
+            final template = seed.byId(kind.name);
+            final chosen = template.copyWith(
+              slots: [
+                template.slots.single.copyWith(photoIndex: count - 1),
+                template.slots.single.copyWith(
+                  id: 'repeat',
+                  photoIndex: 0,
+                  top: 110,
+                ),
               ],
-              arcadeEnabled: true,
-              arcadeFrameId: chosen.id,
-            ),
-          );
-          final session = container.read(bouncySessionProvider);
-          session.classicFilterId = 'bw';
-          final flow = container.read(arcadeFlowProvider);
-          await flow.start();
-          expect(
-            container.read(photoProvider).requireValue.captureCount,
-            count,
-          );
-          expect(session.captureCount, count);
-          expect(session.classicFilterId, 'no_filter');
-          final printer = container.read(printerProvider).requireValue;
-          expect(
-            printer.layoutMode,
-            kind == FrameTemplateKind.classicPhotobox ? 2 : 4,
-          );
-          expect(
-            printer.isLandscape,
-            kind == FrameTemplateKind.classicLandscape,
-          );
-          await expectLater(flow.preparePrint(), throwsStateError);
-          final clip = validateBouncyImages(
-            BouncyClip([BouncyFrame(3000000, jpeg)], 3000000),
-          );
-          for (var shot = 0; shot < count; shot++) {
-            await container
-                .read(photoProvider.notifier)
-                .addPhotoFromFile(
-                  '${directory.path}/source.jpg',
-                  attempt: session.attempt('shot$shot'),
-                  clip: clip,
-                );
-          }
-          final pdf = await flow.preparePrint();
-          expect(utf8.decode(pdf.take(8).toList()), startsWith('%PDF'));
-          expect(latin1.decode(pdf), contains('/MediaBox[0 0 297.6 442.56]'));
-          expect(
-            container
-                .read(photoProvider)
-                .requireValue
-                .photos
-                .map((p) => p.index),
-            List.generate(count, (i) => i),
-          );
-          expect(session.valid(List.generate(count, (i) => 'shot$i')), isTrue);
-          expect(container.read(classicBouncyFrameProvider), chosen.id);
-          if (count == 2 && kind == FrameTemplateKind.classicPortrait) {
-            final frames = await container
-                .read(bouncyMediaProvider)
-                .prepare(
-                  photos: container.read(photoProvider).requireValue.photos,
-                  selections: [
-                    // Reuses the same frozen frame that produced the PDF.
-                    KeychainVariantSelection(
-                      frameId: chosen.id,
-                      filterId: 'no_filter',
-                    ),
-                  ],
-                  classicLayout: layoutTypeForKind(chosen.kind),
-                );
-            expect(frames.length, 36);
-          }
-          await container.read(photoProvider.notifier).clearAllPhotos();
-          await container.read(photoProvider.notifier).setCaptureCount(4);
-          expect(session.captureCount, 4);
-        },
-      );
+            );
+            runtime.replaceCatalog(
+              seed.copyWith(
+                templates: [
+                  for (final item in seed.templates)
+                    item.id == chosen.id ? chosen : item,
+                ],
+                arcadeEnabled: true,
+                classicBouncyEnabled: motion,
+                arcadeFrameId: chosen.id,
+              ),
+            );
+            final session = container.read(bouncySessionProvider);
+            session.classicFilterId = 'bw';
+            final flow = container.read(arcadeFlowProvider);
+            await flow.start();
+            expect(
+              container.read(photoProvider).requireValue.captureCount,
+              count,
+            );
+            expect(session.captureCount, count);
+            expect(session.motionEnabled, motion);
+            expect(session.classicFilterId, 'no_filter');
+            final printer = container.read(printerProvider).requireValue;
+            expect(
+              printer.layoutMode,
+              kind == FrameTemplateKind.classicPhotobox ? 2 : 4,
+            );
+            expect(
+              printer.isLandscape,
+              kind == FrameTemplateKind.classicLandscape,
+            );
+            await expectLater(flow.preparePrint(), throwsStateError);
+            final clip = motion
+                ? validateBouncyImages(
+                    BouncyClip([BouncyFrame(3000000, jpeg)], 3000000),
+                  )
+                : null;
+            for (var shot = 0; shot < count; shot++) {
+              await container
+                  .read(photoProvider.notifier)
+                  .addPhotoFromFile(
+                    '${directory.path}/source.jpg',
+                    attempt: session.attempt('shot$shot'),
+                    clip: clip,
+                  );
+            }
+            final pdf = await flow.preparePrint();
+            expect(utf8.decode(pdf.take(8).toList()), startsWith('%PDF'));
+            expect(latin1.decode(pdf), contains('/MediaBox[0 0 297.6 442.56]'));
+            expect(
+              container
+                  .read(photoProvider)
+                  .requireValue
+                  .photos
+                  .map((p) => p.index),
+              List.generate(count, (i) => i),
+            );
+            expect(
+              session.valid(List.generate(count, (i) => 'shot$i')),
+              isTrue,
+            );
+            expect(container.read(classicBouncyFrameProvider), chosen.id);
+            if (motion &&
+                count == 2 &&
+                kind == FrameTemplateKind.classicPortrait) {
+              final frames = await container
+                  .read(bouncyMediaProvider)
+                  .prepare(
+                    photos: container.read(photoProvider).requireValue.photos,
+                    selections: [
+                      // Reuses the same frozen frame that produced the PDF.
+                      KeychainVariantSelection(
+                        frameId: chosen.id,
+                        filterId: 'no_filter',
+                      ),
+                    ],
+                    classicLayout: layoutTypeForKind(chosen.kind),
+                  );
+              expect(frames.length, 36);
+            }
+            await container.read(photoProvider.notifier).clearAllPhotos();
+            await container.read(photoProvider.notifier).setCaptureCount(4);
+            expect(session.captureCount, 4);
+            expect(session.motionEnabled, isTrue);
+          },
+        );
+      }
     }
   }
 
@@ -362,6 +409,17 @@ void main() {
       router.go('/settings');
       await tester.pumpAndSettle();
       expect(find.text('Arcade Mode'), findsOneWidget);
+      expect(find.text('Classic Bouncy previews'), findsOneWidget);
+      await tester.runAsync(() async {
+        await tester.tap(find.byKey(const ValueKey('classic-bouncy-enabled')));
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
+      await tester.pumpAndSettle();
+      expect(
+        container.read(frameCatalogProvider).requireValue.classicBouncyEnabled,
+        isFalse,
+      );
+      expect(runtime.sessionBouncyEnabled, isTrue);
       expect(
         tester
             .widget<SwitchListTile>(

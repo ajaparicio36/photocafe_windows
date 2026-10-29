@@ -13,6 +13,8 @@ import 'package:photocafe_windows/features/photos/domain/data/providers/photo_no
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/print/print_action_panel.dart';
 import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_composition_renderer.dart';
+import 'package:printing/printing.dart';
 
 class ClassicPrintScreen extends ConsumerStatefulWidget {
   final Uint8List? pdfBytes;
@@ -189,20 +191,41 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
               figure: 'assets/event/frames_figure1.png',
               figureWidth: 180,
               child: EventPanel(
-                child: BouncyPreview(
-                  foregroundColor: Colors.white,
-                  archive: true,
-                  photos: photos,
-                  selections: [
-                    KeychainVariantSelection(
-                      frameId: ref.watch(classicBouncyFrameProvider),
-                      filterId: ref
-                          .watch(bouncySessionProvider)
-                          .classicFilterId,
-                    ),
-                  ],
-                  classicLayout: layout,
-                ),
+                child: !ref.watch(bouncySessionProvider).motionEnabled
+                    ? _actualPdfBytes == null
+                          ? const Center(
+                              child: Text('No print preview available.'),
+                            )
+                          : PdfPreview(
+                              build: (format) => _actualPdfBytes!,
+                              initialPageFormat: FramePdfGeometry.pageFormat,
+                              allowPrinting: false,
+                              allowSharing: false,
+                              canChangeOrientation: false,
+                              canChangePageFormat: false,
+                              canDebug: false,
+                              useActions: false,
+                              maxPageWidth: 700,
+                              pdfPreviewPageDecoration: const BoxDecoration(
+                                color: Colors.white,
+                              ),
+                              previewPageMargin: const EdgeInsets.all(4),
+                              padding: EdgeInsets.zero,
+                            )
+                    : BouncyPreview(
+                        foregroundColor: Colors.white,
+                        archive: true,
+                        photos: photos,
+                        selections: [
+                          KeychainVariantSelection(
+                            frameId: ref.watch(classicBouncyFrameProvider),
+                            filterId: ref
+                                .watch(bouncySessionProvider)
+                                .classicFilterId,
+                          ),
+                        ],
+                        classicLayout: layout,
+                      ),
               ),
             ),
           ),

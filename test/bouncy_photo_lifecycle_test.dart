@@ -111,6 +111,103 @@ void main() {
     },
   );
   test(
+    'motion off validates actual still bytes, preserves retake identity and fences stale results',
+    () async {
+      final source = await File(
+        '${directory.path}/fixture.jpg',
+      ).writeAsBytes(jpeg);
+      final invalid = await File(
+        '${directory.path}/corrupt.jpg',
+      ).writeAsBytes([1, 2, 3]);
+      final notifier = container.read(photoProvider.notifier);
+      final session = container.read(bouncySessionProvider);
+      session.setMotionEnabled(false);
+      session.feed(jpeg);
+      expect(session.ring.length, 0);
+      expect(session.ring.bytes, 0);
+      expect(session.freeze, throwsStateError);
+      expect(session.valid(['shot0', 'shot1', 'shot2', 'shot3']), isFalse);
+      for (var i = 0; i < 4; i++) {
+        await notifier.addPhotoFromFile(
+          source.path,
+          attempt: session.attempt('shot$i'),
+        );
+      }
+      final before = container.read(photoProvider).requireValue.photos;
+      expect(session.valid(before.map((photo) => photo.captureId)), isTrue);
+      expect(session.retainedBytes, 0);
+      expect(session.pairCount, 0);
+      expect(session.clip('shot0'), isNull);
+      expect(() => session.attempt('fifth'), throwsStateError);
+      expect(() => session.setMotionEnabled(true), throwsStateError);
+      expect(session.valid(['shot0', 'shot0', 'shot2', 'shot3']), isFalse);
+      expect(await File(before.first.imagePath).readAsBytes(), jpeg);
+
+      final failedAttempt = session.attempt('shot0');
+      await expectLater(
+        notifier.addPhotoFromFile(
+          invalid.path,
+          attempt: failedAttempt,
+          replaceIndex: 0,
+        ),
+        throwsA(isA<Exception>()),
+      );
+      expect(container.read(photoProvider).requireValue.photos, before);
+      expect(session.valid(before.map((photo) => photo.captureId)), isFalse);
+      final retry = session.attempt('shot0');
+      await expectLater(
+        notifier.addPhotoFromFile(
+          source.path,
+          attempt: failedAttempt,
+          replaceIndex: 0,
+        ),
+        throwsStateError,
+      );
+      await notifier.addPhotoFromFile(
+        source.path,
+        attempt: retry,
+        replaceIndex: 0,
+      );
+      final after = container.read(photoProvider).requireValue.photos;
+      expect(after.first.captureId, 'shot0');
+      expect(after.first.imagePath, isNot(before.first.imagePath));
+      expect(after.skip(1), before.skip(1));
+      await notifier.reorderPhotos(after.reversed.toList());
+      final reordered = container.read(photoProvider).requireValue.photos;
+      expect(reordered.map((photo) => photo.captureId), [
+        'shot3',
+        'shot2',
+        'shot1',
+        'shot0',
+      ]);
+      expect(session.valid(reordered.map((photo) => photo.captureId)), isTrue);
+      await notifier.addPhotoFromFile(
+        source.path,
+        attempt: session.attempt('shot3'),
+        replaceIndex: 0,
+      );
+      expect(
+        container.read(photoProvider).requireValue.photos.skip(1),
+        reordered.skip(1),
+      );
+
+      final late = notifier.addPhotoFromFile(
+        source.path,
+        attempt: session.attempt('shot3'),
+        replaceIndex: 0,
+      );
+      session.reset();
+      await expectLater(late, throwsStateError);
+      expect(session.valid(reordered.map((photo) => photo.captureId)), isFalse);
+      expect(session.motionEnabled, isTrue);
+      expect(
+        () => session.acceptStill(session.attempt('new')),
+        throwsStateError,
+      );
+    },
+  );
+
+  test(
     'repeated reset coalesces; pending filter cannot republish old photos or retain owned directory',
     () async {
       final source = File('${directory.path}/fixture.jpg');

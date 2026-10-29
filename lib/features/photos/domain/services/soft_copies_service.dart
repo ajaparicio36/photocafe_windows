@@ -3,21 +3,30 @@ import 'package:photocafe_windows/services/bouncy_fixture.dart';
 import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:photocafe_windows/core/handlers/dio_handler.dart';
 import 'package:printing/printing.dart';
 import 'package:uuid/uuid.dart';
 
+final softCopiesServiceProvider = Provider<SoftCopiesService>(
+  (ref) => SoftCopiesService(),
+);
+
 class SoftCopiesService {
-  final Dio _dio = BouncyFixture.enabled
-      ? Dio(
-          BaseOptions(
-            baseUrl: const String.fromEnvironment(
-              'BOUNCY_QA_API_BASE',
-              defaultValue: 'http://127.0.0.1:3017',
-            ),
-          ),
-        )
-      : DioClient().instance;
+  SoftCopiesService({Dio? dio})
+    : _dio =
+          dio ??
+          (BouncyFixture.enabled
+              ? Dio(
+                  BaseOptions(
+                    baseUrl: const String.fromEnvironment(
+                      'BOUNCY_QA_API_BASE',
+                      defaultValue: 'http://127.0.0.1:3017',
+                    ),
+                  ),
+                )
+              : DioClient().instance);
+  final Dio _dio;
   final _uuid = Uuid();
 
   Future<SoftCopiesUploadResult> uploadMediaFiles({

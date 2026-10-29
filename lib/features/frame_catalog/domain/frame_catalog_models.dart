@@ -275,6 +275,7 @@ class FrameCatalog {
   final Set<KioskProduct> enabledProducts;
   final Set<ClassicVariant> enabledClassicVariants;
   final bool arcadeEnabled;
+  final bool classicBouncyEnabled;
   final String? arcadeFrameId;
   final String? warning;
   FrameCatalog({
@@ -282,6 +283,7 @@ class FrameCatalog {
     required Set<KioskProduct> enabledProducts,
     required Set<ClassicVariant> enabledClassicVariants,
     this.arcadeEnabled = false,
+    this.classicBouncyEnabled = true,
     this.arcadeFrameId,
     this.warning,
   }) : templates = List.unmodifiable(templates),
@@ -323,6 +325,7 @@ class FrameCatalog {
     Set<KioskProduct>? enabledProducts,
     Set<ClassicVariant>? enabledClassicVariants,
     bool? arcadeEnabled,
+    bool? classicBouncyEnabled,
     String? arcadeFrameId,
     String? warning,
   }) => FrameCatalog(
@@ -331,6 +334,7 @@ class FrameCatalog {
     enabledClassicVariants:
         enabledClassicVariants ?? this.enabledClassicVariants,
     arcadeEnabled: arcadeEnabled ?? this.arcadeEnabled,
+    classicBouncyEnabled: classicBouncyEnabled ?? this.classicBouncyEnabled,
     arcadeFrameId: arcadeFrameId ?? this.arcadeFrameId,
     warning: warning ?? this.warning,
   );
@@ -369,6 +373,7 @@ class FrameCatalog {
   Map<String, Object?> toJson() => {
     'schemaVersion': 1,
     'arcadeEnabled': arcadeEnabled,
+    'classicBouncyEnabled': classicBouncyEnabled,
     'arcadeFrameId': arcadeFrameId,
     'enabledProducts': enabledProducts.map((v) => v.name).toList(),
     'enabledClassicVariants': enabledClassicVariants
@@ -384,6 +389,9 @@ class FrameCatalog {
       );
     }
     final catalog = FrameCatalog(
+      classicBouncyEnabled: map.containsKey('classicBouncyEnabled')
+          ? jsonBool(map, 'classicBouncyEnabled')
+          : true,
       arcadeEnabled: map.containsKey('arcadeEnabled')
           ? jsonBool(map, 'arcadeEnabled')
           : false,

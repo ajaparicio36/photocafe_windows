@@ -268,6 +268,9 @@ class ClassicStartScreen extends ConsumerWidget {
 
       // Clear photos first
       await photoNotifier.clearAllPhotos();
+      ref
+          .read(bouncySessionProvider)
+          .setMotionEnabled(FrameCatalogRuntime.instance.sessionBouncyEnabled);
       print('Photos cleared');
 
       // Set layout mode in printer settings

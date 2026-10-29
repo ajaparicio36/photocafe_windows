@@ -93,6 +93,11 @@ class FrameCatalogRuntime extends ChangeNotifier {
   FrameCatalog? catalog;
   FrameCatalog? sessionCatalog;
   KioskMode? sessionMode;
+  bool get sessionBouncyEnabled =>
+      sessionMode == null ||
+          productForMode(sessionMode!) != KioskProduct.classic
+      ? true
+      : sessionCatalog?.classicBouncyEnabled ?? true;
   FrameTemplate? get sessionArcadeFrame => sessionCatalog?.arcadeEnabled == true
       ? sessionCatalog?.arcadeFrame
       : null;

@@ -327,6 +327,28 @@ class _FrameCatalogScreenState extends ConsumerState<FrameCatalogScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SwitchListTile(
+            key: const ValueKey('classic-bouncy-enabled'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text(
+              'Classic Bouncy previews',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text(
+              'Animated previews and MP4 soft copies for all Classic layouts, including Arcade. Changes apply to the next session.',
+              style: TextStyle(fontSize: 13),
+            ),
+            value: catalog.classicBouncyEnabled,
+            onChanged: _busy != null
+                ? null
+                : (enabled) => _change(
+                    'classic-bouncy',
+                    () => ref
+                        .read(frameCatalogProvider.notifier)
+                        .setClassicBouncyEnabled(enabled),
+                  ),
+          ),
+          const Divider(height: 32),
+          SwitchListTile(
             key: const ValueKey('arcade-enabled'),
             contentPadding: EdgeInsets.zero,
             title: const Text(
@@ -379,7 +401,7 @@ class _FrameCatalogScreenState extends ConsumerState<FrameCatalogScreen> {
           const SizedBox(height: 10),
           if (catalog.arcadeFrame case final frame?)
             Text(
-              '${frame.classicVariant!.name} · ${frame.captureCount} photos\nNo filters. Bouncy soft copy included.',
+              '${frame.classicVariant!.name} · ${frame.captureCount} photos\nNo filters. ${catalog.classicBouncyEnabled ? 'Bouncy soft copy included.' : 'Still soft copies included.'}',
               style: const TextStyle(fontSize: 13, height: 1.4),
             )
           else

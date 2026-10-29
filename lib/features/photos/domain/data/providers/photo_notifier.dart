@@ -115,7 +115,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   }) async {
     final session = ref.read(bouncySessionProvider);
     final generation = session.generation;
-    if (attempt != null && (clip == null || clip.problem != null)) {
+    if (attempt != null &&
+        session.motionEnabled &&
+        (clip == null || clip.problem != null)) {
       throw StateError(clip?.problem ?? 'No live view clip. Retake this shot.');
     }
     final currentState = state.requireValue;
@@ -159,7 +161,13 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       index: index,
       captureId: captureId,
     );
-    if (attempt != null) session.accept(attempt, clip!);
+    if (attempt != null) {
+      if (session.motionEnabled) {
+        session.accept(attempt, clip!);
+      } else {
+        session.acceptStill(attempt);
+      }
+    }
     if (replaceIndex == null) {
       photos.add(photo);
     } else {

@@ -24,6 +24,9 @@ class ArcadeFlow {
     try {
       final photos = _ref.read(photoProvider.notifier);
       await photos.clearAllPhotos();
+      _ref
+          .read(bouncySessionProvider)
+          .setMotionEnabled(runtime.sessionBouncyEnabled);
       await photos.setCaptureCount(frame.captureCount);
       final printer = _ref.read(printerProvider.notifier);
       await printer.setLayoutMode(

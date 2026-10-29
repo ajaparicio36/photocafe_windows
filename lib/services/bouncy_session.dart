@@ -105,10 +105,22 @@ class BouncySession extends ChangeNotifier {
   final clock = Stopwatch()..start();
   final ring = BouncyRing();
   final Map<String, BouncyClip> _clips = {};
+  final Set<String> _stills = {};
   final Map<String, int> _attempts = {};
   int generation = 0;
   int _captureCount = 4;
   int get captureCount => _captureCount;
+  bool _motionEnabled = true;
+  bool get motionEnabled => _motionEnabled;
+  void setMotionEnabled(bool enabled) {
+    if (enabled == _motionEnabled) return;
+    if (hasWork) {
+      throw StateError('Start a new session before changing Bouncy previews.');
+    }
+    _motionEnabled = enabled;
+    ring.clear();
+  }
+
   void setCaptureCount(int count) {
     if (count < 1 || count > 4) {
       throw RangeError.range(count, 1, 4, 'captureCount');
@@ -142,17 +154,29 @@ class BouncySession extends ChangeNotifier {
   int get retainedBytes => _clips.values.fold(0, (n, c) => n + c.bytes);
   int get pairCount => _clips.length;
   bool get hasWork =>
-      _clips.isNotEmpty || _attempts.isNotEmpty || _pending.isNotEmpty;
+      _clips.isNotEmpty ||
+      _stills.isNotEmpty ||
+      _attempts.isNotEmpty ||
+      _pending.isNotEmpty;
   bool valid(Iterable<String> ids) =>
       ids.length == _captureCount &&
       ids.toSet().length == _captureCount &&
-      ids.every((id) => _clips.containsKey(id) && !_attempts.containsKey(id));
+      ids.every(
+        (id) =>
+            (motionEnabled ? _clips.containsKey(id) : _stills.contains(id)) &&
+            !_attempts.containsKey(id),
+      );
   BouncyClip? clip(String id) => _clips[id];
-  void feed(Uint8List jpeg) => ring.add(clock.elapsedMicroseconds, jpeg);
+  void feed(Uint8List jpeg) {
+    if (motionEnabled) ring.add(clock.elapsedMicroseconds, jpeg);
+  }
+
   BouncyAttempt attempt(String id) {
     if (!_clips.containsKey(id) &&
+        !_stills.contains(id) &&
         !_attempts.containsKey(id) &&
-        {..._clips.keys, ..._attempts.keys}.length >= _captureCount) {
+        {..._clips.keys, ..._stills, ..._attempts.keys}.length >=
+            _captureCount) {
       throw StateError(
         'This Bouncy session contains $_captureCount shot identities.',
       );
@@ -164,14 +188,24 @@ class BouncySession extends ChangeNotifier {
   bool current(BouncyAttempt attempt) =>
       attempt.session == generation &&
       _attempts[attempt.captureId] == attempt.number;
-  BouncyClip freeze() => ring.freeze(clock.elapsedMicroseconds);
+  BouncyClip freeze() {
+    if (!motionEnabled) {
+      throw StateError('Bouncy previews are off for this session.');
+    }
+    return ring.freeze(clock.elapsedMicroseconds);
+  }
+
   bool get hasFreshPreview {
+    if (!motionEnabled) return false;
     final clip = freeze();
     return clip.frames.isNotEmpty &&
         clock.elapsedMicroseconds - clip.frames.last.micros <= 250000;
   }
 
   void accept(BouncyAttempt attempt, BouncyClip clip) {
+    if (!motionEnabled) {
+      throw StateError('Bouncy previews are off for this session.');
+    }
     if (!current(attempt)) throw StateError('Capture session changed.');
     if (clip.problem != null) throw StateError(clip.problem!);
     if (!clip.verified) {
@@ -188,6 +222,16 @@ class BouncySession extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Called only after PhotoNotifier has decoded and copied the actual still.
+  /// A failed retake remains pending, so the previous photo cannot pass valid().
+  void acceptStill(BouncyAttempt attempt) {
+    if (motionEnabled) throw StateError('A validated motion clip is required.');
+    if (!current(attempt)) throw StateError('Capture session changed.');
+    _stills.add(attempt.captureId);
+    _attempts.remove(attempt.captureId);
+    notifyListeners();
+  }
+
   void reset() {
     generation++;
     for (final cancel in cancellations.toList()) {
@@ -195,8 +239,10 @@ class BouncySession extends ChangeNotifier {
     }
     ring.clear();
     _clips.clear();
+    _stills.clear();
     _attempts.clear();
     _captureCount = 4;
+    _motionEnabled = true;
     classicFilterId = 'no_filter';
     exportError = null;
     notifyListeners();

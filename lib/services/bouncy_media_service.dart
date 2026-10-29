@@ -67,6 +67,9 @@ class BouncyMediaService {
     required List<KeychainVariantSelection> selections,
     FrameLayoutType? classicLayout,
   }) async {
+    if (!session.motionEnabled) {
+      throw StateError('Bouncy previews are off for this session.');
+    }
     final revision = ++_revision;
     final generation = session.generation;
     _process?.kill();
@@ -126,6 +129,11 @@ class BouncyMediaService {
   }
 
   Future<String> export() {
+    if (!session.motionEnabled) {
+      return Future.error(
+        StateError('Bouncy previews are off for this session.'),
+      );
+    }
     if (failEncoder) {
       return Future.error(
         StateError('QA encoder failure. Valid photos remain printable.'),
@@ -274,7 +282,9 @@ class BouncyMediaService {
   }
 
   void _check(int generation, int revision) {
-    if (session.generation != generation || _revision != revision) {
+    if (!session.motionEnabled ||
+        session.generation != generation ||
+        _revision != revision) {
       throw StateError('Animated composition was cancelled.');
     }
   }

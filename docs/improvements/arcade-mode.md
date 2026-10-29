@@ -8,7 +8,7 @@ mapping. The selected frame cannot be hidden while Arcade is on; choose another
 frame or switch Arcade off first. Editing its geometry affects new sessions.
 
 Customer flow: **Start → Classic Mode → Capture → Print preview**. Capture keeps
-the normal countdown and Bouncy still/clip pairing. After the last shot, the app
+the normal countdown and, when enabled, Bouncy still/clip pairing. After the last shot, the app
 uses capture order, no filter and the staff frame to prepare the existing PDF and
 print confirmation screen. It does not print automatically. Print's Back button
 returns to Capture for retakes; Capture's Back button confirms discarding work
@@ -23,9 +23,31 @@ load with Arcade off. A missing/hidden Arcade frame in an externally changed
 catalog blocks customer starts with staff guidance, rather than silently using
 another frame. Each accepted customer session freezes its frame and variant.
 
+## Classic Bouncy previews
+
+**Settings → Frames & modes → Classic Bouncy previews** controls animated
+previews and MP4 soft copies for Portrait, Landscape, Photobox and Arcade.
+It defaults to on, including catalogs saved before the setting existed. The
+choice is frozen when a customer starts: staff changes apply to the next
+session. Keychain keeps its existing Bouncy behavior; Flipbook is unchanged.
+
+With the switch off, Canon live view still helps compose each photo and the
+same strict, full-quality shutter capture supplies the still. The app skips
+the motion ring feed and retention, clip freezing and decoding, animated
+preview rendering and MP4 export. Organize and Print display the existing
+framed still PDF. Soft copies upload the photos, framed still and existing
+additional assets/consent without requiring or waiting for an MP4, including
+one left over from an earlier session.
+
+Still images must decode successfully before their capture identities are
+accepted. Retakes, ordering, incomplete-shot gates, session cancellation,
+print confirmation and archives retain their existing behavior. The reduction
+in work comes from skipping motion processing; no speedup has been measured.
+Still decoding, PDF composition, upload and printing continue to take time.
+
 ## Bouncy soft-copy quality
 
-Soft copies remain silent six-second MP4s at six frames per second. The live
+When Bouncy is on, soft copies include silent six-second MP4s at six frames per second. The live
 capture ring and interactive preview are unchanged. Export renders again from
 the retained camera JPEGs with a 640-pixel source working limit (preview: 320),
 producing Classic 620×922 instead of 310×462. Keychain remains 620×922 and uses the
@@ -46,11 +68,21 @@ generation, Bouncy pairing and a Home-to-Capture widget flow. Media tests compar
 high-frequency source detail with an enlarged preview and validate an actual
 silent six-second software-encoded MP4 with FFprobe.
 
+Toggle regressions cover old-catalog defaults, persistence and frozen policy,
+all Classic/Arcade capture counts with motion on and off, corrupt still rejection,
+retake identity and stale-attempt fencing, Canon feed ownership on unmount,
+static framed previews, and still-only multipart uploads including consent.
+Native camera, PDF raster and upload boundaries use headless test doubles;
+these tests do not establish physical camera or printer behavior.
+
 Interactive QA is pending explicit user confirmation that the shared application
 and webcam are available. Then exercise Arcade only: choose a staff frame, enable,
 start Classic, complete captures, reach Print without choices, retake via Back,
-cancel/restart, verify frame and Bouncy soft copy, then turn Arcade off and confirm
-the saved normal menu. Do not send a print job without the agreed QA scope.
+cancel/restart, and verify the frame and Bouncy soft copy. Repeat with Classic
+Bouncy previews off: verify usable static previews and an archive with stills
+and no MP4. Turn it back on for a new session and verify motion is unchanged.
+Then turn Arcade off and confirm the saved normal menu. Do not send a print job
+without the agreed QA scope.
 
 Production uses Canon (`BOUNCY_CANON=true`, `BOUNCY_QA=false`). The reusable webcam
 test override belongs in a separate stash after production review and isolation;

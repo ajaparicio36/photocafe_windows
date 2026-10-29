@@ -78,6 +78,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   Future<void>? _captureWork;
 
   late final BouncySession _session;
+  late final CanonCameraService _canonService;
 
   int _generation = 0;
   late final FrameTemplate? _arcadeFrame;
@@ -90,6 +91,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     _arcadeFrame = FrameCatalogRuntime.instance.sessionArcadeFrame;
 
     _session = ref.read(bouncySessionProvider);
+    _canonService = ref.read(canonCameraServiceProvider);
 
     _generation = _session.generation;
 
@@ -100,6 +102,15 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
   Future<void> _initialize() async {
     try {
+      _session.setMotionEnabled(
+        FrameCatalogRuntime.instance.sessionBouncyEnabled,
+      );
+      final canon = _canonService;
+      // Live view remains active; only the compressed motion ring is detached.
+      canon.bouncySession =
+          _session.motionEnabled && _canon && !BouncyFixture.enabled
+          ? _session
+          : null;
       await ref.read(photoProvider.notifier).setCaptureCount(_captureCount);
 
       _shot = ref.read(photoProvider).requireValue.photos.length;
@@ -112,10 +123,6 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       if (BouncyFixture.enabled) {
         await _fixture.start(_session);
       } else if (_canon) {
-        final canon = ref.read(canonCameraServiceProvider);
-
-        canon.bouncySession = _session;
-
         if (!canon.isInitialized) await canon.initializeWithRetry();
       } else {
         // Preserve the user's CameraController still/preview test override.
@@ -159,7 +166,10 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
         _timer != null) {
       return;
     }
-    if (_canon && !BouncyFixture.enabled && !_session.hasFreshPreview) {
+    if (_session.motionEnabled &&
+        _canon &&
+        !BouncyFixture.enabled &&
+        !_session.hasFreshPreview) {
       setState(
         () => _error =
             'Waiting for fresh Canon live view. Restore the camera preview, then try this shot again.',
@@ -224,16 +234,19 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
       // never becomes part of the clip; strict Canon capture never retries.
 
-      var clip = _session.freeze();
+      BouncyClip? clip = _session.motionEnabled ? _session.freeze() : null;
 
-      if (BouncyFixture.enabled && _fixture.mode == 'short') {
+      if (clip != null && BouncyFixture.enabled && _fixture.mode == 'short') {
+        final frozen = clip;
         clip = BouncyClip(
-          clip.frames
-              .where((f) => clip.shutterMicros - f.micros < 1000000)
+          frozen.frames
+              .where((f) => frozen.shutterMicros - f.micros < 1000000)
               .toList(),
-          clip.shutterMicros,
+          frozen.shutterMicros,
         );
-      } else if (BouncyFixture.enabled && _fixture.mode == 'missing') {
+      } else if (clip != null &&
+          BouncyFixture.enabled &&
+          _fixture.mode == 'missing') {
         clip = BouncyClip([], clip.shutterMicros);
       }
 
@@ -245,17 +258,19 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
           ? await ref
                 .read(canonCameraServiceProvider)
                 .takeBouncyPicture(
-                  onShutterCommand: () => clip = _session.freeze(),
+                  onShutterCommand: _session.motionEnabled
+                      ? () => clip = _session.freeze()
+                      : null,
                 )
           : (await _controller!.takePicture()).path;
 
       if (!_session.current(attempt) || _leaving) return;
 
-      if (clip.problem != null) throw StateError(clip.problem!);
-
-      final frozen = clip;
-
-      clip = await validateBouncyClipAsync(frozen);
+      if (_session.motionEnabled) {
+        final frozen = clip!;
+        if (frozen.problem != null) throw StateError(frozen.problem!);
+        clip = await validateBouncyClipAsync(frozen);
+      }
 
       if (!_session.current(attempt) || _leaving) return;
 
@@ -371,8 +386,10 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
           ),
           title: const Text('Cancel and start over?'),
 
-          content: const Text(
-            'This will discard this session’s photos and motion clips.',
+          content: Text(
+            _session.motionEnabled
+                ? 'This will discard this session’s photos and motion clips.'
+                : 'This will discard this session’s photos.',
           ),
 
           actions: [
@@ -400,6 +417,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     _timer?.cancel();
     _timer = null;
 
+    _detachMotionFeed();
     _session.reset(); // Fence results before draining owned camera work.
 
     await _captureWork;
@@ -418,6 +436,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     _timer?.cancel();
     _fixture.dispose();
     _sound.dispose();
+    _detachMotionFeed();
 
     final controller = _controller;
 
@@ -428,6 +447,11 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     );
 
     super.dispose();
+  }
+
+  void _detachMotionFeed() {
+    final canon = _canonService;
+    if (identical(canon.bouncySession, _session)) canon.bouncySession = null;
   }
 
   Widget _preview() {
@@ -488,8 +512,10 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                 Expanded(
                   child: Text(
                     BouncyFixture.enabled
-                        ? 'Disposable QA fixture • Bouncy Previews'
-                        : 'Bouncy Previews',
+                        ? 'Disposable QA fixture • ${_session.motionEnabled ? 'Bouncy Previews' : 'Photo capture'}'
+                        : _session.motionEnabled
+                        ? 'Bouncy Previews'
+                        : 'Photo capture',
 
                     style: const TextStyle(color: Colors.white, fontSize: 22),
                   ),

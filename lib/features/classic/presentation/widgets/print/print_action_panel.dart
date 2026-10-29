@@ -231,47 +231,51 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
     }
     setState(() {
       _isProcessingSoftCopies = true;
-      _processingStatus = 'Preparing Bouncy MP4…';
+      _processingStatus = session.motionEnabled
+          ? 'Preparing Bouncy MP4…'
+          : 'Preparing soft copies…';
     });
     final token = CancelToken();
     _uploadCancellation = token;
     void cancel() => token.cancel('Session cancelled');
     session.cancellations.add(cancel);
     try {
-      late final String animation;
-      try {
-        animation = await ref.read(bouncyMediaProvider).export();
-      } catch (error) {
-        if (!mounted || generation != session.generation) return;
-        await showDialog<void>(
-          context: context,
-          builder: (dialog) => AlertDialog(
-            backgroundColor: Colors.white,
-            titleTextStyle: const TextStyle(
-              color: Color(0xff740000),
-              fontSize: 24,
-              fontWeight: FontWeight.w600,
-            ),
-            contentTextStyle: const TextStyle(
-              color: Color(0xff740000),
-              fontSize: 16,
-            ),
-            title: const Text('Motion export unavailable'),
-            content: const Text(
-              'Your photos are still printable. Choose Get Soft Copies again to retry the motion export. No archive has been uploaded.',
-            ),
-            actions: [
-              TextButton(
-                style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xff740000),
-                ),
-                onPressed: () => Navigator.pop(dialog),
-                child: const Text('Retry later'),
+      String? animation;
+      if (session.motionEnabled) {
+        try {
+          animation = await ref.read(bouncyMediaProvider).export();
+        } catch (error) {
+          if (!mounted || generation != session.generation) return;
+          await showDialog<void>(
+            context: context,
+            builder: (dialog) => AlertDialog(
+              backgroundColor: Colors.white,
+              titleTextStyle: const TextStyle(
+                color: Color(0xff740000),
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
               ),
-            ],
-          ),
-        );
-        return;
+              contentTextStyle: const TextStyle(
+                color: Color(0xff740000),
+                fontSize: 16,
+              ),
+              title: const Text('Motion export unavailable'),
+              content: const Text(
+                'Your photos are still printable. Choose Get Soft Copies again to retry the motion export. No archive has been uploaded.',
+              ),
+              actions: [
+                TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xff740000),
+                  ),
+                  onPressed: () => Navigator.pop(dialog),
+                  child: const Text('Retry later'),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
       }
       if (!mounted || generation != session.generation) return;
       setState(() {
@@ -280,21 +284,29 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
       });
       final media = await ref.read(photoProvider.notifier).getAllMediaFiles();
       if (generation != session.generation || token.isCancelled) return;
-      final files = [...widget.additionalMediaFiles, File(animation)];
-      final names = [...widget.additionalFileNames, 'bouncy_preview.mp4'];
+      final files = [
+        ...widget.additionalMediaFiles,
+        if (animation != null) File(animation),
+      ];
+      final names = [
+        ...widget.additionalFileNames,
+        if (animation != null) 'bouncy_preview.mp4',
+      ];
       final result = await session.track(
-        SoftCopiesService().uploadMediaFiles(
-          mediaFiles: media,
-          additionalMediaFiles: files,
-          additionalFileNames: names,
-          pdfBytes: widget.pdfBytes,
-          cancelToken: token,
-          allowSocialMediaPosting: _allowSocialMediaPosting,
-          onProgress: (progress) {
-            if (mounted && generation == session.generation)
-              setState(() => _processingProgress = progress);
-          },
-        ),
+        ref
+            .read(softCopiesServiceProvider)
+            .uploadMediaFiles(
+              mediaFiles: media,
+              additionalMediaFiles: files,
+              additionalFileNames: names,
+              pdfBytes: widget.pdfBytes,
+              cancelToken: token,
+              allowSocialMediaPosting: _allowSocialMediaPosting,
+              onProgress: (progress) {
+                if (mounted && generation == session.generation)
+                  setState(() => _processingProgress = progress);
+              },
+            ),
       );
       if (!mounted || generation != session.generation) return;
       if (!result.success) throw StateError(result.error ?? 'Upload failed');
@@ -481,7 +493,8 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
                 }
               },
             ),
-            if (BouncyFixture.enabled)
+            if (BouncyFixture.enabled &&
+                ref.watch(bouncySessionProvider).motionEnabled)
               SwitchListTile(
                 activeTrackColor: Colors.white,
                 activeThumbColor: EventDesign.red,
@@ -566,7 +579,7 @@ class SoftCopiesReadyDialog extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               const Text(
-                'Scan to download your photos and Bouncy Preview. Available for 8 hours.',
+                'Scan to download your soft copies. Available for 8 hours.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Color(0xff740000), fontSize: 14),
               ),

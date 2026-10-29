@@ -116,6 +116,8 @@ class FrameCatalogNotifier extends AsyncNotifier<FrameCatalog> {
   );
   Future<void> setArcadeEnabled(bool enabled) =>
       _mutate((catalog) => catalog.copyWith(arcadeEnabled: enabled));
+  Future<void> setClassicBouncyEnabled(bool enabled) =>
+      _mutate((catalog) => catalog.copyWith(classicBouncyEnabled: enabled));
   Future<void> setArcadeFrame(String id) => _mutate((catalog) {
     if (!catalog.arcadeFrames.any((frame) => frame.id == id)) {
       throw const FrameCatalogException('Choose an enabled Classic frame.');

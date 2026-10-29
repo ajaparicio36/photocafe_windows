@@ -279,6 +279,12 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                           style: TextStyle(color: Colors.white),
                         ),
                       )
+                    : !ref.watch(bouncySessionProvider).motionEnabled
+                    ? FrameFactory.createFrameWidget(
+                        frames.firstWhere(
+                          (frame) => frame.id == _selectedFrame,
+                        ),
+                      )
                     : BouncyPreview(
                         foregroundColor: Colors.white,
                         photos: photos,
