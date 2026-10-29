@@ -92,9 +92,12 @@ class FrameCompositionRenderer {
     int width = keychainVariantWidth,
     int height = keychainVariantHeight,
     String filterId = 'no_filter',
+    int sourcePhotoCount = requiredPhotoCount,
   }) {
-    if (photos.length != requiredPhotoCount) {
-      throw ArgumentError('Exactly four decoded photos are required.');
+    if (sourcePhotoCount < 1 ||
+        sourcePhotoCount > requiredPhotoCount ||
+        photos.length != sourcePhotoCount) {
+      throw ArgumentError('Expected $sourcePhotoCount decoded photos (1–4).');
     }
     final canvas = img.Image(width: width, height: height);
     img.fill(canvas, color: img.ColorRgb8(255, 255, 255));

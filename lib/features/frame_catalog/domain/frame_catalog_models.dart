@@ -154,6 +154,16 @@ class FrameTemplate {
   );
   double get canvasWidth => kind == FrameTemplateKind.flipbook ? 432 : 297.6;
   double get canvasHeight => kind == FrameTemplateKind.flipbook ? 288 : 442.56;
+  ClassicVariant? get classicVariant => switch (kind) {
+    FrameTemplateKind.classicPortrait => ClassicVariant.portrait,
+    FrameTemplateKind.classicLandscape => ClassicVariant.landscape,
+    FrameTemplateKind.classicPhotobox => ClassicVariant.photobox,
+    FrameTemplateKind.flipbook => null,
+  };
+
+  /// Preserve source indices, including gaps and repeated slots.
+  int get captureCount =>
+      slots.fold(0, (count, slot) => max(count, slot.photoIndex + 1));
   Set<KioskMode> get compatibleModes => switch (kind) {
     FrameTemplateKind.classicPortrait => const {
       KioskMode.classicPortrait,
@@ -264,15 +274,30 @@ class FrameCatalog {
   final List<FrameTemplate> templates;
   final Set<KioskProduct> enabledProducts;
   final Set<ClassicVariant> enabledClassicVariants;
+  final bool arcadeEnabled;
+  final String? arcadeFrameId;
   final String? warning;
   FrameCatalog({
     required List<FrameTemplate> templates,
     required Set<KioskProduct> enabledProducts,
     required Set<ClassicVariant> enabledClassicVariants,
+    this.arcadeEnabled = false,
+    this.arcadeFrameId,
     this.warning,
   }) : templates = List.unmodifiable(templates),
        enabledProducts = Set.unmodifiable(enabledProducts),
        enabledClassicVariants = Set.unmodifiable(enabledClassicVariants);
+  List<FrameTemplate> get arcadeFrames => List.unmodifiable(
+    templates.where((frame) => frame.enabled && frame.classicVariant != null),
+  );
+  FrameTemplate? get arcadeFrame =>
+      arcadeFrames.where((frame) => frame.id == arcadeFrameId).firstOrNull;
+  String? get arcadeProblem => arcadeFrame == null
+      ? 'Choose an enabled Classic frame for Arcade Mode. Enable a frame in its collection if needed.'
+      : null;
+  bool isCustomerProductUsable(KioskProduct product) => arcadeEnabled
+      ? product == KioskProduct.classic && arcadeFrame != null
+      : isProductUsable(product);
   List<FrameTemplate> customerFrames(KioskMode mode) => List.unmodifiable(
     templates.where((t) => t.enabled && t.compatibleModes.contains(mode)),
   );
@@ -297,17 +322,26 @@ class FrameCatalog {
     List<FrameTemplate>? templates,
     Set<KioskProduct>? enabledProducts,
     Set<ClassicVariant>? enabledClassicVariants,
+    bool? arcadeEnabled,
+    String? arcadeFrameId,
     String? warning,
   }) => FrameCatalog(
     templates: templates ?? this.templates,
     enabledProducts: enabledProducts ?? this.enabledProducts,
     enabledClassicVariants:
         enabledClassicVariants ?? this.enabledClassicVariants,
+    arcadeEnabled: arcadeEnabled ?? this.arcadeEnabled,
+    arcadeFrameId: arcadeFrameId ?? this.arcadeFrameId,
     warning: warning ?? this.warning,
   );
-  void validateAvailability() {
+  void validateAvailability({bool validateArcade = true}) {
     if (templates.map((t) => t.id).toSet().length != templates.length) {
       throw const FrameCatalogException('Frame IDs must be unique.');
+    }
+    if (validateArcade && arcadeEnabled && arcadeProblem != null) {
+      throw const FrameCatalogException(
+        'Keep the Arcade frame enabled, choose another enabled Classic frame, or turn Arcade Mode off first.',
+      );
     }
     if (!enabledProducts.any(isProductUsable)) {
       throw const FrameCatalogException(
@@ -334,6 +368,8 @@ class FrameCatalog {
 
   Map<String, Object?> toJson() => {
     'schemaVersion': 1,
+    'arcadeEnabled': arcadeEnabled,
+    'arcadeFrameId': arcadeFrameId,
     'enabledProducts': enabledProducts.map((v) => v.name).toList(),
     'enabledClassicVariants': enabledClassicVariants
         .map((v) => v.name)
@@ -348,6 +384,12 @@ class FrameCatalog {
       );
     }
     final catalog = FrameCatalog(
+      arcadeEnabled: map.containsKey('arcadeEnabled')
+          ? jsonBool(map, 'arcadeEnabled')
+          : false,
+      arcadeFrameId: map['arcadeFrameId'] == null
+          ? null
+          : jsonString(map, 'arcadeFrameId'),
       templates: jsonList(
         map['templates'],
       ).map(FrameTemplate.fromJson).toList(),
@@ -358,7 +400,9 @@ class FrameCatalog {
         map['enabledClassicVariants'],
       ).map((v) => ClassicVariant.values.byName(v as String)).toSet(),
     );
-    catalog.validateAvailability();
+    // Keep an invalid Arcade choice visible to staff and block customer starts;
+    // do not silently replace the event's catalog with bundled defaults.
+    catalog.validateAvailability(validateArcade: false);
     return catalog;
   }
 }

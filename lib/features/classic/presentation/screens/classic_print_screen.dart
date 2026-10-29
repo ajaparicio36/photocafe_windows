@@ -12,6 +12,7 @@ import 'package:go_router/go_router.dart';
 import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
 import 'package:photocafe_windows/features/print/domain/data/providers/printer_notifier.dart';
 import 'package:photocafe_windows/features/classic/presentation/widgets/print/print_action_panel.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 
 class ClassicPrintScreen extends ConsumerStatefulWidget {
   final Uint8List? pdfBytes;
@@ -149,7 +150,10 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
   Widget build(BuildContext context) {
     final photos = ref.watch(photoProvider).value?.photos ?? [];
     final printer = ref.watch(printerProvider).value;
-    final layout = _isLandscape
+    final arcadeFrame = FrameCatalogRuntime.instance.sessionArcadeFrame;
+    final layout = arcadeFrame != null
+        ? layoutTypeForKind(arcadeFrame.kind)
+        : _isLandscape
         ? FrameLayoutType.fourLandscapePhotos
         : printer?.layoutMode == 2
         ? FrameLayoutType.twoPhotos
@@ -157,7 +161,9 @@ class _ClassicPrintScreenState extends ConsumerState<ClassicPrintScreen> {
     return EventPage(
       title: 'Print preview',
       subtitle: 'Keep your clicks in print and on your phone',
-      onBack: () => context.go('/classic/organize'),
+      onBack: () => context.go(
+        arcadeFrame == null ? '/classic/organize' : '/classic/capture',
+      ),
       child: Row(
         children: [
           Expanded(

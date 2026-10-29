@@ -5,17 +5,54 @@ import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_pr
 import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_models.dart';
 import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'package:photocafe_windows/widgets/event_design.dart';
+import 'package:photocafe_windows/features/classic/domain/arcade_flow.dart';
+import 'package:photocafe_windows/features/photos/domain/data/providers/photo_notifier.dart';
+import 'package:photocafe_windows/services/bouncy_session.dart';
+import 'package:photocafe_windows/widgets/confirm_discard_session.dart';
 
-class AppStartScreen extends ConsumerWidget {
+class AppStartScreen extends ConsumerStatefulWidget {
   const AppStartScreen({super.key});
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(frameCatalogProvider);
-    if (FrameCatalogRuntime.instance.sessionMode != null) {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => FrameCatalogRuntime.instance.endSession(),
-      );
+  ConsumerState<AppStartScreen> createState() => _AppStartScreenState();
+}
+
+class _AppStartScreenState extends ConsumerState<AppStartScreen> {
+  bool _starting = false;
+  String? _startError;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && !_starting) FrameCatalogRuntime.instance.endSession();
+    });
+  }
+
+  Future<void> _startArcade() async {
+    if (_starting) return;
+    setState(() {
+      _starting = true;
+      _startError = null;
+    });
+    try {
+      if ((ref.read(photoProvider).value?.photos.isNotEmpty ?? false) ||
+          ref.read(bouncySessionProvider).hasWork) {
+        if (!await confirmDiscardSession(context) || !mounted) return;
+      }
+      await ref.read(arcadeFlowProvider).start();
+      if (mounted) context.go('/classic/capture');
+    } catch (error) {
+      if (mounted) {
+        setState(() => _startError = 'Could not start Arcade Mode: $error');
+      }
+    } finally {
+      if (mounted) setState(() => _starting = false);
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(frameCatalogProvider);
     final products =
         [
               (
@@ -41,7 +78,8 @@ class AppStartScreen extends ConsumerWidget {
               ),
             ]
             .where(
-              (product) => state.value?.isProductUsable(product.$1) ?? false,
+              (product) =>
+                  state.value?.isCustomerProductUsable(product.$1) ?? false,
             )
             .toList();
     return EventCanvas(
@@ -52,7 +90,7 @@ class AppStartScreen extends ConsumerWidget {
             left: 32,
             child: IconButton(
               tooltip: 'Settings',
-              onPressed: () => context.go('/settings'),
+              onPressed: _starting ? null : () => context.go('/settings'),
               icon: const Icon(
                 Icons.settings,
                 color: EventDesign.white,
@@ -132,47 +170,64 @@ class AppStartScreen extends ConsumerWidget {
                   onPressed: () => ref.invalidate(frameCatalogProvider),
                 ),
               ),
-              data: (_) => Row(
-                children: [
-                  for (var i = 0; i < products.length; i++) ...[
-                    if (i > 0) const SizedBox(width: 28),
-                    Expanded(
-                      child: Stack(
-                        clipBehavior: Clip.none,
-                        children: [
-                          Positioned(
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            child: EventButton(
-                              label: products[i].$2,
-                              subtitle: products[i].$3,
-                              height: 103,
-                              glossy: true,
-                              display: true,
-                              onPressed: () => context.go(products[i].$4),
-                            ),
-                          ),
-                          Positioned(
-                            left: i == 2 ? null : 25,
-                            right: i == 2 ? 35 : null,
-                            top: 0,
-                            child: IgnorePointer(
-                              child: Image.asset(
-                                'assets/event/${products[i].$5}',
-                                width: 145,
-                                height: 108,
-                                fit: BoxFit.contain,
-                                excludeFromSemantics: true,
-                              ),
+              data: (catalog) => _starting
+                  ? const EventMessage(message: 'Preparing your photo session…')
+                  : _startError != null
+                  ? EventMessage(
+                      message: _startError!,
+                      action: EventButton(
+                        label: 'RETRY',
+                        onPressed: _startArcade,
+                      ),
+                    )
+                  : catalog.arcadeEnabled && catalog.arcadeProblem != null
+                  ? const EventMessage(
+                      message:
+                          'Arcade Mode needs a frame. Please ask staff to open Frames & modes.',
+                    )
+                  : Row(
+                      children: [
+                        for (var i = 0; i < products.length; i++) ...[
+                          if (i > 0) const SizedBox(width: 28),
+                          Expanded(
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  child: EventButton(
+                                    label: products[i].$2,
+                                    subtitle: products[i].$3,
+                                    height: 103,
+                                    glossy: true,
+                                    display: true,
+                                    onPressed: catalog.arcadeEnabled
+                                        ? _startArcade
+                                        : () => context.go(products[i].$4),
+                                  ),
+                                ),
+                                Positioned(
+                                  left: i == 2 ? null : 25,
+                                  right: i == 2 ? 35 : null,
+                                  top: 0,
+                                  child: IgnorePointer(
+                                    child: Image.asset(
+                                      'assets/event/${products[i].$5}',
+                                      width: 145,
+                                      height: 108,
+                                      fit: BoxFit.contain,
+                                      excludeFromSemantics: true,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
+                      ],
                     ),
-                  ],
-                ],
-              ),
             ),
           ),
           const Positioned(

@@ -6,6 +6,8 @@ import 'package:photocafe_windows/features/keychain/domain/data/models/keychain_
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/services/bouncy_media_service.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
+import 'package:photocafe_windows/features/classic/presentation/constants/frame_constants.dart';
+import 'package:photocafe_windows/features/classic/presentation/widgets/frames/frame_composition_renderer.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -43,7 +45,7 @@ void main() {
     },
   );
   test(
-    'whole four-design cycle and MP4 share frames; silent six-second output, failure keeps print gate',
+    'whole four-design preview and higher-quality MP4; silent six-second output, failure keeps print gate',
     () async {
       final captures = session();
       final media = BouncyMediaService(
@@ -80,6 +82,98 @@ void main() {
       captures.dispose();
     },
     timeout: const Timeout(Duration(minutes: 4)),
+  );
+
+  test(
+    'soft-copy render preserves more source detail than enlarging preview',
+    () async {
+      final source = img.Image(width: 620, height: 922);
+      for (final pixel in source) {
+        final value = (pixel.x ~/ 2).isEven ? 0 : 255;
+        pixel.setRgb(value, value, value);
+      }
+      final clip = validateBouncyImages(
+        BouncyClip([
+          BouncyFrame(
+            3000000,
+            Uint8List.fromList(img.encodeJpg(source, quality: 100)),
+          ),
+        ], 3000000),
+      );
+      final design = BouncyDesign(
+        FrameLayout(
+          type: FrameLayoutType.fourPhotos,
+          leftColumnPositions: [
+            FramePhotoPosition(
+              left: 0,
+              top: 0,
+              width: FramePdfGeometry.pageWidth,
+              height: FramePdfGeometry.pageHeight,
+              photoIndex: 0,
+            ),
+          ],
+          rightColumnPositions: const [],
+          topOffset: 0,
+          frameAssetPath: '',
+        ),
+        Uint8List.fromList(
+          img.encodePng(img.Image(width: 2, height: 2, numChannels: 4)),
+        ),
+        'no_filter',
+      );
+      final preview = await renderBouncyCycle([clip], [design]);
+      final output = await renderBouncyCycle(
+        [clip],
+        [design],
+        quality: BouncyRenderQuality.softCopy,
+      );
+      final low = img.decodePng(preview.first)!;
+      final high = img.decodePng(output.first)!;
+      expect((low.width, low.height), (310, 462));
+      expect((high.width, high.height), (620, 922));
+      expect(output.length, 36);
+      expect(output.first, output.last);
+      final enlarged = img.copyResize(low, width: 620, height: 922);
+      int edges(img.Image image) {
+        var count = 0;
+        for (var x = 1; x < image.width; x++) {
+          if ((image.getPixel(x - 1, 450).r > 127) !=
+              (image.getPixel(x, 450).r > 127)) {
+            count++;
+          }
+        }
+        return count;
+      }
+
+      expect(edges(high), greaterThan(edges(enlarged)));
+      expect(bouncyWorkingDimensions(1920, 1080, maxSide: 640), (
+        width: 640,
+        height: 360,
+      ));
+      expect(bouncyWorkingDimensions(64, 36, maxSide: 640), (
+        width: 64,
+        height: 36,
+      ));
+      expect(bouncyEncoderQualityArguments('h264_nvenc'), [
+        '-rc',
+        'vbr',
+        '-cq',
+        '21',
+        '-b:v',
+        '0',
+      ]);
+      expect(bouncyEncoderQualityArguments('h264_qsv'), [
+        '-global_quality',
+        '21',
+      ]);
+      expect(bouncyEncoderQualityArguments('libx264'), [
+        '-preset',
+        'veryfast',
+        '-crf',
+        '21',
+      ]);
+    },
+    timeout: const Timeout(Duration(minutes: 3)),
   );
 
   test(

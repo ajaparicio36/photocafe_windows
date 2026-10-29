@@ -326,14 +326,80 @@ class _FrameCatalogScreenState extends ConsumerState<FrameCatalogScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          SwitchListTile(
+            key: const ValueKey('arcade-enabled'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text(
+              'Arcade Mode',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text(
+              'Classic only. Capture, then confirm print.',
+              style: TextStyle(fontSize: 13),
+            ),
+            value: catalog.arcadeEnabled,
+            onChanged:
+                _busy != null ||
+                    (!catalog.arcadeEnabled && catalog.arcadeFrame == null)
+                ? null
+                : (enabled) => _change(
+                    'arcade',
+                    () => ref
+                        .read(frameCatalogProvider.notifier)
+                        .setArcadeEnabled(enabled),
+                  ),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<String>(
+            key: ValueKey('arcade-frame-${catalog.arcadeFrame?.id}'),
+            initialValue: catalog.arcadeFrame?.id,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'Arcade frame'),
+            hint: const Text('Choose a Classic frame'),
+            items: [
+              for (final frame in catalog.arcadeFrames)
+                DropdownMenuItem(
+                  value: frame.id,
+                  child: Text(frame.name, overflow: TextOverflow.ellipsis),
+                ),
+            ],
+            onChanged: _busy != null
+                ? null
+                : (id) {
+                    if (id != null) {
+                      _change(
+                        'arcade-frame',
+                        () => ref
+                            .read(frameCatalogProvider.notifier)
+                            .setArcadeFrame(id),
+                      );
+                    }
+                  },
+          ),
+          const SizedBox(height: 10),
+          if (catalog.arcadeFrame case final frame?)
+            Text(
+              '${frame.classicVariant!.name} · ${frame.captureCount} photos\nNo filters. Bouncy soft copy included.',
+              style: const TextStyle(fontSize: 13, height: 1.4),
+            )
+          else
+            Text(
+              catalog.arcadeProblem!,
+              style: const TextStyle(
+                fontSize: 13,
+                height: 1.4,
+                color: catalogInk,
+              ),
+            ),
+          const Divider(height: 32),
           const Text(
             'Customer menu',
             style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           const Text(
-            'Choose what customers can start. Keep at least one usable '
-            'product enabled.',
+            'Normal mode choices are kept while Arcade Mode is on. '
+            'Turn it off to restore this menu.',
             style: TextStyle(fontSize: 13, height: 1.4),
           ),
           const SizedBox(height: 16),
@@ -347,13 +413,15 @@ class _FrameCatalogScreenState extends ConsumerState<FrameCatalogScreen> {
                 KioskProduct.flipbook => 'Flipbook',
               }, style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text(
-                catalog.isProductUsable(product)
+                catalog.arcadeEnabled
+                    ? 'Saved for normal mode'
+                    : catalog.isProductUsable(product)
                     ? 'Available to customers'
                     : 'Hidden from customers',
                 style: const TextStyle(fontSize: 12),
               ),
               value: catalog.enabledProducts.contains(product),
-              onChanged: _busy != null
+              onChanged: _busy != null || catalog.arcadeEnabled
                   ? null
                   : (enabled) => _change(
                       'product-${product.name}',
@@ -380,6 +448,7 @@ class _FrameCatalogScreenState extends ConsumerState<FrameCatalogScreen> {
                         value: catalog.enabledClassicVariants.contains(variant),
                         onChanged:
                             _busy != null ||
+                                catalog.arcadeEnabled ||
                                 !catalog.enabledProducts.contains(
                                   KioskProduct.classic,
                                 )

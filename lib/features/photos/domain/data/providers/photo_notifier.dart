@@ -331,49 +331,9 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
   }
 
   Future<void> setCaptureCount(int count) async {
-    print('setCaptureCount called with count: $count (but will always use 4)');
-
-    state = await AsyncValue.guard(() async {
-      final currentState = state.value;
-      if (currentState == null) {
-        print(
-          'Warning: Photo state was null when setting capture count, creating new state',
-        );
-        final tempPath = await getTemporaryDirectory();
-        final photoTempDir = await Directory(
-          tempPath.path,
-        ).createTemp('bouncy_photos_');
-        if (!await photoTempDir.exists()) {
-          await photoTempDir.create(recursive: true);
-        }
-
-        // Don't initialize video camera here - will be done when recording starts
-
-        final newState = PhotoState(
-          photos: [],
-          tempPath: photoTempDir.path,
-          captureCount: 4, // Always capture 4 photos regardless of layout
-          isRecording: false,
-          videoPath: null,
-        );
-        print('Created new state with capture count: ${newState.captureCount}');
-        return newState;
-      }
-
-      print(
-        'Setting capture count from ${currentState.captureCount} to 4 (always capture 4 regardless of layout)',
-      );
-      final newState = currentState.copyWith(captureCount: 4);
-      print('New state capture count: ${newState.captureCount}');
-
-      await Future.delayed(const Duration(milliseconds: 50));
-      return newState;
-    });
-
-    final finalState = state.value;
-    print(
-      'setCaptureCount completed. Final state capture count: ${finalState?.captureCount}',
-    );
+    ref.read(bouncySessionProvider).setCaptureCount(count);
+    final current = state.requireValue;
+    state = AsyncData(current.copyWith(captureCount: count));
   }
 
   Future<void> clearPhoto(int index) async {

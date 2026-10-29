@@ -93,6 +93,21 @@ class FrameCatalogRuntime extends ChangeNotifier {
   FrameCatalog? catalog;
   FrameCatalog? sessionCatalog;
   KioskMode? sessionMode;
+  FrameTemplate? get sessionArcadeFrame => sessionCatalog?.arcadeEnabled == true
+      ? sessionCatalog?.arcadeFrame
+      : null;
+
+  void beginArcadeSession() {
+    final latest = catalog;
+    final frame = latest?.arcadeFrame;
+    if (latest == null || !latest.arcadeEnabled || frame == null) {
+      throw const FrameCatalogException(
+        'Arcade Mode needs an enabled Classic frame. Ask staff to update Frames & modes.',
+      );
+    }
+    _acceptSession(latest, modeForVariant(frame.classicVariant!));
+  }
+
   void replaceCatalog(FrameCatalog value) {
     catalog = value;
     notifyListeners();
@@ -100,15 +115,22 @@ class FrameCatalogRuntime extends ChangeNotifier {
 
   void beginSession(KioskMode mode) {
     final latest = catalog;
-    if (latest == null || !latest.isModeUsable(mode)) {
+    if (latest == null || latest.arcadeEnabled || !latest.isModeUsable(mode)) {
       throw const FrameCatalogException(
         'This experience is disabled or has no enabled frames. Ask staff to update Settings.',
       );
     }
+    _acceptSession(latest, mode);
+  }
+
+  void _acceptSession(FrameCatalog latest, KioskMode mode) {
     sessionCatalog = latest;
     sessionMode = mode;
     final classic = latest.templates.where(
-      (t) => t.enabled && t.kind != FrameTemplateKind.flipbook,
+      (t) =>
+          t.enabled &&
+          t.kind != FrameTemplateKind.flipbook &&
+          (!latest.arcadeEnabled || t.id == latest.arcadeFrameId),
     );
     FrameConstants.sessionFrames = List.unmodifiable(
       classic.map(classicDefinition),
@@ -148,9 +170,18 @@ class FrameCatalogRuntime extends ChangeNotifier {
     if (product == null) return null;
     final isStart = path.endsWith('/start');
     final accepted = sessionMode;
+    if (sessionArcadeFrame != null) {
+      // Only the accepted capture and its completed print screen belong to
+      // Arcade. Customer frame/filter routes must never expose choices.
+      return path == '/classic/capture' || path == '/classic/print'
+          ? null
+          : '/';
+    }
     if (!isStart && accepted != null && productForMode(accepted) == product) {
       return null;
     }
+    // Starting Arcade requires asynchronous session setup from the home button.
+    if (latest.arcadeEnabled) return '/';
     if (!latest.isProductUsable(product)) return '/';
     // A direct continuation must first accept a mode and freeze its catalog.
     return isStart ? null : '/${product.name}/start';

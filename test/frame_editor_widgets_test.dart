@@ -341,10 +341,13 @@ void main() {
     tester,
   ) async {
     await openCatalog(tester, const Size(1280, 800));
+    await tester.ensureVisible(find.byKey(const ValueKey('product-classic')));
     await tester.tap(find.byKey(const ValueKey('product-classic')));
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const ValueKey('product-keychain')));
     await tester.tap(find.byKey(const ValueKey('product-keychain')));
     await settle(tester);
+    await tester.ensureVisible(find.byKey(const ValueKey('product-flipbook')));
     await tester.tap(find.byKey(const ValueKey('product-flipbook')));
     await settle(tester);
     expect(

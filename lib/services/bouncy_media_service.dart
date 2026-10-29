@@ -19,13 +19,16 @@ class BouncyDesign {
   const BouncyDesign(this.layout, this.artwork, this.filterId);
 }
 
-/// The same bounded raster sequence drives the interactive preview and MP4.
+enum BouncyRenderQuality { preview, softCopy }
+
+/// Preview and soft copies share the compositor, with separate raster budgets.
 /// Still/PDF generation never consumes these reduced-resolution frames.
 class BouncyMediaService {
   final BouncySession session;
   Future<List<Uint8List>>? _frames;
   Future<List<Uint8List>>? _preparation;
   Future<String>? _export;
+  ({List<BouncyClip> clips, List<BouncyDesign> designs})? _exportInput;
   Future<void> _drain = Future.value();
   final Set<Directory> _directories = {};
   Process? _process;
@@ -73,9 +76,12 @@ class BouncyMediaService {
     await _drain;
     _check(generation, revision);
     if (!session.valid(photos.map((p) => p.captureId))) {
-      throw StateError('Four valid still/clip pairs are required.');
+      throw StateError(
+        '${session.captureCount} valid still/clip pairs are required.',
+      );
     }
     _export = null;
+    _exportInput = null;
     final ordered = [...photos]..sort((a, b) => a.index.compareTo(b.index));
     final clips = ordered.map((p) => session.clip(p.captureId)!).toList();
     final designs = <BouncyDesign>[];
@@ -101,6 +107,10 @@ class BouncyMediaService {
         ),
       );
     }
+    _exportInput = (
+      clips: List.unmodifiable(clips),
+      designs: List.unmodifiable(designs),
+    );
     final work = session.track(
       _runBouncyRender(
         clips,
@@ -135,14 +145,25 @@ class BouncyMediaService {
   Future<String> _encode() async {
     final generation = session.generation;
     final revision = _revision;
-    final frames = await (_preparation ?? _frames);
-    if (frames == null) {
+    await (_preparation ?? _frames);
+    final input = _exportInput;
+    if (input == null) {
       throw StateError('Prepare the animated composition first.');
     }
     _check(generation, revision);
     if (failEncoder) {
       throw StateError('QA encoder failure. Valid photos remain printable.');
     }
+    // Render directly from retained camera JPEGs, never enlarge the preview.
+    final render = _runBouncyRender(
+      input.clips,
+      input.designs,
+      () => session.generation == generation && _revision == revision,
+      quality: BouncyRenderQuality.softCopy,
+    );
+    _drain = render.then<void>((_) {}, onError: (Object _, StackTrace __) {});
+    final frames = await render;
+    _check(generation, revision);
     final dir = await Directory.systemTemp.createTemp('bouncy_export_');
     _directories.add(dir);
     final output = '${dir.path}/bouncy_preview.mp4';
@@ -166,7 +187,7 @@ class BouncyMediaService {
           '-an',
           '-c:v',
           codec,
-          if (codec == 'libx264') ...['-preset', 'veryfast', '-crf', '23'],
+          ...bouncyEncoderQualityArguments(codec),
           '-pix_fmt',
           'yuv420p',
           '-movflags',
@@ -266,6 +287,7 @@ class BouncyMediaService {
     } catch (_) {}
     await _drain;
     _frames = null;
+    _exportInput = null;
     _preparation = null;
     _export = null;
     for (final directory in _directories.toList()) {
@@ -279,19 +301,28 @@ class BouncyMediaService {
 /// Decodes only four source frames plus one filter set at a time.
 Future<List<Uint8List>> renderBouncyCycle(
   List<BouncyClip> clips,
-  List<BouncyDesign> designs,
-) async {
-  if (clips.length != 4 ||
+  List<BouncyDesign> designs, {
+  BouncyRenderQuality quality = BouncyRenderQuality.preview,
+}) async {
+  if (clips.isEmpty ||
+      clips.length > 4 ||
       designs.isEmpty ||
-      (designs.length != 1 && designs.length != 4)) {
-    throw ArgumentError('Expected four clips and one or four designs.');
+      (designs.length != 1 && designs.length != 4) ||
+      (designs.length == 4 && clips.length != 4)) {
+    throw ArgumentError('Expected 1–4 clips for Classic or four for Keychain.');
   }
+  final softCopy = quality == BouncyRenderQuality.softCopy;
+  final tileWidth = softCopy && designs.length == 1 ? 620 : 310;
+  final tileHeight = softCopy && designs.length == 1 ? 922 : 461;
   final artwork = designs
       .map(
         (d) => img.copyResize(
           img.decodeImage(d.artwork)!,
-          width: 310,
-          height: 461,
+          width: tileWidth,
+          height: tileHeight,
+          interpolation: softCopy
+              ? img.Interpolation.linear
+              : img.Interpolation.nearest,
         ),
       )
       .toList();
@@ -309,14 +340,27 @@ Future<List<Uint8List>> renderBouncyCycle(
               decoded.exif.imageIfd.orientation != 1
           ? img.bakeOrientation(decoded)
           : decoded;
-      final size = bouncyPreviewDimensions(source.width, source.height);
+      final size = bouncyWorkingDimensions(
+        source.width,
+        source.height,
+        maxSide: softCopy ? 640 : 320,
+      );
       return size.width == source.width && size.height == source.height
           ? source
-          : img.copyResize(source, width: size.width, height: size.height);
+          : img.copyResize(
+              source,
+              width: size.width,
+              height: size.height,
+              interpolation: softCopy
+                  ? img.Interpolation.linear
+                  : img.Interpolation.nearest,
+            );
     }).toList();
     final canvas = img.Image(
-      width: designs.length == 4 ? 620 : 310,
-      height: designs.length == 4 ? 922 : 462,
+      width: designs.length == 4 ? tileWidth * 2 : tileWidth,
+      height: designs.length == 4
+          ? tileHeight * 2
+          : tileHeight + tileHeight % 2,
     );
     img.fill(canvas, color: img.ColorRgb8(255, 255, 255));
     for (final filterId in designs.map((d) => d.filterId).toSet()) {
@@ -333,22 +377,23 @@ Future<List<Uint8List>> renderBouncyCycle(
           layout: designs[index].layout,
           frame: artwork[index],
           photos: filtered,
-          width: 310,
-          height: 461,
+          sourcePhotoCount: clips.length,
+          width: tileWidth,
+          height: tileHeight,
         );
         img.compositeImage(
           canvas,
           tile,
-          dstX: (index % 2) * 310,
-          dstY: (index ~/ 2) * 461,
+          dstX: (index % 2) * tileWidth,
+          dstY: (index ~/ 2) * tileHeight,
         );
       }
     }
     final encoded = Uint8List.fromList(img.encodePng(canvas));
     retained += encoded.length;
-    if (retained > 12 * 1024 * 1024) {
+    if (retained > (softCopy ? 24 : 12) * 1024 * 1024) {
       throw StateError(
-        'Animated preview exceeded its compressed memory budget.',
+        'Animated composition exceeded its compressed memory budget.',
       );
     }
     forward.add(encoded);
@@ -371,8 +416,9 @@ class _RenderRequest {
   final List<BouncyClip> clips;
   final List<BouncyDesign> designs;
   final bool Function() current;
+  final BouncyRenderQuality quality;
   final Completer<List<Uint8List>> completion = Completer();
-  _RenderRequest(this.clips, this.designs, this.current);
+  _RenderRequest(this.clips, this.designs, this.current, this.quality);
 }
 
 bool _rendering = false;
@@ -380,9 +426,10 @@ _RenderRequest? _queuedRender;
 Future<List<Uint8List>> _runBouncyRender(
   List<BouncyClip> clips,
   List<BouncyDesign> designs,
-  bool Function() current,
-) {
-  final request = _RenderRequest(clips, designs, current);
+  bool Function() current, {
+  BouncyRenderQuality quality = BouncyRenderQuality.preview,
+}) {
+  final request = _RenderRequest(clips, designs, current, quality);
   if (_rendering) {
     _queuedRender?.completion.completeError(StateError('Preview superseded.'));
     _queuedRender = request;
@@ -396,7 +443,11 @@ Future<void> _renderRequest(_RenderRequest request) async {
   _rendering = true;
   try {
     if (!request.current()) throw StateError('Preview cancelled.');
-    final result = await _renderInIsolate(request.clips, request.designs);
+    final result = await _renderInIsolate(
+      request.clips,
+      request.designs,
+      request.quality,
+    );
     if (!request.current()) throw StateError('Preview cancelled.');
     request.completion.complete(result);
   } catch (error, stack) {
@@ -412,14 +463,22 @@ Future<void> _renderRequest(_RenderRequest request) async {
 Future<List<Uint8List>> _renderInIsolate(
   List<BouncyClip> clips,
   List<BouncyDesign> designs,
-) => Isolate.run(() => renderBouncyCycle(clips, designs));
+  BouncyRenderQuality quality,
+) => Isolate.run(() => renderBouncyCycle(clips, designs, quality: quality));
 
-({int width, int height}) bouncyPreviewDimensions(int width, int height) {
-  if (width <= 0 || height <= 0) {
+({int width, int height}) bouncyPreviewDimensions(int width, int height) =>
+    bouncyWorkingDimensions(width, height, maxSide: 320);
+
+({int width, int height}) bouncyWorkingDimensions(
+  int width,
+  int height, {
+  required int maxSide,
+}) {
+  if (width <= 0 || height <= 0 || maxSide <= 0) {
     throw ArgumentError('Image dimensions must be positive.');
   }
   final largest = width > height ? width : height;
-  final scale = largest > 320 ? 320 / largest : 1.0;
+  final scale = largest > maxSide ? maxSide / largest : 1.0;
   final scaledWidth = (width * scale).round();
   final scaledHeight = (height * scale).round();
   return (
@@ -427,3 +486,10 @@ Future<List<Uint8List>> _renderInIsolate(
     height: scaledHeight < 1 ? 1 : scaledHeight,
   );
 }
+
+List<String> bouncyEncoderQualityArguments(String codec) => switch (codec) {
+  'h264_nvenc' => const ['-rc', 'vbr', '-cq', '21', '-b:v', '0'],
+  'h264_qsv' => const ['-global_quality', '21'],
+  'libx264' => const ['-preset', 'veryfast', '-crf', '21'],
+  _ => const [],
+};

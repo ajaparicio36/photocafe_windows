@@ -107,6 +107,18 @@ class BouncySession extends ChangeNotifier {
   final Map<String, BouncyClip> _clips = {};
   final Map<String, int> _attempts = {};
   int generation = 0;
+  int _captureCount = 4;
+  int get captureCount => _captureCount;
+  void setCaptureCount(int count) {
+    if (count < 1 || count > 4) {
+      throw RangeError.range(count, 1, 4, 'captureCount');
+    }
+    if (count != _captureCount && hasWork) {
+      throw StateError('Start a new session before changing the shot count.');
+    }
+    _captureCount = count;
+  }
+
   int _serial = 0;
   final Set<Future<void>> _pending = {};
   final Set<VoidCallback> cancellations = {};
@@ -132,17 +144,17 @@ class BouncySession extends ChangeNotifier {
   bool get hasWork =>
       _clips.isNotEmpty || _attempts.isNotEmpty || _pending.isNotEmpty;
   bool valid(Iterable<String> ids) =>
-      ids.length == 4 &&
-      ids.toSet().length == 4 &&
+      ids.length == _captureCount &&
+      ids.toSet().length == _captureCount &&
       ids.every((id) => _clips.containsKey(id) && !_attempts.containsKey(id));
   BouncyClip? clip(String id) => _clips[id];
   void feed(Uint8List jpeg) => ring.add(clock.elapsedMicroseconds, jpeg);
   BouncyAttempt attempt(String id) {
     if (!_clips.containsKey(id) &&
         !_attempts.containsKey(id) &&
-        {..._clips.keys, ..._attempts.keys}.length >= 4) {
+        {..._clips.keys, ..._attempts.keys}.length >= _captureCount) {
       throw StateError(
-        'A Bouncy session contains exactly four shot identities.',
+        'This Bouncy session contains $_captureCount shot identities.',
       );
     }
     _attempts[id] = ++_serial;
@@ -166,7 +178,8 @@ class BouncySession extends ChangeNotifier {
       throw StateError('Clip images have not been validated.');
     }
     final previous = _clips[attempt.captureId]?.bytes ?? 0;
-    if ((!_clips.containsKey(attempt.captureId) && _clips.length >= 4) ||
+    if ((!_clips.containsKey(attempt.captureId) &&
+            _clips.length >= _captureCount) ||
         retainedBytes - previous + clip.bytes > retainedByteLimit) {
       throw StateError('Live view memory budget exceeded. Retake this shot.');
     }
@@ -183,6 +196,7 @@ class BouncySession extends ChangeNotifier {
     ring.clear();
     _clips.clear();
     _attempts.clear();
+    _captureCount = 4;
     classicFilterId = 'no_filter';
     exportError = null;
     notifyListeners();

@@ -23,6 +23,9 @@ import 'package:photocafe_windows/services/bouncy_fixture.dart';
 import 'package:photocafe_windows/services/canon_camera_service.dart';
 
 import 'package:photocafe_windows/widgets/canon_live_view_preview.dart';
+import 'package:photocafe_windows/features/classic/domain/arcade_flow.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_models.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 
 class ClassicCaptureScreen extends ConsumerStatefulWidget {
   final String backRoute;
@@ -77,10 +80,14 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   late final BouncySession _session;
 
   int _generation = 0;
+  late final FrameTemplate? _arcadeFrame;
+  int get _captureCount => _arcadeFrame?.captureCount ?? 4;
+  bool _preparingPrint = false;
 
   @override
   void initState() {
     super.initState();
+    _arcadeFrame = FrameCatalogRuntime.instance.sessionArcadeFrame;
 
     _session = ref.read(bouncySessionProvider);
 
@@ -93,11 +100,11 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
   Future<void> _initialize() async {
     try {
-      await ref.read(photoProvider.notifier).setCaptureCount(4);
+      await ref.read(photoProvider.notifier).setCaptureCount(_captureCount);
 
       _shot = ref.read(photoProvider).requireValue.photos.length;
 
-      if (_shot >= 4) {
+      if (_shot >= _captureCount) {
         _shot = 0;
         _retake = true;
       }
@@ -145,7 +152,13 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
   }
 
   void _countdown() {
-    if (!_ready || _capturing || _leaving || _timer != null) return;
+    if (!_ready ||
+        _capturing ||
+        _preparingPrint ||
+        _leaving ||
+        _timer != null) {
+      return;
+    }
     if (_canon && !BouncyFixture.enabled && !_session.hasFreshPreview) {
       setState(
         () => _error =
@@ -268,18 +281,16 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
             .photos
             .map((p) => p.index)
             .toSet();
-        _shot = [
-          0,
-          1,
-          2,
-          3,
-        ].firstWhere((index) => !completed.contains(index), orElse: () => 4);
+        _shot = List.generate(_captureCount, (index) => index).firstWhere(
+          (index) => !completed.contains(index),
+          orElse: () => _captureCount,
+        );
         _retake = false;
         _capturing = false;
       });
 
-      if (_shot == 4) {
-        context.go(widget.completionRoute);
+      if (_shot == _captureCount) {
+        await _completeCapture();
       } else if (!(BouncyFixture.enabled && _qaPauseAfterTwo && _shot == 2)) {
         _countdown(); // No old two-second inter-shot delay.
       }
@@ -303,6 +314,39 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
       }
 
       if (mounted && !_leaving) setState(() => _capturing = false);
+    }
+  }
+
+  Future<void> _completeCapture() async {
+    if (_arcadeFrame == null) {
+      context.go(widget.completionRoute);
+      return;
+    }
+    if (_preparingPrint || _leaving) return;
+    setState(() {
+      _preparingPrint = true;
+      _error = null;
+    });
+    try {
+      final pdf = await ref.read(arcadeFlowProvider).preparePrint();
+      if (!mounted || _leaving || _generation != _session.generation) return;
+      context.go(
+        '/classic/print',
+        extra: {
+          'pdfBytes': pdf,
+          'isLandscape':
+              _arcadeFrame.classicVariant == ClassicVariant.landscape,
+        },
+      );
+    } catch (error) {
+      if (mounted && !_leaving) {
+        setState(
+          () => _error =
+              'Could not prepare print: $error Your photos are safe. Retry to continue.',
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _preparingPrint = false);
     }
   }
 
@@ -365,7 +409,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
     await _controller?.dispose();
     _controller = null;
 
-    if (mounted) context.go(widget.backRoute);
+    if (mounted) context.go(_arcadeFrame == null ? widget.backRoute : '/');
   }
 
   @override
@@ -468,7 +512,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                     ],
                   ),
                 Text(
-                  'Photo ${(_shot + 1).clamp(1, 4)} of 4',
+                  'Photo ${(_shot + 1).clamp(1, _captureCount)} of $_captureCount',
                   style: const TextStyle(color: Colors.white, fontSize: 18),
                 ),
               ],
@@ -491,7 +535,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
 
             Row(
               children: [
-                for (var i = 0; i < 4; i++)
+                for (var i = 0; i < _captureCount; i++)
                   Padding(
                     padding: const EdgeInsets.only(right: 12),
 
@@ -499,6 +543,7 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                       tooltip: 'Retake photo ${i + 1}',
                       onPressed:
                           _capturing ||
+                              _preparingPrint ||
                               _timer != null ||
                               !ref
                                   .read(photoProvider)
@@ -537,7 +582,9 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                   child: Semantics(
                     liveRegion: true,
                     child: Text(
-                      _capturing
+                      _preparingPrint
+                          ? 'Preparing print…'
+                          : _capturing
                           ? 'Capturing…'
                           : _timer != null
                           ? 'Photo ${_shot + 1} in $_seconds seconds'
@@ -583,9 +630,19 @@ class _ClassicCaptureScreenState extends ConsumerState<ClassicCaptureScreen> {
                   )
                 else
                   FilledButton(
-                    onPressed: !_ready || _capturing ? null : _countdown,
+                    onPressed: !_ready || _capturing || _preparingPrint
+                        ? null
+                        : _shot == _captureCount
+                        ? _completeCapture
+                        : _countdown,
 
-                    child: Text(_retake ? 'Retake this shot' : 'Start capture'),
+                    child: Text(
+                      _shot == _captureCount
+                          ? 'Continue to print'
+                          : _retake
+                          ? 'Retake this shot'
+                          : 'Start capture',
+                    ),
                   ),
               ],
             ),
