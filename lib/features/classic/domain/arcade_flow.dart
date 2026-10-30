@@ -44,7 +44,9 @@ class ArcadeFlow {
   }
 
   Future<Uint8List> preparePrint() async {
-    final frame = FrameCatalogRuntime.instance.sessionArcadeFrame;
+    final runtime = FrameCatalogRuntime.instance;
+    final frame = runtime.sessionArcadeFrame;
+    final revision = runtime.compositionRevision;
     if (frame == null) throw StateError('The Arcade session has ended.');
     final photos = [..._ref.read(photoProvider).requireValue.photos]
       ..sort((a, b) => a.index.compareTo(b.index));
@@ -56,7 +58,7 @@ class ArcadeFlow {
     }
     session.classicFilterId = 'no_filter';
     _ref.read(classicBouncyFrameProvider.notifier).state = frame.id;
-    return session.track(
+    final pdf = await session.track(
       FrameFactory.generatePdfForFrame(
         classicDefinition(frame),
         photos,
@@ -64,5 +66,11 @@ class ArcadeFlow {
         frame.classicVariant == ClassicVariant.landscape,
       ),
     );
+    if (revision != runtime.compositionRevision) {
+      throw StateError(
+        'The photo composition changed. Prepare the print again.',
+      );
+    }
+    return pdf;
   }
 }

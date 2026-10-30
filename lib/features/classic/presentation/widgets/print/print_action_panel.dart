@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
 import 'package:photocafe_windows/services/bouncy_media_service.dart';
 import 'package:photocafe_windows/services/bouncy_fixture.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
@@ -219,6 +220,8 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
     if (_isProcessingSoftCopies) return;
     final session = ref.read(bouncySessionProvider);
     final generation = session.generation;
+    final runtime = FrameCatalogRuntime.instance;
+    final revision = runtime.compositionRevision;
     if (!session.valid(
       ref.read(photoProvider).requireValue.photos.map((p) => p.captureId),
     )) {
@@ -238,6 +241,11 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
     final token = CancelToken();
     _uploadCancellation = token;
     void cancel() => token.cancel('Session cancelled');
+    void compositionChanged() {
+      if (revision != runtime.compositionRevision) cancel();
+    }
+
+    runtime.addListener(compositionChanged);
     session.cancellations.add(cancel);
     try {
       String? animation;
@@ -283,7 +291,11 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
         _processingProgress = 0.5;
       });
       final media = await ref.read(photoProvider.notifier).getAllMediaFiles();
-      if (generation != session.generation || token.isCancelled) return;
+      if (generation != session.generation ||
+          revision != runtime.compositionRevision ||
+          token.isCancelled) {
+        return;
+      }
       final files = [
         ...widget.additionalMediaFiles,
         if (animation != null) File(animation),
@@ -308,7 +320,9 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
               },
             ),
       );
-      if (!mounted || generation != session.generation) return;
+      if (!mounted || generation != session.generation || token.isCancelled) {
+        return;
+      }
       if (!result.success) throw StateError(result.error ?? 'Upload failed');
       _showSoftCopiesSuccessDialog(result.downloadUrl!);
     } catch (error) {
@@ -318,6 +332,7 @@ By clicking "I Agree", I confirm that I am of legal age to provide this consent 
         );
     } finally {
       session.cancellations.remove(cancel);
+      runtime.removeListener(compositionChanged);
       if (mounted && generation == session.generation)
         setState(() {
           _isProcessingSoftCopies = false;

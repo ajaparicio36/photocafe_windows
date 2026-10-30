@@ -26,11 +26,13 @@ class KeychainCompositionInput {
   final FrameLayout layout;
   final Uint8List frameBytes;
   final List<Uint8List> photoBytes;
+  final bool mirrorPhotos;
 
   KeychainCompositionInput({
     required this.layout,
     required this.frameBytes,
     required List<Uint8List> photoBytes,
+    this.mirrorPhotos = false,
   }) : photoBytes = List.unmodifiable(photoBytes);
 }
 
@@ -80,6 +82,7 @@ class FrameCompositionRenderer {
       layout: input.layout,
       frame: frame,
       photos: photoImages,
+      mirrorPhotos: input.mirrorPhotos,
     );
     return Uint8List.fromList(img.encodePng(canvas));
   }
@@ -93,6 +96,7 @@ class FrameCompositionRenderer {
     int height = keychainVariantHeight,
     String filterId = 'no_filter',
     int sourcePhotoCount = requiredPhotoCount,
+    bool mirrorPhotos = false,
   }) {
     if (sourcePhotoCount < 1 ||
         sourcePhotoCount > requiredPhotoCount ||
@@ -101,7 +105,7 @@ class FrameCompositionRenderer {
     }
     final canvas = img.Image(width: width, height: height);
     img.fill(canvas, color: img.ColorRgb8(255, 255, 255));
-    _paintPhotoSlots(canvas, layout, photos, filterId);
+    _paintPhotoSlots(canvas, layout, photos, filterId, mirrorPhotos);
     final overlay = img.copyResize(frame, width: width, height: height);
     img.compositeImage(canvas, overlay, dstX: 0, dstY: 0);
     return canvas;
@@ -183,6 +187,7 @@ class FrameCompositionRenderer {
     FrameLayout layout,
     List<img.Image> photos,
     String filterId,
+    bool mirrorPhotos,
   ) {
     final horizontalScale = canvas.width / FramePdfGeometry.pageWidth;
     final verticalScale = canvas.height / FramePdfGeometry.pageHeight;
@@ -231,6 +236,7 @@ class FrameCompositionRenderer {
           fullWidth,
           fullHeight,
           filterId,
+          mirrorPhotos,
         ).convert(numChannels: 4);
         final rotated = img.copyRotate(
           fitted,
@@ -248,7 +254,13 @@ class FrameCompositionRenderer {
       // visible fragment would change the source crop at a negative/page edge.
       final width = math.max(1, scaledRight - scaledLeft);
       final height = math.max(1, scaledBottom - scaledTop);
-      final photo = _fitPhoto(photos[slot.photoIndex], width, height, filterId);
+      final photo = _fitPhoto(
+        photos[slot.photoIndex],
+        width,
+        height,
+        filterId,
+        mirrorPhotos,
+      );
       _compositeClipped(canvas, photo, scaledLeft, scaledTop);
     }
   }
@@ -285,7 +297,14 @@ class FrameCompositionRenderer {
     int width,
     int height, [
     String filterId = 'no_filter',
+    bool mirrorPhotos = false,
   ]) {
+    // Reflect the upright source, never the finished slot or frame artwork.
+    if (mirrorPhotos &&
+        source.exif.imageIfd.hasOrientation &&
+        source.exif.imageIfd.orientation != 1) {
+      source = img.bakeOrientation(source);
+    }
     if (filterId != 'no_filter' &&
         (source.format != img.Format.uint8 ||
             source.numFrames != 1 ||
@@ -296,6 +315,8 @@ class FrameCompositionRenderer {
         _filterWhole(img.Image.from(source), filterId),
         width,
         height,
+        'no_filter',
+        mirrorPhotos,
       );
     }
     final targetAspect = width / height;
@@ -329,24 +350,26 @@ class FrameCompositionRenderer {
       for (var y = 0; y < height; y++) {
         final sy = cropY + (y * dy).toInt();
         for (var x = 0; x < width; x++) {
-          source.getPixel(cropX + (x * dx).toInt(), sy, pixel);
+          final sx = cropX + (x * dx).toInt();
+          source.getPixel(mirrorPhotos ? source.width - 1 - sx : sx, sy, pixel);
           result.setPixelRgba(x, y, pixel.r, pixel.g, pixel.b, pixel.a);
         }
       }
-      if (filterId == 'photobooth')
+      if (filterId == 'photobooth') {
         return FilterConstants.applyPhotoboothFilter(
           result,
           sourceWidth: source.width,
           sourceHeight: source.height,
-          cropX: cropX,
+          cropX: mirrorPhotos ? source.width - 1 - cropX : cropX,
           cropY: cropY,
-          scaleX: dx,
+          scaleX: mirrorPhotos ? -dx : dx,
           scaleY: dy,
         );
+      }
       return _filterWhole(result, filterId);
     }
     final cropped = img.copyCrop(
-      source,
+      mirrorPhotos ? img.flipHorizontal(img.Image.from(source)) : source,
       x: cropX,
       y: cropY,
       width: cropWidth,

@@ -1,4 +1,7 @@
 import 'package:photocafe_windows/widgets/event_design.dart';
+import 'package:photocafe_windows/widgets/mirror_photos_switch.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_provider.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'package:photocafe_windows/widgets/bouncy_preview.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
 
@@ -27,9 +30,10 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
   bool _isRendering = false;
 
   String _selectionKey(KeychainSessionState session) {
-    return session.variants
+    final selections = session.variants
         .map((selection) => '${selection.frameId}:${selection.filterId}')
         .join('|');
+    return '${FrameCatalogRuntime.instance.compositionRevision}:$selections';
   }
 
   Future<void> _showReview() async {
@@ -51,13 +55,24 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
 
     final bouncy = ref.read(bouncySessionProvider);
     final generation = bouncy.generation;
+    final runtime = FrameCatalogRuntime.instance;
+    final revision = runtime.compositionRevision;
+    final mirrorPhotos = runtime.sessionMirrorPhotos;
     setState(() => _isRendering = true);
     try {
       final session = ref.read(keychainSessionProvider);
       final output = await bouncy.track(
-        _compositionService.render(session: session, photos: photoState.photos),
+        _compositionService.render(
+          session: session,
+          photos: photoState.photos,
+          mirrorPhotos: mirrorPhotos,
+        ),
       );
-      if (!mounted || generation != bouncy.generation) return;
+      if (!mounted ||
+          generation != bouncy.generation ||
+          revision != runtime.compositionRevision) {
+        return;
+      }
       setState(() {
         _reviewOutput = output;
         _reviewSelectionKey = _selectionKey(session);
@@ -89,12 +104,20 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
 
     final bouncy = ref.read(bouncySessionProvider);
     final generation = bouncy.generation;
+    final revision = FrameCatalogRuntime.instance.compositionRevision;
+    if (_reviewSelectionKey !=
+        _selectionKey(ref.read(keychainSessionProvider))) {
+      _showError('Review your updated designs before printing.');
+      return;
+    }
     setState(() => _isRendering = true);
     try {
       final mediaBundle = await bouncy.track(
         output.persist(photoState.tempPath),
       );
-      if (mounted && generation == bouncy.generation) {
+      if (mounted &&
+          generation == bouncy.generation &&
+          revision == FrameCatalogRuntime.instance.compositionRevision) {
         context.go(
           '/keychain/print',
           extra: KeychainPrintArguments(
@@ -132,9 +155,12 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(sessionMirrorPhotosProvider);
     final session = ref.watch(keychainSessionProvider);
-    if (_reviewOutput != null && _reviewSelectionKey != _selectionKey(session))
+    if (_reviewOutput != null &&
+        _reviewSelectionKey != _selectionKey(session)) {
       _reviewOutput = null;
+    }
     final currentIndex = session.designIndex;
     final selection = session.variants[currentIndex];
     final frames = KeychainFrameCatalog.allClassicFrames;
@@ -149,10 +175,18 @@ class _KeychainDesignScreenState extends ConsumerState<KeychainDesignScreen> {
       child: Column(
         children: [
           SizedBox(
-            height: 36,
+            height: 68,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                Expanded(
+                  child: MirrorPhotosSwitch(
+                    enabled:
+                        !_isRendering && !session.isReview && photos.isNotEmpty,
+                    keychain: true,
+                  ),
+                ),
+                const SizedBox(width: 24),
                 for (var index = 0; index < keychainVariantCount; index++)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6),

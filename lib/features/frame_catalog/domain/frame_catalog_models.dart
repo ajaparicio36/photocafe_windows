@@ -276,6 +276,7 @@ class FrameCatalog {
   final Set<ClassicVariant> enabledClassicVariants;
   final bool arcadeEnabled;
   final bool classicBouncyEnabled;
+  final bool mirrorPhotosByDefault;
   final String? arcadeFrameId;
   final String? warning;
   FrameCatalog({
@@ -284,6 +285,7 @@ class FrameCatalog {
     required Set<ClassicVariant> enabledClassicVariants,
     this.arcadeEnabled = false,
     this.classicBouncyEnabled = true,
+    this.mirrorPhotosByDefault = false,
     this.arcadeFrameId,
     this.warning,
   }) : templates = List.unmodifiable(templates),
@@ -326,6 +328,7 @@ class FrameCatalog {
     Set<ClassicVariant>? enabledClassicVariants,
     bool? arcadeEnabled,
     bool? classicBouncyEnabled,
+    bool? mirrorPhotosByDefault,
     String? arcadeFrameId,
     String? warning,
   }) => FrameCatalog(
@@ -335,6 +338,7 @@ class FrameCatalog {
         enabledClassicVariants ?? this.enabledClassicVariants,
     arcadeEnabled: arcadeEnabled ?? this.arcadeEnabled,
     classicBouncyEnabled: classicBouncyEnabled ?? this.classicBouncyEnabled,
+    mirrorPhotosByDefault: mirrorPhotosByDefault ?? this.mirrorPhotosByDefault,
     arcadeFrameId: arcadeFrameId ?? this.arcadeFrameId,
     warning: warning ?? this.warning,
   );
@@ -374,6 +378,7 @@ class FrameCatalog {
     'schemaVersion': 1,
     'arcadeEnabled': arcadeEnabled,
     'classicBouncyEnabled': classicBouncyEnabled,
+    'mirrorPhotosByDefault': mirrorPhotosByDefault,
     'arcadeFrameId': arcadeFrameId,
     'enabledProducts': enabledProducts.map((v) => v.name).toList(),
     'enabledClassicVariants': enabledClassicVariants
@@ -389,6 +394,9 @@ class FrameCatalog {
       );
     }
     final catalog = FrameCatalog(
+      mirrorPhotosByDefault: map.containsKey('mirrorPhotosByDefault')
+          ? jsonBool(map, 'mirrorPhotosByDefault')
+          : false,
       classicBouncyEnabled: map.containsKey('classicBouncyEnabled')
           ? jsonBool(map, 'classicBouncyEnabled')
           : true,

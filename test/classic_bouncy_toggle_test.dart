@@ -274,6 +274,20 @@ void main() {
       await mount(tester, const ClassicOrganizeScreen());
       await drainUi(tester);
       expect(find.byType(BouncyPreview), findsNothing);
+      expect(find.byKey(const ValueKey('mirror-photos')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('mirror-photos')));
+      await drainUi(tester);
+      expect(runtime.sessionMirrorPhotos, isTrue);
+      await tester.tap(find.byKey(const ValueKey('mirror-photos')));
+      await drainUi(tester);
+      expect(runtime.sessionMirrorPhotos, isFalse);
+      for (
+        var i = 0;
+        i < 8 && find.byType(PdfPreview).evaluate().isEmpty;
+        i++
+      ) {
+        await drainUi(tester);
+      }
       expect(find.byType(PdfPreview), findsOneWidget);
       expect(rasterizer.documents, isNotEmpty);
       expect(container.exists(bouncyMediaProvider), isFalse);

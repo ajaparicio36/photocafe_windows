@@ -93,6 +93,23 @@ class FrameCatalogRuntime extends ChangeNotifier {
   FrameCatalog? catalog;
   FrameCatalog? sessionCatalog;
   KioskMode? sessionMode;
+  bool _sessionMirrorPhotos = false;
+  bool get sessionMirrorPhotos => _sessionMirrorPhotos;
+
+  /// Fences asynchronous compositions, including an on/off/on sequence.
+  int compositionRevision = 0;
+
+  void setSessionMirrorPhotos(bool mirrored) {
+    if (sessionMode == null ||
+        sessionMode == KioskMode.flipbook ||
+        _sessionMirrorPhotos == mirrored) {
+      return;
+    }
+    _sessionMirrorPhotos = mirrored;
+    compositionRevision++;
+    notifyListeners();
+  }
+
   bool get sessionBouncyEnabled =>
       sessionMode == null ||
           productForMode(sessionMode!) != KioskProduct.classic
@@ -131,6 +148,9 @@ class FrameCatalogRuntime extends ChangeNotifier {
   void _acceptSession(FrameCatalog latest, KioskMode mode) {
     sessionCatalog = latest;
     sessionMode = mode;
+    _sessionMirrorPhotos =
+        mode != KioskMode.flipbook && latest.mirrorPhotosByDefault;
+    compositionRevision++;
     final classic = latest.templates.where(
       (t) =>
           t.enabled &&
@@ -149,6 +169,8 @@ class FrameCatalogRuntime extends ChangeNotifier {
   void endSession() {
     sessionCatalog = null;
     sessionMode = null;
+    _sessionMirrorPhotos = false;
+    compositionRevision++;
     FrameConstants.sessionFrames = null;
     FlipbookFrameConstants.sessionFrames = null;
     notifyListeners();

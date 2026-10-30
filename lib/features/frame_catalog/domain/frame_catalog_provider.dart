@@ -21,6 +21,15 @@ final frameCatalogProvider =
       FrameCatalogNotifier.new,
     );
 
+/// Observe the accepted customer's choice without owning the runtime singleton.
+final sessionMirrorPhotosProvider = Provider<bool>((ref) {
+  final runtime = FrameCatalogRuntime.instance;
+  void changed() => ref.invalidateSelf();
+  runtime.addListener(changed);
+  ref.onDispose(() => runtime.removeListener(changed));
+  return runtime.sessionMirrorPhotos;
+});
+
 class FrameCatalogNotifier extends AsyncNotifier<FrameCatalog> {
   Future<void> _writes = Future.value();
   late FrameCatalogRepository _repository;
@@ -118,6 +127,8 @@ class FrameCatalogNotifier extends AsyncNotifier<FrameCatalog> {
       _mutate((catalog) => catalog.copyWith(arcadeEnabled: enabled));
   Future<void> setClassicBouncyEnabled(bool enabled) =>
       _mutate((catalog) => catalog.copyWith(classicBouncyEnabled: enabled));
+  Future<void> setMirrorPhotosByDefault(bool enabled) =>
+      _mutate((catalog) => catalog.copyWith(mirrorPhotosByDefault: enabled));
   Future<void> setArcadeFrame(String id) => _mutate((catalog) {
     if (!catalog.arcadeFrames.any((frame) => frame.id == id)) {
       throw const FrameCatalogException('Choose an enabled Classic frame.');

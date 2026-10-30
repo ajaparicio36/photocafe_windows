@@ -1,4 +1,5 @@
 import 'package:photocafe_windows/features/frame_catalog/domain/frame_artwork_loader.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -16,7 +17,13 @@ class BouncyDesign {
   final FrameLayout layout;
   final Uint8List artwork;
   final String filterId;
-  const BouncyDesign(this.layout, this.artwork, this.filterId);
+  final bool mirrorPhotos;
+  const BouncyDesign(
+    this.layout,
+    this.artwork,
+    this.filterId, {
+    this.mirrorPhotos = false,
+  });
 }
 
 enum BouncyRenderQuality { preview, softCopy }
@@ -33,6 +40,7 @@ class BouncyMediaService {
   final Set<Directory> _directories = {};
   Process? _process;
   int _revision = 0;
+  int? _compositionRevision;
   bool failEncoder = false;
   String? encoder;
   final List<String> encoders;
@@ -41,7 +49,16 @@ class BouncyMediaService {
     this.encoders = const ['h264_nvenc', 'h264_qsv', 'libx264'],
   }) {
     session.cancellations.add(_cancelProcess);
+    FrameCatalogRuntime.instance.addListener(_compositionChanged);
   }
+  void _compositionChanged() {
+    if (_compositionRevision != null &&
+        _compositionRevision !=
+            FrameCatalogRuntime.instance.compositionRevision) {
+      _cancelProcess();
+    }
+  }
+
   void _cancelProcess() {
     _revision++;
     _process?.kill();
@@ -49,6 +66,7 @@ class BouncyMediaService {
 
   void dispose() {
     session.cancellations.remove(_cancelProcess);
+    FrameCatalogRuntime.instance.removeListener(_compositionChanged);
     unawaited(cancelAndDrain());
   }
 
@@ -72,6 +90,9 @@ class BouncyMediaService {
     }
     final revision = ++_revision;
     final generation = session.generation;
+    final runtime = FrameCatalogRuntime.instance;
+    _compositionRevision = runtime.compositionRevision;
+    final mirrorPhotos = runtime.sessionMirrorPhotos;
     _process?.kill();
     try {
       await _export;
@@ -107,6 +128,7 @@ class BouncyMediaService {
           layout,
           data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
           selection.filterId,
+          mirrorPhotos: mirrorPhotos,
         ),
       );
     }
@@ -129,6 +151,12 @@ class BouncyMediaService {
   }
 
   Future<String> export() {
+    if (_compositionRevision !=
+        FrameCatalogRuntime.instance.compositionRevision) {
+      return Future.error(
+        StateError('Prepare the current photo composition before exporting.'),
+      );
+    }
     if (!session.motionEnabled) {
       return Future.error(
         StateError('Bouncy previews are off for this session.'),
@@ -299,6 +327,7 @@ class BouncyMediaService {
     _frames = null;
     _exportInput = null;
     _preparation = null;
+    _compositionRevision = null;
     _export = null;
     for (final directory in _directories.toList()) {
       if (await directory.exists()) await directory.delete(recursive: true);
@@ -388,6 +417,7 @@ Future<List<Uint8List>> renderBouncyCycle(
           frame: artwork[index],
           photos: filtered,
           sourcePhotoCount: clips.length,
+          mirrorPhotos: designs[index].mirrorPhotos,
           width: tileWidth,
           height: tileHeight,
         );

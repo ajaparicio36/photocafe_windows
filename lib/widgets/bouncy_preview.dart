@@ -7,6 +7,7 @@ import 'package:photocafe_windows/features/keychain/domain/data/models/keychain_
 import 'package:photocafe_windows/features/photos/domain/data/models/photo_model.dart';
 import 'package:photocafe_windows/services/bouncy_media_service.dart';
 import 'package:photocafe_windows/services/bouncy_session.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 
 class BouncyPreview extends ConsumerStatefulWidget {
   final List<PhotoModel> photos;
@@ -37,13 +38,23 @@ class _BouncyPreviewState extends ConsumerState<BouncyPreview> {
   int _request = 0;
   bool _paused = false;
   String get _key =>
-      '${widget.photos.map((p) => '${p.captureId}:${p.index}').join('|')}:'
-      '${widget.selections.map((s) => '${s.frameId}:${s.filterId}').join('|')}:${widget.classicLayout}';
+      '${widget.photos.map((p) => '${p.captureId}:${p.index}:${p.imagePath}').join('|')}:'
+      '${widget.selections.map((s) => '${s.frameId}:${s.filterId}').join('|')}:${widget.classicLayout}:'
+      '${FrameCatalogRuntime.instance.compositionRevision}';
   String? _activeKey;
   @override
   void initState() {
     super.initState();
+    FrameCatalogRuntime.instance.addListener(_compositionChanged);
     _prepare();
+  }
+
+  void _compositionChanged() {
+    if (_activeKey != _key) {
+      setState(() {
+        unawaited(_prepare());
+      });
+    }
   }
 
   @override
@@ -83,7 +94,7 @@ class _BouncyPreviewState extends ConsumerState<BouncyPreview> {
       if (widget.archive) {
         unawaited(
           _media.export().catchError((Object error) {
-            if (mounted) {
+            if (mounted && request == _request) {
               setState(
                 () => _error =
                     'Motion export unavailable. Photos are printable. Retry in Soft Copies.',
@@ -101,6 +112,7 @@ class _BouncyPreviewState extends ConsumerState<BouncyPreview> {
   @override
   void dispose() {
     _request++;
+    FrameCatalogRuntime.instance.removeListener(_compositionChanged);
     _timer?.cancel();
     final frames = _frames;
     if (frames != null) {

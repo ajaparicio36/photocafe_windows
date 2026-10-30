@@ -1,4 +1,7 @@
 import 'package:photocafe_windows/widgets/event_design.dart';
+import 'package:photocafe_windows/widgets/mirror_photos_switch.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_provider.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -92,8 +95,15 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
     try {
       final session = ref.read(bouncySessionProvider);
       final generation = session.generation;
+      final compositionRevision =
+          FrameCatalogRuntime.instance.compositionRevision;
       final pdfBytes = await session.track(_generatePdf());
-      if (!mounted || generation != session.generation) return;
+      if (!mounted ||
+          generation != session.generation ||
+          compositionRevision !=
+              FrameCatalogRuntime.instance.compositionRevision) {
+        return;
+      }
       final printerState = ref.read(printerProvider).value;
       final isLandscape = printerState?.isLandscape ?? false;
 
@@ -102,6 +112,7 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
         extra: {'pdfBytes': pdfBytes, 'isLandscape': isLandscape},
       );
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error generating PDF: $e'),
@@ -109,15 +120,18 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
         ),
       );
     } finally {
-      setState(() {
-        _isGeneratingPdf = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isGeneratingPdf = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final photoState = ref.watch(photoProvider).value;
+    final mirrorPhotos = ref.watch(sessionMirrorPhotosProvider);
     final printer = ref.watch(printerProvider).value;
     final photos = [...?photoState?.photos]
       ..sort((a, b) => a.index.compareTo(b.index));
@@ -163,9 +177,12 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
                             flex: 5,
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(14),
-                              child: Image.file(
-                                File(photos[index].imagePath),
-                                fit: BoxFit.contain,
+                              child: Transform.flip(
+                                flipX: mirrorPhotos,
+                                child: Image.file(
+                                  File(photos[index].imagePath),
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           ),
@@ -225,6 +242,10 @@ class _ClassicOrganizeScreenState extends ConsumerState<ClassicOrganizeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  MirrorPhotosSwitch(
+                    enabled: !_isGeneratingPdf && photos.isNotEmpty,
+                  ),
+                  const SizedBox(height: 8),
                   Expanded(
                     child: frames.isEmpty
                         ? const EventMessage(

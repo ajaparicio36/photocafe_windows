@@ -1,4 +1,6 @@
 import 'package:photocafe_windows/features/frame_catalog/domain/frame_artwork_loader.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_provider.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -30,6 +32,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
     int layoutMode, // Changed from captureCount to layoutMode
     FrameLayout layout,
   ) async {
+    final mirrorPhotos = FrameCatalogRuntime.instance.sessionMirrorPhotos;
     final pdf = pw.Document();
 
     final frameImageBytes = await FrameArtworkLoader.load(
@@ -77,6 +80,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                       photoImages,
                       testImage,
                       leftPositions[i].rotationDegrees,
+                      mirrorPhotos,
                     ),
                   ),
                 ),
@@ -97,6 +101,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                       photoImages,
                       testImage,
                       rightPositions[i].rotationDegrees,
+                      mirrorPhotos,
                     ),
                   ),
                 ),
@@ -118,6 +123,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
     List<pw.MemoryImage> photoImages,
     pw.MemoryImage? testImage,
     double rotationDegrees,
+    bool mirrorPhotos,
   ) {
     pw.Widget imageWidget;
 
@@ -137,6 +143,16 @@ abstract class BaseFrameWidget extends ConsumerWidget {
       );
     }
 
+    // PDF images apply EXIF orientation themselves. Reflect the fitted photo
+    // around its center before the authored slot rotation; artwork stays put.
+    if (mirrorPhotos && (photoImages.length > index || testImage != null)) {
+      imageWidget = pw.Transform(
+        transform: Matrix4.diagonal3Values(-1, 1, 1),
+        alignment: pw.Alignment.center,
+        child: imageWidget,
+      );
+    }
+
     // Apply rotation if specified
     if (rotationDegrees != 0.0) {
       final radiansRotation = rotationDegrees * (3.14159265359 / 180.0);
@@ -153,6 +169,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
     FrameLayout layout,
     List<double> rotationsDegrees,
   ) async {
+    final mirrorPhotos = FrameCatalogRuntime.instance.sessionMirrorPhotos;
     final pdf = pw.Document();
 
     final frameImageBytes = await FrameArtworkLoader.load(
@@ -199,6 +216,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                       photoImages,
                       testImage,
                       _slotRotation(leftPositions[i], i, rotationsDegrees),
+                      mirrorPhotos,
                     ),
                   ),
                 ),
@@ -223,6 +241,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
                         layoutMode == 2 ? i + 2 : i,
                         rotationsDegrees,
                       ),
+                      mirrorPhotos,
                     ),
                   ),
                 ),
@@ -252,6 +271,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
   // Common build method for all frames
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final mirrorPhotos = ref.watch(sessionMirrorPhotosProvider);
     final photoStateAsync = ref.watch(photoProvider);
     final printerStateAsync = ref.watch(printerProvider);
 
@@ -281,6 +301,7 @@ abstract class BaseFrameWidget extends ConsumerWidget {
             }
 
             return FutureBuilder<Uint8List>(
+              key: ValueKey((frameDefinition.id, mirrorPhotos)),
               future: generatePdf(
                 photoState.photos,
                 printerState.layoutMode,

@@ -327,6 +327,28 @@ class _FrameCatalogScreenState extends ConsumerState<FrameCatalogScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           SwitchListTile(
+            key: const ValueKey('mirror-photos-by-default'),
+            contentPadding: EdgeInsets.zero,
+            title: const Text(
+              'Mirror photos by default',
+              style: TextStyle(fontSize: 19, fontWeight: FontWeight.w600),
+            ),
+            subtitle: const Text(
+              'Flip photos left to right in Classic, Arcade and Keychain. Frames stay unchanged. Applies to new sessions.',
+              style: TextStyle(fontSize: 13),
+            ),
+            value: catalog.mirrorPhotosByDefault,
+            onChanged: _busy != null
+                ? null
+                : (enabled) => _change(
+                    'mirror-photos',
+                    () => ref
+                        .read(frameCatalogProvider.notifier)
+                        .setMirrorPhotosByDefault(enabled),
+                  ),
+          ),
+          const Divider(height: 32),
+          SwitchListTile(
             key: const ValueKey('classic-bouncy-enabled'),
             contentPadding: EdgeInsets.zero,
             title: const Text(

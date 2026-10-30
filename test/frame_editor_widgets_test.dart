@@ -117,6 +117,29 @@ void main() {
     expect(find.byType(FrameEditorScreen), findsOneWidget);
   }
 
+  testWidgets(
+    'staff mirror default saves while an accepted session keeps its choice',
+    (tester) async {
+      final runtime = FrameCatalogRuntime.instance;
+      runtime.beginSession(KioskMode.classicPortrait);
+      await openCatalog(tester, const Size(1280, 800));
+      await tester.tap(find.byKey(const ValueKey('mirror-photos-by-default')));
+      await settle(tester);
+      expect(
+        container.read(frameCatalogProvider).requireValue.mirrorPhotosByDefault,
+        isTrue,
+      );
+      expect(runtime.sessionMirrorPhotos, isFalse);
+      expect(
+        (await tester.runAsync(repository.load))!.mirrorPhotosByDefault,
+        isTrue,
+      );
+      runtime.beginSession(KioskMode.keychain);
+      expect(runtime.sessionMirrorPhotos, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final size in [const Size(1280, 720), const Size(1280, 800)]) {
     testWidgets(
       'catalog and editor fit ${size.width.toInt()}x${size.height.toInt()}',

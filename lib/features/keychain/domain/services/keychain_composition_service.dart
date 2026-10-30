@@ -36,12 +36,14 @@ class _PreviewRequest {
   final String key;
   final KeychainVariantSelection selection;
   final List<PhotoModel> photos;
+  final bool mirrorPhotos;
   final Completer<Uint8List> completer = Completer<Uint8List>();
 
   _PreviewRequest({
     required this.key,
     required this.selection,
     required this.photos,
+    required this.mirrorPhotos,
   });
 }
 
@@ -163,6 +165,7 @@ class KeychainCompositionService {
   Future<KeychainRenderOutput> render({
     required KeychainSessionState session,
     required List<PhotoModel> photos,
+    bool mirrorPhotos = false,
   }) async {
     if (session.variants.length != keychainVariantCount) {
       throw StateError('Keychain sessions require exactly four variants.');
@@ -190,6 +193,7 @@ class KeychainCompositionService {
         filterIds: filterIds,
         layouts: layoutDtos,
         frameBytes: frameBytes,
+        mirrorPhotos: mirrorPhotos,
       ),
     );
     final variantPngs = rasterResult[0] as List<Uint8List>;
@@ -215,7 +219,12 @@ class KeychainCompositionService {
   Future<Uint8List> renderVariant({
     required KeychainVariantSelection selection,
     required List<PhotoModel> photos,
-  }) => renderVariantPreview(selection: selection, photos: photos);
+    bool mirrorPhotos = false,
+  }) => renderVariantPreview(
+    selection: selection,
+    photos: photos,
+    mirrorPhotos: mirrorPhotos,
+  );
 
   /// Renders one selected design from bounded photo/frame sources.
   ///
@@ -226,6 +235,7 @@ class KeychainCompositionService {
   Future<Uint8List> renderVariantPreview({
     required KeychainVariantSelection selection,
     required List<PhotoModel> photos,
+    bool mirrorPhotos = false,
   }) {
     if (_disposed) {
       return Future<Uint8List>.error(
@@ -235,7 +245,8 @@ class KeychainCompositionService {
 
     final photoSetKey = _photoSetKey(photos);
     _preparePhotoSetCache(photoSetKey, photos);
-    final key = '$photoSetKey:${selection.frameId}:${selection.filterId}';
+    final key =
+        '$photoSetKey:${selection.frameId}:${selection.filterId}:$mirrorPhotos';
     final cached = _previewPngBySelection[key];
     if (cached != null) {
       return Future<Uint8List>.value(Uint8List.fromList(cached));
@@ -259,6 +270,7 @@ class KeychainCompositionService {
       key: key,
       selection: selection,
       photos: List<PhotoModel>.from(photos),
+      mirrorPhotos: mirrorPhotos,
     );
     if (_previewInFlight != null) {
       _queuedPreview = request;
@@ -311,6 +323,7 @@ class KeychainCompositionService {
     final previewFuture = _renderPreviewNow(
       selection: request.selection,
       photos: request.photos,
+      mirrorPhotos: request.mirrorPhotos,
     );
     _previewInFlight = previewFuture;
     _previewInFlightKey = request.key;
@@ -320,6 +333,7 @@ class KeychainCompositionService {
   Future<Uint8List> _renderPreviewNow({
     required KeychainVariantSelection selection,
     required List<PhotoModel> photos,
+    required bool mirrorPhotos,
   }) async {
     final photoSetKey = _photoSetKey(photos);
     final originals = await _getOriginals(photos);
@@ -353,6 +367,7 @@ class KeychainCompositionService {
         frameAssetPath: frameAssetPath,
         frameBytes: previewFrameBytes,
         photoBytes: filteredPhotos,
+        mirrorPhotos: mirrorPhotos,
       ),
     );
   }
@@ -511,6 +526,7 @@ Future<List<Object>> _renderFinalRasterInIsolate({
   required List<String> filterIds,
   required List<List<Object>> layouts,
   required List<Uint8List> frameBytes,
+  required bool mirrorPhotos,
 }) async {
   if (filterIds.length != keychainVariantCount ||
       layouts.length != keychainVariantCount ||
@@ -532,6 +548,7 @@ Future<List<Object>> _renderFinalRasterInIsolate({
       frame: _decodeRequiredImage(frameBytes[index]),
       photos: decoded,
       filterId: filterIds[index],
+      mirrorPhotos: mirrorPhotos,
     );
     variantPngs[index] = Uint8List.fromList(img.encodePng(tile));
     img.compositeImage(
@@ -660,6 +677,7 @@ Future<Uint8List> _renderPreviewInIsolate({
   required String frameAssetPath,
   required Uint8List frameBytes,
   required List<Uint8List> photoBytes,
+  required bool mirrorPhotos,
 }) {
   final layout = FrameLayout(
     type: FrameLayoutType.values[layoutType],
@@ -673,6 +691,7 @@ Future<Uint8List> _renderPreviewInIsolate({
       layout: layout,
       frameBytes: frameBytes,
       photoBytes: photoBytes,
+      mirrorPhotos: mirrorPhotos,
     ),
   );
 }

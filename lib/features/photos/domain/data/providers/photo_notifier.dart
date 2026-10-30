@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:photocafe_windows/services/bouncy_session.dart';
 import 'package:photocafe_windows/services/bouncy_media_service.dart';
+import 'package:photocafe_windows/features/frame_catalog/domain/frame_catalog_runtime.dart';
 import 'dart:isolate';
 import 'dart:typed_data';
 
@@ -16,6 +17,8 @@ import 'package:image/image.dart' as img;
 class PhotoNotifier extends AsyncNotifier<PhotoState> {
   // Path to the saved frame/photostrip PNG in the photos temp directory
   String? _savedFramePath;
+  Future<void> _mirrorExportQueue = Future.value();
+  final Map<int, String> _mirroredDownloadSources = {};
 
   @override
   Future<PhotoState> build() async {
@@ -388,6 +391,7 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
       ),
     );
     _savedFramePath = null;
+    _mirroredDownloadSources.clear();
     final owned = Directory(currentState.tempPath);
     if (p.basename(owned.path).startsWith('bouncy_photos_') &&
         await owned.exists()) {
@@ -519,29 +523,92 @@ class PhotoNotifier extends AsyncNotifier<PhotoState> {
     }
   }
 
-  Future<List<File>> getAllMediaFiles() async {
+  Future<List<File>> getAllMediaFiles() {
+    final session = ref.read(bouncySessionProvider);
+    final runtime = FrameCatalogRuntime.instance;
     final currentState = state.value;
     if (currentState == null) {
-      throw Exception("State is not available to get media files");
+      return Future.error(
+        StateError('State is not available to get media files'),
+      );
     }
-
-    final mediaFiles = <File>[];
-
-    // Add all photo files
-    for (final photo in currentState.photos) {
-      final file = File(photo.originalPath ?? photo.imagePath);
-      if (await file.exists()) {
-        mediaFiles.add(file);
-        print('Added photo file: ${photo.imagePath}');
-      } else {
-        print('Photo file not found: ${photo.imagePath}');
+    final generation = session.generation;
+    final revision = runtime.compositionRevision;
+    final mirror = runtime.sessionMirrorPhotos;
+    final identity = _downloadPhotoIdentity(currentState.photos);
+    void checkCurrent() {
+      if (generation != session.generation ||
+          revision != runtime.compositionRevision ||
+          currentState.tempPath != state.value?.tempPath ||
+          identity != _downloadPhotoIdentity(state.value?.photos ?? [])) {
+        throw StateError('Photo downloads changed. Prepare soft copies again.');
       }
     }
 
-    print('Total media files: ${mediaFiles.length}');
-    return mediaFiles;
+    final work = _mirrorExportQueue.then((_) async {
+      checkCurrent();
+      final mediaFiles = <File>[];
+      for (final photo in currentState.photos) {
+        final source = File(photo.originalPath ?? photo.imagePath);
+        if (!await source.exists()) continue;
+        checkCurrent();
+        if (!mirror) {
+          mediaFiles.add(source);
+          continue;
+        }
+        // Four fixed session-owned destinations bound disk usage across retries,
+        // reorder and retakes. Never overwrite or filter a camera original.
+        final directory = Directory(
+          p.join(currentState.tempPath, 'mirrored_downloads'),
+        );
+        final output = File(
+          p.join(directory.path, 'photo_${photo.index + 1}.jpg'),
+        );
+        if (_mirroredDownloadSources[photo.index] != source.path ||
+            !await output.exists()) {
+          final bytes = await source.readAsBytes();
+          checkCurrent();
+          final mirrored = await _mirrorDownloadAsync(bytes);
+          checkCurrent();
+          await directory.create(recursive: true);
+          await output.writeAsBytes(mirrored, flush: true);
+          checkCurrent();
+          _mirroredDownloadSources[photo.index] = source.path;
+        }
+        mediaFiles.add(output);
+      }
+      checkCurrent();
+      return mediaFiles;
+    });
+    _mirrorExportQueue = work.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace __) {},
+    );
+    return session.track(work);
   }
 }
+
+String _downloadPhotoIdentity(List<PhotoModel> photos) => photos
+    .map(
+      (photo) =>
+          '${photo.captureId}:${photo.index}:${photo.originalPath ?? photo.imagePath}',
+    )
+    .join('|');
+
+List<int> _mirrorDownloadJpeg(Uint8List bytes) {
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null) {
+    throw StateError('Unable to decode a photo for soft copies.');
+  }
+  final upright = img.bakeOrientation(decoded);
+  img.flipHorizontal(upright);
+  // Match the existing full-resolution filtered-photo export quality.
+  return img.encodeJpg(upright, quality: 92);
+}
+
+// A top-level isolate boundary avoids capturing the notifier/queued Future.
+Future<List<int>> _mirrorDownloadAsync(Uint8List bytes) =>
+    Isolate.run(() => _mirrorDownloadJpeg(bytes));
 
 final photoProvider = AsyncNotifierProvider<PhotoNotifier, PhotoState>(
   PhotoNotifier.new,
